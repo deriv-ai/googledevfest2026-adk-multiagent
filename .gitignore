@@ -1,0 +1,34 @@
+# --- secrets / local env ------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- python -------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- node / SPA ---------------------------------------------------------------
+node_modules/
+web/dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# --- container data (named volumes live in the engine, but just in case) -----
+pgdata/
+.data/
+*.log
+
+# --- OS / editors -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
