@@ -34,7 +34,10 @@ RUN uv sync --frozen --no-dev \
 COPY seed ./seed
 COPY --from=web /web/dist ./static
 
-RUN useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin nimbus \
+# The base image's pip is never used (uv installs everything) and carries its own
+# vendored copies of urllib3/msgpack that trivy flags; drop it from the runtime image.
+RUN /usr/local/bin/python3 -m pip uninstall -y --root-user-action=ignore pip \
+    && useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin nimbus \
     && chown -R nimbus /app/src
 USER nimbus
 

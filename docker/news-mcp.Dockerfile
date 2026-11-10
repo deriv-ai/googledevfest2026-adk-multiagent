@@ -19,7 +19,10 @@ RUN uv sync --frozen --only-group news --no-install-project \
 
 COPY news_mcp ./news_mcp
 
-RUN useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin newsmcp
+# The base image's pip is never used (uv installs everything) and carries its own
+# vendored copies of urllib3/msgpack that trivy flags; drop it from the runtime image.
+RUN /usr/local/bin/python3 -m pip uninstall -y --root-user-action=ignore pip \
+    && useradd --system --uid 10001 --home-dir /app --shell /usr/sbin/nologin newsmcp
 USER newsmcp
 
 ENV NEWS_MCP_HOST=0.0.0.0 \

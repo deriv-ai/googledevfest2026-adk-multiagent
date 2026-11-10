@@ -26,7 +26,8 @@ ENV_MSG := add your LITELLM_GEMINI_API_KEY (or GEMINI_API_KEY) to .env, then re-
 .DEFAULT_GOAL := help
 .PHONY: help check-env up down logs ps reset build \
         podman-up podman-down podman-logs podman-ps podman-reset podman-build \
-        test data seed-tools dev
+        test data seed-tools dev update-pkg \
+        trivy-scan trivy-config trivy-image trivy-patch trivy-verify trivy-audit
 
 help: ## Show this help
 	@echo "Nimbus Markets ADK demo - all data is synthetic."
@@ -116,3 +117,53 @@ dev: ## db + news-mcp in containers; run the API (uv) and the SPA (vite) locally
 	@echo "  NEWS_MCP_URL=http://localhost:8001/mcp STARTER_TOOLS_PATH=seed/starter_tools.yaml \\"
 	@echo "    uv run --env-file .env uvicorn devfest_agents.api.main:app --reload --port 8080"
 	@echo "  cd web && npm install && npm run dev      # http://localhost:5173"
+
+update-pkg: ## Pin a package to a version: make update-pkg PKG=litellm VERSION=1.108.1
+ifndef PKG
+	$(error PKG is required, e.g. make update-pkg PKG=litellm VERSION=1.108.1)
+endif
+ifndef VERSION
+	$(error VERSION is required, e.g. make update-pkg PKG=litellm VERSION=1.108.1)
+endif
+	@command -v $(or $(UV),uv) >/dev/null 2>&1 || { echo "uv not found: install it with 'brew install uv' (or see https://docs.astral.sh/uv/), then re-run"; exit 1; }
+	$(or $(UV),uv) add "$(PKG)==$(VERSION)"
+
+# --- security: trivy ------------------------------------------------------------------
+# Scans BOTH lockfiles: uv.lock (Python) and web/package-lock.json (SPA).
+# Needs trivy (https://trivy.dev, e.g. `brew install trivy`).
+TRIVY_SEVERITY ?= HIGH,CRITICAL
+TRIVY_SKIP     := --skip-dirs web/node_modules --skip-dirs .venv --skip-dirs .claude
+TRIVY_IMAGES   := nimbus-app nimbus-news-mcp
+
+trivy-scan: ## Fail on fixable HIGH/CRITICAL vulns in uv.lock + web/package-lock.json
+	trivy fs --scanners vuln --severity $(TRIVY_SEVERITY) --ignore-unfixed --exit-code 1 $(TRIVY_SKIP) .
+
+trivy-config: ## Report Dockerfile / compose misconfigurations (report only, never fails)
+	trivy config --severity $(TRIVY_SEVERITY) --exit-code 0 .
+
+trivy-image: ## Scan the built container images (OS + app packages; ENGINE=podman for podman)
+	@for img in $(TRIVY_IMAGES); do \
+		echo "== $$img"; \
+		$(ENGINE) save -o .trivy-$$img.tar $$img:latest && \
+		trivy image --input .trivy-$$img.tar --severity $(TRIVY_SEVERITY) --ignore-unfixed --exit-code 0 --quiet; \
+		rm -f .trivy-$$img.tar; \
+	done
+
+# Upgrade every package trivy has a fix for, pins and majors included. Anything that
+# can only be fixed by downgrading another package is rolled back and reported
+# (see scripts/trivy_patch.py).
+trivy-patch: ## Upgrade every fixable vulnerable package (rolls back fixes that would downgrade others)
+	cd web && npm audit fix || true
+	UV="$(or $(UV),uv)" $(PYTHON) scripts/trivy_patch.py
+
+# A major upgrade can still break code at compile time; this is what catches it.
+trivy-verify: ## Python tests + SPA typecheck/tests/build, after an upgrade
+	$(PYTEST) -q
+	cd web && npm run typecheck && npm test && npm run build
+
+# The leading `-` lets a partly-failed patch still run verify + scan, so whatever is
+# left shows up in the scan instead of hiding behind the patch error.
+trivy-audit: ## Patch everything fixable, verify nothing broke, then fail if HIGH/CRITICAL remains
+	-$(MAKE) trivy-patch
+	$(MAKE) trivy-verify
+	$(MAKE) trivy-scan

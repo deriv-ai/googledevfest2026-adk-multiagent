@@ -119,6 +119,20 @@ make dev        # db + news-mcp in containers; prints the commands to run the AP
 make test       # pytest + web typecheck
 make data       # regenerate the synthetic CSVs, then `make reset` to load them
 make seed-tools # force re-upsert the starter tools (ENGINE=podman for podman)
+make update-pkg PKG=litellm VERSION=1.108.1   # pin a Python package (uv add PKG==VERSION)
+```
+
+### Security scanning (trivy)
+
+Needs [trivy](https://trivy.dev) (`brew install trivy`).
+
+```bash
+make trivy-scan    # fail on fixable HIGH/CRITICAL vulns in uv.lock + web/package-lock.json
+make trivy-patch   # upgrade every fixable package; rolls back any fix that would downgrade another package
+make trivy-verify  # pytest + SPA typecheck/tests/build (catches breaking upgrades)
+make trivy-audit   # patch -> verify -> scan, in one go
+make trivy-image   # scan the built images too (ENGINE=podman for podman)
+make trivy-config  # Dockerfile / compose misconfiguration report
 ```
 
 The database init scripts only run when the Postgres volume is empty. After changing `db/init` or

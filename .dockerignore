@@ -20,3 +20,4 @@ db
 docs
 tests
 scripts
+.trivy-*.tar
