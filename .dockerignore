@@ -1,0 +1,23 @@
+# never send secrets, local envs or build output to the build context
+.env
+.env.*
+!.env.example
+.git
+.venv
+venv
+**/node_modules
+web/dist
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.DS_Store
+.idea
+.vscode
+# not needed inside images (db/ is bind-mounted into the postgres container)
+db
+docs
+tests
+scripts
+.trivy-*.tar

@@ -1,0 +1,17 @@
+symbol,name,asset_class
+EURUSD,Euro / US Dollar,forex
+GBPUSD,British Pound / US Dollar,forex
+USDJPY,US Dollar / Japanese Yen,forex
+AUDUSD,Australian Dollar / US Dollar,forex
+USDCAD,US Dollar / Canadian Dollar,forex
+EURGBP,Euro / British Pound,forex
+BTCUSD,Bitcoin,crypto
+ETHUSD,Ether,crypto
+XAUUSD,Gold,commodities
+XAGUSD,Silver,commodities
+USOIL,WTI Crude Oil,commodities
+US100,US Tech 100 Index,indices
+US500,US 500 Index,indices
+GER40,Germany 40 Index,indices
+UK100,UK 100 Index,indices
+JP225,Japan 225 Index,indices

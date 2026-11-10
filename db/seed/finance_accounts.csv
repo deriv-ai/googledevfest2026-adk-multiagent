@@ -1,0 +1,25 @@
+account_code,account_name,account_type,category
+1000,Cash at bank,asset,Cash
+1100,Segregated client money,asset,Client money
+1200,Receivables from liquidity providers,asset,Receivables
+2000,Client balances payable,liability,Client liabilities
+2100,Accrued expenses,liability,Accruals
+3000,Share capital,equity,Share capital
+3100,Retained earnings,equity,Retained earnings
+4100,Trading commission revenue,revenue,Trading commission
+4200,Spread revenue,revenue,Spread revenue
+4300,Nimbus Pro subscription fees,revenue,Subscription fees
+4400,Interest income on client funds,revenue,Interest income
+5100,Salaries and wages,expense,Staff costs
+5110,Bonuses and incentives,expense,Staff costs
+5200,Performance marketing,expense,Marketing
+5210,Brand and events,expense,Marketing
+5220,Introducing-partner commissions,expense,Marketing
+5300,Cloud hosting,expense,Technology
+5310,Software licences,expense,Technology
+5320,Market data feeds,expense,Technology
+5400,Rent and utilities,expense,Office & admin
+5410,Travel and general admin,expense,Office & admin
+5500,Payment processing fees,expense,Payment processing
+5600,Legal and compliance fees,expense,Professional fees
+5610,Audit and accounting fees,expense,Professional fees
