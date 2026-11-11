@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, MessageSquarePlus, Square, Waypoints } from "@/components/icons";
-import { toast } from "sonner";
 import { endpoints, streamChat } from "@/api/client";
 import { useChatExamples, useGraph } from "@/api/hooks";
 import type { ChatEvent } from "@/api/types";
-import { LlmKeyCallout } from "@/components/HealthChips";
+import { LlmKeyCallout } from "@/components/LlmKeyCallout";
 import { Markdown } from "@/components/Markdown";
+import { SplitView } from "@/components/SplitView";
 import { Button, PRESS, Skeleton } from "@/components/ui";
 import { agentMeta, DEFAULT_GRAPH, toneColor } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
@@ -48,7 +48,11 @@ export default function ChatPage() {
       const onEvent = (ev: ChatEvent) => {
         if (ev.type === "answer" || ev.type === "error") finished = true;
         patchMessage(asst.id, (m) => {
+          // Answer text streams in; it isn't part of the route, so it stays out of `events`.
+          if (ev.type === "answer_delta") return { ...m, text: m.text + ev.text };
           const events = [...(m.events ?? []), ev];
+          // Text the main agent wrote before handing off is a preamble; the answer comes after.
+          if (ev.type === "tool_call" && ev.agent === "main_agent") return { ...m, events, text: "" };
           if (ev.type === "answer") return { ...m, events, text: ev.text, status: "done", elapsedMs: ev.elapsed_ms ?? null };
           if (ev.type === "error") return { ...m, events, status: "error", error: ev.message };
           return { ...m, events };
@@ -78,7 +82,6 @@ export default function ChatPage() {
     } catch {
       /* the old session simply expires server-side */
     }
-    toast.success("Started a new conversation");
   };
 
   // ---- route shown on the right -------------------------------------------------------------
@@ -112,8 +115,11 @@ export default function ChatPage() {
   const firstTs = selectedEvents[0]?.ts ?? selected?.createdAt ?? null;
 
   return (
-    <div className="grid h-full grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(340px,0.8fr)_minmax(0,1.25fr)] lg:overflow-hidden">
-      <section className="flex min-h-[70dvh] min-w-0 flex-col border-border lg:min-h-0 lg:border-r" aria-label="Conversation">
+    <SplitView
+      storageKey="nimbus.routePane"
+      rightLabel="Agent route"
+      left={
+        <section className="flex min-h-0 flex-1 flex-col" aria-label="Conversation">
         <ChatHeader onNew={newChat} disabled={!transcript.messages.length && !streamingId} />
         <TranscriptView
           messages={transcript.messages}
@@ -126,8 +132,9 @@ export default function ChatPage() {
           onExample={send}
         />
         <Composer onSend={send} onStop={stop} streaming={!!streamingId} showExamples={transcript.messages.length > 0} onExample={send} />
-      </section>
-      <section className="h-[860px] min-w-0 border-t border-border bg-card lg:h-auto lg:min-h-0 lg:border-t-0" aria-label="Agent route">
+        </section>
+      }
+      right={(collapse) => (
         <RoutePanel
           graph={graph}
           state={routeState}
@@ -138,9 +145,10 @@ export default function ChatPage() {
           onReplay={() => selected && setReplay({ id: selected.id, upto: 0 })}
           onStopReplay={() => setReplay(null)}
           caption={question}
+          onCollapse={collapse}
         />
-      </section>
-    </div>
+      )}
+    />
   );
 }
 
@@ -290,7 +298,9 @@ function TranscriptView({
                   {m.status === "done" ? <RouteChips m={m} /> : null}
                   <span className="ml-auto shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">{m.id === selectedId ? "showing route" : "show route"}</span>
                 </div>
-                {m.status === "streaming" ? (
+                {m.status === "streaming" && m.text ? (
+                  <Markdown>{m.text}</Markdown>
+                ) : m.status === "streaming" ? (
                   <div className="flex items-center gap-1.5 py-1.5 text-muted-foreground" aria-label="Agents are working">
                     <span className="typing-dot size-1.5 rounded-full bg-current" />
                     <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:150ms]" />

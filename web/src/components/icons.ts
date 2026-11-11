@@ -6,6 +6,7 @@ export {
   ArrowClockwise as RefreshCw,
   ArrowElbowDownRight as CornerDownRight,
   ArrowLeft,
+  ArrowLineRight as PanelRightClose,
   ArrowRight,
   ArrowSquareOut as ExternalLink,
   ArrowUp,

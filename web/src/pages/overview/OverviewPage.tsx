@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Database, MessagesSquare, MousePointerClick, Plus } from "@/components/icons";
 import { useGraph } from "@/api/hooks";
-import { HealthChips, LlmKeyCallout } from "@/components/HealthChips";
+import { LlmKeyCallout } from "@/components/LlmKeyCallout";
 import { Panel } from "@/components/ui";
 import { ARCH_NODES, ArchitectureGraph, iconStyle, pendingNodes, WORKSHOP_NOTE } from "@/graph/ArchitectureGraph";
 
@@ -29,7 +29,6 @@ export default function OverviewPage() {
             A main agent, an orchestrator and specialist agents built with Google ADK. Finance and trading tools live in a database table, so you can add one from the browser and the agents use it on the next question. The marketing agent is yours to build in the workshop. All of the data is synthetic.
           </p>
         </div>
-        <HealthChips />
       </header>
 
       <LlmKeyCallout className="mb-6" />

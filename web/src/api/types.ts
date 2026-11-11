@@ -94,6 +94,12 @@ export interface AnswerEvent extends EventBase {
   route?: string[];
   elapsed_ms?: number;
 }
+/** The next chunk of the main agent's answer, as the model writes it. */
+export interface AnswerDeltaEvent {
+  type: "answer_delta";
+  text: string;
+  ts?: number;
+}
 export interface ErrorEvent extends EventBase {
   type: "error";
   message: string;
@@ -105,6 +111,7 @@ export type ChatEvent =
   | AgentEndEvent
   | ToolCallEvent
   | ToolResultEvent
+  | AnswerDeltaEvent
   | AnswerEvent
   | ErrorEvent;
 

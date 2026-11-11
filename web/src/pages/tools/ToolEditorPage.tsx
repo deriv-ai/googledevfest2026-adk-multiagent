@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { EditorView } from "@codemirror/view";
 import { AlertTriangle, ArrowLeft, CheckCircle2, CircleDashed, Database, FileText, FlaskConical, Save } from "@/components/icons";
-import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { useSaveTool, useSchema, useTestTool, useTool } from "@/api/hooks";
 import { isSqlResult, type ToolAgent, type ToolSpec, type ToolTestResponse, type ToolType } from "@/api/types";
@@ -135,13 +134,11 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
     setSaveErrors([]);
     saveMut.mutate(spec, {
       onSuccess: (t) => {
-        toast.success(editName ? `Saved ${spec.name}` : `Created ${spec.name}`, { description: `The ${spec.agent} agent will use it from the next question.` });
         navigate(`/tools/${encodeURIComponent(t?.name ?? spec.name)}`);
       },
       onError: (e) => {
         const errs = e instanceof ApiError ? e.errors : [];
         setSaveErrors([e.message, ...errs]);
-        toast.error(`Couldn't save: ${e.message}`);
       },
     });
   };

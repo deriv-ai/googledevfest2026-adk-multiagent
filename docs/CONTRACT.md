@@ -212,12 +212,14 @@ Each frame: `data: <json>\n\n`; keepalive comments `: ping\n\n`. Event JSON (`ts
 {"type":"agent_end","agent":"orchestrator","invocation_id":"...","ms":1234}
 {"type":"tool_call","agent":"orchestrator","tool":"trading_agent","call_id":"c1","args":{"request":"..."},"kind":"agent"}   // kind: agent | sql | factual | function
 {"type":"tool_result","agent":"orchestrator","tool":"trading_agent","call_id":"c1","ms":2100,"kind":"agent","ok":true,"row_count":null,"error":null,"preview":"first ~300 chars / rows"}
+{"type":"answer_delta","text":"next chunk of the main agent's answer"}
 {"type":"answer","text":"markdown","route":["main_agent","orchestrator","trading_agent","trading_top_instruments"],"elapsed_ms":5400}
 {"type":"error","message":"..."}
 ```
 A `tool_call` with `kind:"agent"` is a delegation edge from `agent` → `tool`. Others are leaf tool nodes under `agent`
 (`function` = Python tool, labelled "Python" in the route panel).
 Parallel fan-out = several `tool_call`s before their `tool_result`s.
+`answer_delta` streams the main agent's answer as the model writes it (ADK SSE streaming); `answer` then carries the full text. Agents behind an `AgentTool` always run unary.
 - `POST /api/chat/reset` body `{"conversation_id"}` → `{"ok":true}`
 - `GET /api/chat/examples` → `[{"label":"Finance","prompt":"..."}, ...]` (the list is `EXAMPLES` in `api/routes_chat.py`;
   it includes Marketing and cross-agent prompts that need the marketing agent)

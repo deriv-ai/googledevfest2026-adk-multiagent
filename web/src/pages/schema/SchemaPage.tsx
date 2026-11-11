@@ -117,7 +117,7 @@ function TableCard({ schema, table, onJump }: { schema: SchemaName; table: Schem
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground tabular-nums">{formatCount(table.row_count)} rows</span>
-          <CopyButton text={snippet} label="Copy SELECT" toastMessage={`SELECT for ${schema}.${table.name} copied`} />
+          <CopyButton text={snippet} label="Copy SELECT" />
         </div>
       </div>
       <div className="overflow-x-auto border-t border-border">

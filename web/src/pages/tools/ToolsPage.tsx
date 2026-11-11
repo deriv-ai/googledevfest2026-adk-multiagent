@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle, Plus, Search, Wrench } from "@/components/icons";
-import { toast } from "sonner";
 import { useSetToolEnabled, useTools } from "@/api/hooks";
 import type { Tool, ToolAgent } from "@/api/types";
 import { ToolTypeBadge } from "@/components/Badges";
@@ -154,6 +153,9 @@ function ToolRow({ tool }: { tool: Tool }) {
         </div>
         <div className={cn("mt-1 text-sm font-medium", !tool.enabled && "text-foreground/70")}>{tool.title}</div>
         <p className="mt-0.5 line-clamp-2 max-w-[90ch] text-[13px] text-muted-foreground">{tool.description}</p>
+        {toggle.isError && toggle.variables?.name === tool.name ? (
+          <p className="mt-1 text-xs text-danger">Couldn't update {tool.name}: {toggle.error.message}</p>
+        ) : null}
       </div>
       <div className="hidden w-44 shrink-0 text-right text-xs leading-relaxed sm:block">
         {run ? (
@@ -174,13 +176,7 @@ function ToolRow({ tool }: { tool: Tool }) {
           label={tool.enabled ? `Disable ${tool.name}` : `Enable ${tool.name}`}
           disabled={toggle.isPending && toggle.variables?.name === tool.name}
           onChange={(enabled) =>
-            toggle.mutate(
-              { name: tool.name, enabled },
-              {
-                onSuccess: () => toast.success(`${tool.name} ${enabled ? "enabled" : "disabled"}. Agents see it on the next question.`),
-                onError: (e) => toast.error(`Couldn't update ${tool.name}: ${e.message}`),
-              },
-            )
+            toggle.mutate({ name: tool.name, enabled })
           }
         />
       </div>

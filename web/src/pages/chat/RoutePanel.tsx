@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Loader2, Play, Square, Workflow } from "@/components/icons";
+import { AlertTriangle, Loader2, PanelRightClose, Play, Square, Workflow } from "@/components/icons";
 import type { Graph } from "@/api/types";
 import { RouteGraph } from "@/graph/RouteGraph";
 import { Button } from "@/components/ui";
@@ -29,9 +29,11 @@ export interface RoutePanelProps {
   onReplay: () => void;
   onStopReplay: () => void;
   caption: string | null;
+  /** Collapse the panel (large screens only). */
+  onCollapse?: () => void;
 }
 
-export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay, onReplay, onStopReplay, caption }: RoutePanelProps) {
+export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay, onReplay, onStopReplay, caption, onCollapse }: RoutePanelProps) {
   const elapsed = useTicker(live, liveSince);
   const working = activeAgents(state).filter((a) => a !== "main_agent" || activeAgents(state).length === 1);
   const groups = parallelGroups(state.steps);
@@ -85,6 +87,11 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
             <Play className="size-3.5" aria-hidden /> Replay
           </Button>
         )}
+        {onCollapse ? (
+          <Button size="icon" variant="ghost" onClick={onCollapse} className="hidden lg:inline-flex" aria-label="Hide agent route" title="Hide agent route">
+            <PanelRightClose className="size-4" aria-hidden />
+          </Button>
+        ) : null}
       </div>
       <div className="flex items-center gap-4 px-5 pt-3 pb-1 text-xs text-muted-foreground">
         <span className="min-w-0 flex-1 truncate">{caption ? <>Route for: “{caption}”</> : "No question selected"}</span>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Pencil, Trash2 } from "@/components/icons";
-import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { useDeleteTool, useSetToolEnabled, useTool } from "@/api/hooks";
 import type { ToolParam, ToolRun } from "@/api/types";
@@ -63,14 +62,12 @@ export default function ToolDetailPage() {
               label={tool.enabled ? "Disable tool" : "Enable tool"}
               disabled={toggle.isPending}
               onChange={(enabled) =>
-                toggle.mutate(
-                  { name: tool.name, enabled },
-                  { onSuccess: () => toast.success(enabled ? "Enabled" : "Disabled"), onError: (e) => toast.error(e.message) },
-                )
+                toggle.mutate({ name: tool.name, enabled })
               }
             />
             {tool.enabled ? "Enabled" : "Disabled"}
           </label>
+          {toggle.isError ? <span className="text-xs text-danger">Couldn't update: {toggle.error.message}</span> : null}
           <Link to={`/tools/${encodeURIComponent(tool.name)}/edit`}>
             <Button variant="outline">
               <Pencil className="size-4" aria-hidden /> Edit
@@ -112,17 +109,18 @@ export default function ToolDetailPage() {
       <ConfirmDialog
         open={confirm}
         title={`Delete ${tool.name}?`}
-        body={<>The {tool.agent} agent loses this tool on its next question. This can't be undone; disable it instead if you might want it back.</>}
+        body={
+          <>
+            The {tool.agent} agent loses this tool on its next question. This can't be undone; disable it instead if you might want it back.
+            {del.isError ? <span className="mt-2 block text-danger">Couldn't delete: {del.error.message}</span> : null}
+          </>
+        }
         confirmLabel="Delete tool"
         busy={del.isPending}
         onClose={() => setConfirm(false)}
         onConfirm={() =>
           del.mutate(tool.name, {
-            onSuccess: () => {
-              toast.success(`Deleted ${tool.name}`);
-              navigate("/tools");
-            },
-            onError: (e) => toast.error(`Couldn't delete: ${e.message}`),
+            onSuccess: () => navigate("/tools"),
           })
         }
       />

@@ -3,7 +3,10 @@
 ``ask_stream()`` runs a turn as its own asyncio task (with a TraceSink set in
 that task's context) and yields contract events as they arrive:
 
-    start -> agent_start / tool_call / tool_result / agent_end ... -> answer | error
+    start -> agent_start / tool_call / tool_result / agent_end / answer_delta ... -> answer | error
+
+answer_delta carries the next chunk of the main agent's answer as the model writes
+it (ADK SSE streaming); answer then carries the whole text.
 
 plus ``{"type": "ping"}`` keepalives while nothing else happens. If the turn
 fails, the session is rolled back to its state before the turn so the next
@@ -20,6 +23,7 @@ import time
 from collections.abc import AsyncIterator
 from typing import Any
 
+from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
@@ -32,6 +36,8 @@ logger = logging.getLogger(__name__)
 APP_NAME = "nimbus"
 USER_ID = "web"
 KEEPALIVE_SECONDS = 15.0
+# Stream the main agent's tokens. Agents behind an AgentTool still run unary (ADK forces it).
+STREAMING = RunConfig(streaming_mode=StreamingMode.SSE)
 
 MISSING_KEY_MESSAGE = (
     "No LLM key is configured. Add LITELLM_GEMINI_API_KEY or GEMINI_API_KEY to .env "
@@ -106,10 +112,13 @@ class AgentRuntime:
             try:
                 message = types.Content(role="user", parts=[types.Part(text=text)])
                 async for event in self.runner.run_async(user_id=USER_ID, session_id=conversation_id,
-                                                         new_message=message):
+                                                         new_message=message, run_config=STREAMING):
                     if event.author == self.root_agent.name and event.content and event.content.parts:
                         texts = [p.text for p in event.content.parts if p.text and not p.thought]
-                        if texts and event.is_final_response():
+                        sink = tracing.current_sink()
+                        if texts and event.partial and sink is not None:
+                            sink.emit({"type": "answer_delta", "text": "".join(texts)})
+                        elif texts and event.is_final_response():
                             final_text = "\n".join(texts)
                     if event.error_message and not final_text:
                         logger.warning("Model error event: %s", event.error_code or "error")

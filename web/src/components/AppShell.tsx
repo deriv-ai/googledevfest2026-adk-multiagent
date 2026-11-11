@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Database, LayoutGrid, MessagesSquare, PanelLeftClose, PanelLeftOpen, Wrench } from "@/components/icons";
-import { useHealth } from "@/api/hooks";
 import { ThemeToggle } from "./ThemeToggle";
 import { PRESS } from "./ui";
 import { cn } from "@/lib/utils";
@@ -24,18 +23,6 @@ export function BrandMark({ className }: { className?: string }) {
       <circle cx="23.5" cy="22" r="3.2" fill="#fff" />
       <path d="M16 12.7v4.3M16 17l-6 3.2M16 17l6 3.2" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
     </svg>
-  );
-}
-
-function HealthDot({ collapsed }: { collapsed: boolean }) {
-  const { data, isError } = useHealth();
-  const bad = isError || data?.db === "error" || data?.llm_key === "missing";
-  const label = isError ? "API unreachable" : !data ? "Checking…" : bad ? (data.llm_key === "missing" ? "LLM key missing" : "Degraded") : "All systems go";
-  return (
-    <NavLink to="/" className={cn("flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground", collapsed && "justify-center")} title={label}>
-      <span className={cn("size-2 shrink-0 rounded-full", !data && !isError ? "bg-input" : bad ? "bg-danger" : "bg-success")} aria-hidden />
-      {collapsed ? <span className="sr-only">{label}</span> : label}
-    </NavLink>
   );
 }
 
@@ -93,7 +80,6 @@ export function AppShell() {
           ))}
         </nav>
         <div className={cn("flex flex-col gap-1.5 p-3", collapsed && "items-center")}>
-          <HealthDot collapsed={collapsed} />
           <div className={cn("flex items-center justify-between gap-2", collapsed && "flex-col")}>
             {collapsed ? <ThemeToggle compact /> : <ThemeToggle />}
             <button
