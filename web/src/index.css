@@ -126,8 +126,8 @@
   --color-agent-marketing: hsl(var(--agent-marketing));
   --color-agent-other: hsl(var(--agent-other));
 
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -163,7 +163,6 @@
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.55;
-    font-feature-settings: "cv05", "cv08", "cv11", "ss03";
     -webkit-font-smoothing: antialiased;
   }
   ::selection {
