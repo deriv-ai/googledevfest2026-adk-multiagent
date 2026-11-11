@@ -40,9 +40,9 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-3">
+      <div className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-2.5">
         <div className="flex items-center gap-2">
-          <Workflow className="size-[18px] text-muted-foreground" aria-hidden />
+          <Workflow className="size-4 text-muted-foreground" aria-hidden />
           <h2 className="text-[15px] font-semibold">Agent route</h2>
         </div>
         <div className="flex min-w-0 flex-1 items-center gap-2 text-[13px]" aria-live="polite">
@@ -87,7 +87,7 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
           </Button>
         )}
       </div>
-      <div className="flex items-center gap-4 border-b border-border bg-muted/40 px-5 py-1.5 text-[12.5px] text-muted-foreground">
+      <div className="flex items-center gap-4 px-5 pt-3 pb-1 text-xs text-muted-foreground">
         <span className="min-w-0 flex-1 truncate">{caption ? <>Route for: “{caption}”</> : "No question selected"}</span>
         <Legend />
       </div>
@@ -98,7 +98,7 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
 
       <div className="min-h-[140px] flex-1 overflow-y-auto px-3 py-3">
         {state.error ? (
-          <div role="alert" className="mx-2 mb-3 flex gap-2.5 rounded-lg border border-danger/30 bg-danger/8 p-3 text-sm">
+          <div role="alert" className="mx-2 mb-3 flex gap-2.5 rounded-lg border border-danger/25 bg-danger/8 p-3 text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
             <div>
               <div className="font-semibold text-danger">The agents hit an error</div>
@@ -131,10 +131,10 @@ function Legend() {
     ["marketing", "Marketing"],
   ];
   return (
-    <div className="hidden shrink-0 gap-x-3 text-[11.5px] xl:flex" aria-label="Agent colours">
+    <div className="hidden shrink-0 gap-x-3 text-[11px] xl:flex" aria-label="Agent colours">
       {items.map(([tone, label]) => (
         <span key={tone} className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full" style={{ background: `hsl(var(--agent-${tone}))` }} />
+          <span className="size-1.5 rounded-full" style={{ background: `hsl(var(--agent-${tone}))` }} />
           {label}
         </span>
       ))}

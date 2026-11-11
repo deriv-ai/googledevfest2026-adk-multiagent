@@ -22,10 +22,10 @@ export default function OverviewPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 lg:px-10">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-5">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0">
-          <h1 className="text-[30px] leading-tight font-semibold tracking-tight">Nimbus Markets assistant</h1>
-          <p className="mt-2 max-w-[68ch] text-[16px] text-muted-foreground">
+          <h1 className="text-2xl leading-tight font-semibold tracking-tight">Nimbus Markets assistant</h1>
+          <p className="mt-2 max-w-[68ch] text-[15px] text-muted-foreground">
             A main agent, an orchestrator and specialist agents built with Google ADK. Finance and trading tools live in a database table, so you can add one from the browser and the agents use it on the next question. The marketing agent is yours to build in the workshop.
           </p>
         </div>
@@ -35,7 +35,7 @@ export default function OverviewPage() {
       <LlmKeyCallout className="mb-6" />
 
       <Panel className="overflow-hidden" aria-label="Architecture diagram">
-        <div className="relative h-[clamp(420px,58vh,620px)]">
+        <div className="relative h-[300px] sm:h-[clamp(420px,58vh,620px)]">
           <ArchitectureGraph selected={selected} onSelect={onSelect} pending={pending} />
         </div>
         <div className="flex min-h-[112px] flex-wrap items-start gap-x-8 gap-y-3 border-t border-border px-5 py-4">
@@ -45,12 +45,12 @@ export default function OverviewPage() {
                 <info.icon className="size-5" aria-hidden />
               </span>
               <div className="min-w-0">
-                <h2 className="text-[17px] leading-tight font-semibold">
+                <h2 className="text-base leading-tight font-semibold">
                   {info.title} <span className="ml-1 text-[13px] font-normal text-muted-foreground">{infoPending ? WORKSHOP_NOTE : info.subtitle}</span>
                 </h2>
-                <p className="mt-1 max-w-[75ch] text-[15px] leading-relaxed">{info.body}</p>
+                <p className="mt-1 max-w-[75ch] text-sm leading-relaxed text-foreground/90">{info.body}</p>
                 {info.link ? (
-                  <Link to={info.link.to} className="mt-1.5 inline-flex items-center gap-1.5 text-[14px] font-medium text-link hover:underline">
+                  <Link to={info.link.to} className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-link underline-offset-4 hover:underline">
                     {info.link.label} <ArrowRight className="size-4" aria-hidden />
                   </Link>
                 ) : null}
@@ -59,10 +59,10 @@ export default function OverviewPage() {
           ) : (
             <div className="flex flex-[2] basis-[420px] items-center gap-2 text-muted-foreground">
               <MousePointerClick className="size-5" aria-hidden />
-              <p className="text-[14.5px]">Click any box in the diagram to see what it does.</p>
+              <p className="text-sm">Click any box in the diagram to see what it does.</p>
             </div>
           )}
-          <p className="flex-1 basis-[260px] text-[13.5px] text-muted-foreground">
+          <p className="flex-1 basis-[260px] text-[13px] text-muted-foreground">
             Classification is the orchestrator's LLM choosing which specialist functions to call. There's no separate classifier model.
           </p>
         </div>
@@ -70,13 +70,13 @@ export default function OverviewPage() {
 
       <nav aria-label="Get started" className="mt-8 grid gap-3 md:grid-cols-3">
         {LINKS.map(({ to, Icon, title, body }) => (
-          <Link key={to} to={to} className="group flex items-start gap-3.5 rounded-xl border border-border bg-card p-4 transition-colors hover:border-input hover:bg-muted/40">
-            <Icon className="mt-0.5 size-5 shrink-0 text-muted-foreground group-hover:text-foreground" aria-hidden />
+          <Link key={to} to={to} className="group flex items-start gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-[border-color,background-color,scale] duration-160 ease-out hover:border-input hover:bg-muted/40 active:scale-[0.98]">
+            <Icon className="mt-0.5 size-[18px] shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 text-[15px] font-semibold">
-                {title} <ArrowRight className="size-4 opacity-0 transition-[opacity,transform] group-hover:translate-x-0.5 group-hover:opacity-100" aria-hidden />
+              <span className="flex items-center gap-1.5 text-sm font-semibold">
+                {title} <ArrowRight className="size-3.5 opacity-0 transition-[opacity,translate] duration-200 ease-out group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden />
               </span>
-              <span className="mt-0.5 block text-[13.5px] text-muted-foreground">{body}</span>
+              <span className="mt-0.5 block text-[13px] text-muted-foreground">{body}</span>
             </span>
           </Link>
         ))}

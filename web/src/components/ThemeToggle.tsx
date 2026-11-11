@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme, type ThemePref } from "@/lib/theme";
+import { PRESS } from "./ui";
 import { cn } from "@/lib/utils";
 
 const OPTS: { value: ThemePref; label: string; Icon: typeof Sun }[] = [
@@ -18,7 +19,7 @@ export function ThemeToggle({ compact }: { compact?: boolean }) {
       <button
         type="button"
         onClick={() => setPref(next.value)}
-        className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+        className={cn("inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color,scale] duration-160 ease-out hover:bg-muted hover:text-foreground", PRESS)}
         aria-label={`${cur.label} (switch to ${next.label.toLowerCase()})`}
         title={cur.label}
       >
@@ -38,8 +39,9 @@ export function ThemeToggle({ compact }: { compact?: boolean }) {
           title={label}
           onClick={() => setPref(value)}
           className={cn(
-            "inline-flex h-7 w-8 items-center justify-center rounded-md transition-colors",
-            pref === value ? "bg-card text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.15)]" : "text-muted-foreground hover:text-foreground",
+            "inline-flex h-7 w-8 items-center justify-center rounded-md transition-[background-color,color,box-shadow,scale] duration-160 ease-out",
+            PRESS,
+            pref === value ? "bg-card text-foreground shadow-xs dark:bg-subtle" : "text-muted-foreground hover:text-foreground",
           )}
         >
           <Icon className="size-3.5" />

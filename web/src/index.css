@@ -40,6 +40,19 @@
   --code-literal: 347 70% 46%;
 
   --radius: 0.625rem;
+
+  /* Motion: strong custom curves; nothing in the UI eases in. */
+  --curve-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --curve-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --curve-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --dur-press: 160ms;
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+
+  /* Elevation: two steps, offset + soft blur. */
+  --elev-1: 0 1px 2px rgb(15 20 35 / 0.06);
+  --elev-2: 0 1px 2px rgb(15 20 35 / 0.05), 0 8px 24px -12px rgb(15 20 35 / 0.22);
+  --elev-3: 0 2px 6px rgb(15 20 35 / 0.06), 0 24px 56px -16px rgb(15 20 35 / 0.32);
 }
 
 .dark {
@@ -51,8 +64,8 @@
   --muted: 225 20% 12.5%;
   --muted-foreground: 222 14% 66%;
   --subtle: 225 18% 15%;
-  --border: 225 16% 18%;
-  --input: 225 14% 26%;
+  --border: 225 16% 15.5%;
+  --input: 225 14% 24%;
   --primary: 220 30% 95%;
   --primary-foreground: 225 24% 8%;
   --ring: 258 90% 74%;
@@ -73,6 +86,19 @@
   --code-string: 152 55% 62%;
   --code-number: 213 94% 72%;
   --code-literal: 349 90% 72%;
+
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --elev-2: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 28px -12px rgb(0 0 0 / 0.6);
+  --elev-3: 0 2px 8px rgb(0 0 0 / 0.4), 0 28px 64px -16px rgb(0 0 0 / 0.7);
+}
+
+/* Hover only where a real pointer hovers; taps on touch screens never stick. */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
 }
 
 @theme inline {
@@ -107,6 +133,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-xs: var(--elev-1);
+  --shadow-md: var(--elev-2);
+  --shadow-lg: var(--elev-3);
+  --ease-out: var(--curve-out);
+  --ease-in-out: var(--curve-in-out);
+  --default-transition-duration: var(--dur-fast);
+  --default-transition-timing-function: var(--curve-standard);
 }
 
 @layer base {
@@ -135,6 +169,17 @@
   ::selection {
     background: hsl(var(--ring) / 0.28);
   }
+  input,
+  textarea,
+  .cm-content {
+    caret-color: var(--color-ring);
+  }
+  a,
+  button,
+  summary,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   summary {
@@ -148,7 +193,10 @@
   h2,
   h3 {
     text-wrap: balance;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.012em;
+  }
+  h1 {
+    letter-spacing: -0.022em;
   }
   p {
     text-wrap: pretty;
@@ -309,21 +357,21 @@
 /* An agent that is working: a soft ring that breathes in the agent's colour. */
 @keyframes agent-breathe {
   0% {
-    box-shadow: 0 0 0 0 hsl(var(--tone) / 0.5), 0 8px 24px -8px hsl(var(--tone) / 0.55);
+    box-shadow: 0 0 0 0 hsl(var(--tone) / 0.45), 0 8px 24px -10px hsl(var(--tone) / 0.5);
   }
   70% {
-    box-shadow: 0 0 0 12px hsl(var(--tone) / 0), 0 8px 24px -8px hsl(var(--tone) / 0.55);
+    box-shadow: 0 0 0 10px hsl(var(--tone) / 0), 0 8px 24px -10px hsl(var(--tone) / 0.5);
   }
   100% {
-    box-shadow: 0 0 0 0 hsl(var(--tone) / 0), 0 8px 24px -8px hsl(var(--tone) / 0.55);
+    box-shadow: 0 0 0 0 hsl(var(--tone) / 0), 0 8px 24px -10px hsl(var(--tone) / 0.5);
   }
 }
 .node-active {
-  animation: agent-breathe 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: agent-breathe 1.6s var(--curve-out) infinite;
 }
 @keyframes pop-in {
   from {
-    transform: scale(0.6);
+    transform: scale(0.85);
     opacity: 0;
   }
   to {
@@ -332,11 +380,11 @@
   }
 }
 .pop-in {
-  animation: pop-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pop-in 220ms var(--curve-out) both;
 }
 @keyframes fade-up {
   from {
-    transform: translateY(6px);
+    transform: translateY(4px);
     opacity: 0;
   }
   to {
@@ -345,7 +393,7 @@
   }
 }
 .fade-up {
-  animation: fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-up 220ms var(--curve-out) both;
 }
 @keyframes dot-pulse {
   0%,
@@ -363,6 +411,44 @@
   animation: dot-pulse 1.2s ease-in-out infinite;
 }
 
+/* Confirm dialog: a short scale + fade from the centre, faster out than in. */
+.dialog {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity var(--dur-base) var(--curve-out),
+    transform var(--dur-base) var(--curve-out),
+    overlay var(--dur-base) allow-discrete,
+    display var(--dur-base) allow-discrete;
+}
+.dialog:not([open]) {
+  opacity: 0;
+  transform: scale(0.96);
+  transition-duration: var(--dur-fast);
+}
+@starting-style {
+  .dialog[open] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+.dialog::backdrop {
+  background: rgb(5 8 16 / 0.5);
+  opacity: 1;
+  transition:
+    opacity var(--dur-base) var(--curve-out),
+    overlay var(--dur-base) allow-discrete,
+    display var(--dur-base) allow-discrete;
+}
+.dialog:not([open])::backdrop {
+  opacity: 0;
+}
+@starting-style {
+  .dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .node-active,
   .skeleton,
@@ -373,6 +459,14 @@
   }
   .edge-dot {
     display: none;
+  }
+  /* Keep fades, drop movement: no press scale, no dialog zoom. */
+  :active {
+    scale: none !important;
+  }
+  .dialog,
+  .dialog:not([open]) {
+    transform: none;
   }
 }
 
@@ -390,10 +484,20 @@
   font-family: var(--font-sans);
 }
 .react-flow__controls {
-  box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.12);
-  border-radius: 8px;
+  box-shadow: var(--elev-1);
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--color-border);
+}
+.react-flow__controls-button {
+  border-bottom-color: var(--color-border);
+  transition: background-color var(--dur-fast) var(--curve-standard);
+}
+.react-flow__controls-button svg {
+  transition: transform var(--dur-press) var(--curve-out);
+}
+.react-flow__controls-button:active svg {
+  transform: scale(0.85);
 }
 .react-flow__handle {
   opacity: 0;
@@ -416,7 +520,7 @@
   height: 100%;
 }
 .cm-editor {
-  font-size: 13.5px;
+  font-size: 13px;
   border-radius: var(--radius-md);
   height: 100%;
 }

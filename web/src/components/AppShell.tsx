@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Database, LayoutGrid, MessagesSquare, PanelLeftClose, PanelLeftOpen, Wrench } from "lucide-react";
 import { useHealth } from "@/api/hooks";
 import { ThemeToggle } from "./ThemeToggle";
+import { PRESS } from "./ui";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -31,7 +32,7 @@ function HealthDot({ collapsed }: { collapsed: boolean }) {
   const bad = isError || data?.db === "error" || data?.llm_key === "missing";
   const label = isError ? "API unreachable" : !data ? "Checking…" : bad ? (data.llm_key === "missing" ? "LLM key missing" : "Degraded") : "All systems go";
   return (
-    <NavLink to="/" className={cn("flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground", collapsed && "justify-center")} title={label}>
+    <NavLink to="/" className={cn("flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground", collapsed && "justify-center")} title={label}>
       <span className={cn("size-2 shrink-0 rounded-full", !data && !isError ? "bg-input" : bad ? "bg-danger" : "bg-success")} aria-hidden />
       {collapsed ? <span className="sr-only">{label}</span> : label}
     </NavLink>
@@ -60,17 +61,17 @@ export function AppShell() {
   return (
     <div className="flex h-dvh flex-col md:flex-row">
       {/* Sidebar (md+) */}
-      <aside className={cn("hidden shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-200 md:flex", collapsed ? "w-[68px]" : "w-60")}>
+      <aside className={cn("hidden shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-200 ease-out motion-reduce:transition-none md:flex", collapsed ? "w-[68px]" : "w-60")}>
         <div className={cn("flex h-16 items-center gap-2.5 px-4", collapsed && "justify-center px-0")}>
-          <BrandMark className="size-8 shrink-0" />
+          <BrandMark className="size-7 shrink-0" />
           {!collapsed && (
             <div className="min-w-0 leading-tight">
-              <div className="text-[15px] font-semibold tracking-tight">Nimbus Agents</div>
+              <div className="text-sm font-semibold tracking-tight">Nimbus Agents</div>
               <div className="text-xs text-muted-foreground">ADK multi-agent demo</div>
             </div>
           )}
         </div>
-        <nav className="mt-2 flex flex-1 flex-col gap-0.5 px-3" aria-label="Main">
+        <nav className="mt-1 flex flex-1 flex-col gap-0.5 px-3" aria-label="Main">
           {NAV.map(({ to, label, Icon, end }) => (
             <NavLink
               key={to}
@@ -79,25 +80,26 @@ export function AppShell() {
               title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 cn(
-                  "flex h-10 items-center gap-3 rounded-lg px-3 text-[14.5px] font-medium transition-colors",
+                  "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium transition-[background-color,color,box-shadow,scale] duration-160 ease-out",
+                  PRESS,
                   collapsed && "justify-center px-0",
-                  isActive ? "bg-card text-foreground shadow-[0_1px_3px_rgb(0_0_0/0.08)] dark:bg-muted" : "text-muted-foreground hover:bg-card/60 hover:text-foreground dark:hover:bg-muted/60",
+                  isActive ? "bg-card text-foreground shadow-xs dark:bg-muted" : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
                 )
               }
             >
-              <Icon className="size-[18px] shrink-0" aria-hidden />
+              <Icon className="size-4 shrink-0" aria-hidden />
               {collapsed ? <span className="sr-only">{label}</span> : label}
             </NavLink>
           ))}
         </nav>
-        <div className={cn("flex flex-col gap-2 border-t border-border p-3", collapsed && "items-center")}>
+        <div className={cn("flex flex-col gap-1.5 p-3", collapsed && "items-center")}>
           <HealthDot collapsed={collapsed} />
           <div className={cn("flex items-center justify-between gap-2", collapsed && "flex-col")}>
             {collapsed ? <ThemeToggle compact /> : <ThemeToggle />}
             <button
               type="button"
               onClick={() => setCollapsed((c) => !c)}
-              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+              className={cn("inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color,scale] duration-160 ease-out hover:bg-muted hover:text-foreground", PRESS)}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
@@ -109,12 +111,28 @@ export function AppShell() {
 
       {/* Top bar (small screens) */}
       <header className="flex shrink-0 items-center gap-2 border-b border-border bg-sidebar px-3 py-2 md:hidden">
-        <BrandMark className="size-7" />
-        <nav className="flex flex-1 gap-1 overflow-x-auto" aria-label="Main">
+        <BrandMark className="size-7 shrink-0" />
+        <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none]" aria-label="Main">
           {NAV.map(({ to, label, Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className={({ isActive }) => cn("flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium whitespace-nowrap", isActive ? "bg-card text-foreground" : "text-muted-foreground")}>
-              <Icon className="size-4" aria-hidden />
-              {label}
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              aria-label={label}
+              className={({ isActive }) =>
+                cn(
+                  "flex h-9 min-w-9 shrink-0 items-center focus-visible:-outline-offset-2 justify-center gap-1.5 rounded-md px-2.5 text-sm font-medium whitespace-nowrap transition-[background-color,color,scale] duration-160 ease-out",
+                  PRESS,
+                  isActive ? "bg-muted text-foreground" : "text-muted-foreground",
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon className="size-4 shrink-0" aria-hidden />
+                  {isActive ? label : null}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -125,7 +143,7 @@ export function AppShell() {
         <main className={cn("min-h-0 flex-1", fullBleed ? "overflow-hidden" : "overflow-y-auto")}>
           <Outlet />
         </main>
-        <footer className="shrink-0 border-t border-border bg-sidebar px-4 py-1.5 text-center text-xs text-muted-foreground">
+        <footer className="shrink-0 border-t border-border px-4 py-1.5 text-center text-[11px] text-muted-foreground">
           All data is synthetic and generated for demonstration purposes. Nimbus Markets is a fictional company.
         </footer>
       </div>

@@ -39,8 +39,8 @@ export function ToolTypeBadge({ type, className }: { type: ToolKind; className?:
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[11px] font-medium tracking-wide uppercase",
-        type === "factual" ? "border-success/30 text-success" : "border-border text-muted-foreground",
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-medium tracking-wide uppercase",
+        type === "factual" ? "bg-success/12 text-success" : "bg-muted text-muted-foreground",
         className,
       )}
     >

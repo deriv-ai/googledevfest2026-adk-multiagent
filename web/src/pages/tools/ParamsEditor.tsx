@@ -36,7 +36,7 @@ export function ParamsEditor({ rows, orphans, onChange, sqlEmpty }: { rows: Para
 
   if (!rows.length)
     return (
-      <div className="rounded-xl border border-dashed border-border px-5 py-6 text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-input/70 px-5 py-6 text-sm text-muted-foreground">
         {sqlEmpty ? (
           <>Parameters appear here automatically as you type <code className="rounded bg-muted px-1 font-mono">:placeholders</code> in the SQL.</>
         ) : (
@@ -57,13 +57,13 @@ export function ParamsEditor({ rows, orphans, onChange, sqlEmpty }: { rows: Para
         return (
           <li key={r.name} className={cn("rounded-xl border bg-card p-4", orphan ? "border-warning/60" : "border-border")}>
             <div className="mb-3 flex flex-wrap items-center gap-3">
-              <code className="rounded-md bg-muted px-2 py-1 font-mono text-[14px] font-semibold">:{r.name}</code>
+              <code className="rounded-md bg-muted px-2 py-1 font-mono text-sm font-semibold">:{r.name}</code>
               {orphan ? (
                 <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-warning">
                   <AlertTriangle className="size-3.5" aria-hidden /> Not used in the SQL. Remove it, or add <code className="font-mono">:{r.name}</code> back.
                 </span>
               ) : r._pristine ? (
-                <span className="text-[12.5px] text-muted-foreground">added from the SQL · type guessed from the name</span>
+                <span className="text-xs text-muted-foreground">added from the SQL · type guessed from the name</span>
               ) : null}
               <div className="ml-auto flex items-center gap-3">
                 <label className="flex items-center gap-2 text-[13px] font-medium">
@@ -151,7 +151,7 @@ export function ParamsEditor({ rows, orphans, onChange, sqlEmpty }: { rows: Para
 function Field({ label, htmlFor, children, className }: { label: string; htmlFor: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("min-w-0", className)}>
-      <label htmlFor={htmlFor} className="mb-1 block text-[12px] font-medium text-muted-foreground">
+      <label htmlFor={htmlFor} className="mb-1 block text-xs font-medium text-muted-foreground">
         {label}
       </label>
       {children}

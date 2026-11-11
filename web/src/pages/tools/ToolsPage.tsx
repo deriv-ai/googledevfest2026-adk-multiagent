@@ -41,17 +41,17 @@ export default function ToolsPage() {
         description="Every row in tools.tools becomes a typed ADK FunctionTool for its agent. Agents pick up changes on the next question, with no restart."
         actions={
           <Link to="/tools/new">
-            <Button variant="primary" size="lg">
+            <Button variant="primary">
               <Plus className="size-4" aria-hidden /> New tool
             </Button>
           </Link>
         }
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="mb-8 flex flex-wrap items-center gap-2.5">
         <div className="relative min-w-[240px] flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, title or description" className="h-10 pl-9 text-[15px]" aria-label="Search tools" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, title or description" className="h-9 pl-9" aria-label="Search tools" />
         </div>
         <Segmented
           value={agent}
@@ -109,23 +109,23 @@ function ToolGroup({ agent, tools, total }: { agent: ToolAgent; tools: Tool[]; t
   const enabled = tools.filter((t) => t.enabled).length;
   return (
     <section aria-labelledby={`group-${agent}`}>
-      <div className="mb-3 flex items-baseline gap-3">
-        <span className="size-2.5 translate-y-[-1px] rounded-full" style={{ background: toneColor(meta.tone) }} aria-hidden />
-        <h2 id={`group-${agent}`} className="text-lg font-semibold tracking-tight">
+      <div className="mb-3 flex items-baseline gap-2.5">
+        <span className="size-2 translate-y-[-1px] rounded-full" style={{ background: toneColor(meta.tone) }} aria-hidden />
+        <h2 id={`group-${agent}`} className="text-base font-semibold tracking-tight">
           {meta.label}
         </h2>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-[13px] text-muted-foreground">
           {tools.length === total ? `${total} tool${total === 1 ? "" : "s"}` : `${tools.length} of ${total} shown`} · {enabled} enabled
         </span>
       </div>
       {tools.length ? (
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-xs">
           {tools.map((t) => (
             <ToolRow key={t.name} tool={t} />
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border border-dashed border-border px-5 py-6 text-sm text-muted-foreground">No {meta.short.toLowerCase()} tools match these filters.</p>
+        <p className="rounded-xl border border-dashed border-input/70 px-5 py-6 text-sm text-muted-foreground">No {meta.short.toLowerCase()} tools match these filters.</p>
       )}
     </section>
   );
@@ -138,7 +138,7 @@ function ToolRow({ tool }: { tool: Tool }) {
   const open = () => navigate(`/tools/${encodeURIComponent(tool.name)}`);
   return (
     <li
-      className={cn("group flex cursor-pointer items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/50", !tool.enabled && "bg-muted/30")}
+      className={cn("group flex cursor-pointer items-start gap-4 px-5 py-4 transition-colors duration-150 hover:bg-muted/50 focus-visible:-outline-offset-2", !tool.enabled && "bg-muted/25")}
       onClick={open}
       onKeyDown={(e) => {
         if (e.key === "Enter" && e.target === e.currentTarget) open();
@@ -148,14 +148,14 @@ function ToolRow({ tool }: { tool: Tool }) {
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={cn("font-mono text-[14.5px] font-semibold", !tool.enabled && "text-muted-foreground")}>{tool.name}</span>
+          <span className={cn("font-mono text-[13px] font-semibold", !tool.enabled && "text-muted-foreground")}>{tool.name}</span>
           <ToolTypeBadge type={tool.tool_type} />
           {!tool.enabled ? <span className="rounded-md bg-subtle px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">disabled</span> : null}
         </div>
-        <div className="mt-0.5 text-[14.5px] font-medium">{tool.title}</div>
-        <p className="mt-1 line-clamp-2 max-w-[90ch] text-[13.5px] text-muted-foreground">{tool.description}</p>
+        <div className={cn("mt-1 text-sm font-medium", !tool.enabled && "text-foreground/70")}>{tool.title}</div>
+        <p className="mt-0.5 line-clamp-2 max-w-[90ch] text-[13px] text-muted-foreground">{tool.description}</p>
       </div>
-      <div className="hidden w-44 shrink-0 text-right text-[12.5px] sm:block">
+      <div className="hidden w-44 shrink-0 text-right text-xs leading-relaxed sm:block">
         {run ? (
           <>
             <div className={cn("inline-flex items-center gap-1", run.error ? "text-danger" : "text-foreground/80")}>

@@ -46,13 +46,16 @@ const ArchNode = memo(function ArchNode({ data }: NodeProps<ANode>) {
       type="button"
       onClick={() => onSelect(info.id)}
       className={cn(
-        "relative flex w-[210px] items-center gap-3 rounded-xl border bg-card px-3 py-2.5 text-left transition-[box-shadow,border-color,transform] duration-150 hover:-translate-y-px",
-        selected ? "border-2" : pending ? "border-input" : "border-border",
+        "relative flex w-[210px] items-center gap-3 rounded-xl border bg-card px-3 py-2.5 text-left transition-[box-shadow,border-color,outline-color,scale] duration-200 ease-out active:scale-[0.97]",
+        selected ? "" : pending ? "border-input hover:border-muted-foreground/50" : "border-border hover:border-input",
         pending && "border-dashed",
       )}
       style={{
+        // Selected: border + 1px outline reads as 2px without nudging the content.
         borderColor: selected ? (tone ? toneColor(tone) : "hsl(var(--foreground))") : undefined,
-        boxShadow: selected ? `0 10px 28px -12px ${tone ? toneColor(tone, 0.7) : "rgb(0 0 0 / .35)"}` : "0 1px 3px rgb(0 0 0 / .08)",
+        outline: `1px solid ${selected ? (tone ? toneColor(tone) : "hsl(var(--foreground))") : "transparent"}`,
+        outlineOffset: 0,
+        boxShadow: selected ? `0 10px 28px -14px ${tone ? toneColor(tone, 0.7) : "rgb(0 0 0 / .35)"}` : "var(--elev-1)",
       }}
     >
       <Handle type="target" position={Position.Left} />
@@ -61,8 +64,8 @@ const ArchNode = memo(function ArchNode({ data }: NodeProps<ANode>) {
         <Icon className="size-[18px]" aria-hidden />
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[14px] leading-tight font-semibold">{info.title}</span>
-        <span className="block truncate text-[12px] text-muted-foreground">{pending ? WORKSHOP_NOTE : info.subtitle}</span>
+        <span className="block truncate text-sm leading-tight font-semibold">{info.title}</span>
+        <span className="block truncate text-xs text-muted-foreground">{pending ? WORKSHOP_NOTE : info.subtitle}</span>
       </span>
       <Handle type="source" position={Position.Right} />
       <Handle type="source" id="bottom" position={Position.Bottom} />
@@ -72,8 +75,8 @@ const ArchNode = memo(function ArchNode({ data }: NodeProps<ANode>) {
 
 const LaneNode = memo(function LaneNode({ data }: NodeProps<LNode>) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-muted/30" style={{ width: data.width, height: data.height }}>
-      <span className="absolute top-2.5 left-4 text-[12px] font-semibold tracking-wide text-muted-foreground uppercase">{data.label}</span>
+    <div className="rounded-2xl border border-dashed border-input/60 bg-muted/25" style={{ width: data.width, height: data.height }}>
+      <span className="absolute top-2.5 left-4 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{data.label}</span>
     </div>
   );
 });
@@ -151,12 +154,12 @@ function Inner({ selected, onSelect, pending }: Props) {
         targetHandle: o?.th ?? null,
         type: "smoothstep",
         label: label || undefined,
-        labelStyle: { fontSize: 11.5, fontWeight: 600, fill: "hsl(var(--muted-foreground))" },
+        labelStyle: { fontSize: 11, fontWeight: 500, fill: "hsl(var(--muted-foreground))" },
         labelBgStyle: { fill: "hsl(var(--card))" },
         labelBgPadding: [6, 3] as [number, number],
         labelBgBorderRadius: 6,
         animated: !!o?.dashed,
-        style: { stroke: color, strokeWidth: 1.75, strokeDasharray: unbuilt ? "6 5" : undefined, opacity: edgeOpacity(s, t, selected, unbuilt) },
+        style: { stroke: color, strokeWidth: 1.5, strokeDasharray: unbuilt ? "6 5" : undefined, opacity: edgeOpacity(s, t, selected, unbuilt) },
         markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
         markerStart: o?.both ? { type: MarkerType.ArrowClosed, color, width: 16, height: 16 } : undefined,
         selectable: false,
@@ -168,7 +171,7 @@ function Inner({ selected, onSelect, pending }: Props) {
   const [nodes, onNodesChange] = useSyncedNodes<ANode | LNode>(nextNodes);
   return (
     <div ref={wrapRef} className="h-full w-full">
-    <ReactFlow nodes={nodes} onNodesChange={onNodesChange} edges={edges} nodeTypes={nodeTypes} colorMode={resolved} fitView fitViewOptions={{ padding: 0.06 }} minZoom={0.3} maxZoom={1.4} nodesConnectable={false} elementsSelectable={false} zoomOnScroll={false} panOnScroll preventScrolling={false}>
+    <ReactFlow nodes={nodes} onNodesChange={onNodesChange} edges={edges} nodeTypes={nodeTypes} colorMode={resolved} fitView fitViewOptions={{ padding: 0.06 }} minZoom={0.2} maxZoom={1.4} nodesConnectable={false} elementsSelectable={false} zoomOnScroll={false} panOnScroll preventScrolling={false}>
       <Controls showInteractive={false} position="bottom-right" />
     </ReactFlow>
     </div>

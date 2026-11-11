@@ -40,7 +40,7 @@ export function SqlEditor({ value, onChange, readOnly, schema, minHeight = "220p
   }, [schema, ariaLabel]);
 
   return (
-    <div className={cn("overflow-hidden rounded-lg border border-input bg-card focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15", readOnly && "bg-muted/30", className)}>
+    <div className={cn("overflow-hidden rounded-lg border border-input bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15", readOnly && "bg-muted/30", className)}>
       <CodeMirror
         value={value}
         onChange={onChange}

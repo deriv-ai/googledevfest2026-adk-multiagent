@@ -23,15 +23,15 @@ function StepRow({ step, parallel, first, last }: { step: RouteStep; parallel: n
         />
       ) : null}
       <details className="group rounded-lg open:bg-muted/50">
-        <summary className={cn("flex list-none items-start gap-3 rounded-lg px-2 py-2 hover:bg-muted/60 [&::-webkit-details-marker]:hidden", !hasDetail && "cursor-default")}>
+        <summary className={cn("flex list-none items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/60 [&::-webkit-details-marker]:hidden", !hasDetail && "cursor-default")}>
           <span
-            className="relative z-10 mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-[11.5px] font-semibold text-white"
+            className="relative z-10 mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-semibold text-white"
             style={{ background: step.status === "error" ? "hsl(var(--danger))" : toneColor(tone) }}
           >
             {step.n}
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13.5px]">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px]">
               <span className="font-medium" style={{ color: toneColor(caller.tone) }}>
                 {caller.short}
               </span>
@@ -41,22 +41,22 @@ function StepRow({ step, parallel, first, last }: { step: RouteStep; parallel: n
                   {target!.label}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 font-mono text-[12.5px] font-medium">
+                <span className="inline-flex items-center gap-1 font-mono text-xs font-medium">
                   <Icon className="size-3.5 text-muted-foreground" aria-hidden />
                   {step.tool}
                 </span>
               )}
-              {parallel !== null ? <span className="rounded-full bg-subtle px-1.5 py-px text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">parallel ×{parallel}</span> : null}
+              {parallel !== null ? <span className="rounded-full bg-subtle px-1.5 py-px font-mono text-[10px] font-medium tracking-wide text-muted-foreground uppercase">parallel ×{parallel}</span> : null}
             </div>
             {step.args && Object.keys(step.args).length ? (
-              <div className={cn("mt-0.5 truncate text-[12.5px] text-muted-foreground", !isAgent && "font-mono text-[12px]")}>
+              <div className={cn("mt-0.5 truncate text-xs text-muted-foreground", !isAgent && "font-mono text-xs")}>
                 {isAgent ? <CornerDownRight className="mr-1 inline size-3 align-[-1px]" aria-hidden /> : null}
                 {summarizeArgs(step.args, 120)}
               </div>
             ) : null}
-            {step.error ? <div className="mt-0.5 text-[12.5px] text-danger">{step.error}</div> : null}
+            {step.error ? <div className="mt-0.5 text-xs text-danger">{step.error}</div> : null}
           </div>
-          <div className="flex shrink-0 items-center gap-2 pt-0.5 text-[12.5px] tabular-nums">
+          <div className="flex shrink-0 items-center gap-2 pt-0.5 text-xs tabular-nums">
             {typeof step.rowCount === "number" ? <span className="text-muted-foreground">{step.rowCount} rows</span> : null}
             {step.status === "running" ? (
               <Loader2 className="size-3.5 animate-spin" style={{ color: toneColor(tone) }} aria-label="running" />
@@ -66,24 +66,24 @@ function StepRow({ step, parallel, first, last }: { step: RouteStep; parallel: n
               <Check className="size-3.5 text-success" aria-label="ok" />
             )}
             <span className="w-14 text-right font-mono text-muted-foreground">{step.status === "running" ? "…" : formatMs(step.ms)}</span>
-            {hasDetail ? <ChevronRight className="size-3.5 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden /> : <span className="w-3.5" />}
+            {hasDetail ? <ChevronRight className="size-3.5 text-muted-foreground transition-transform duration-200 ease-out group-open:rotate-90" aria-hidden /> : <span className="w-3.5" />}
           </div>
         </summary>
         {hasDetail ? (
           <div className="space-y-2 px-2 pt-1 pb-3 pl-11">
             {step.args && Object.keys(step.args).length ? (
               <div>
-                <div className="mb-1 text-[11.5px] font-semibold tracking-wide text-muted-foreground uppercase">Arguments</div>
-                <JsonView value={step.args} className="max-h-56 p-3 text-[12px]" />
+                <div className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Arguments</div>
+                <JsonView value={step.args} className="max-h-56 bg-card p-3 text-xs" />
               </div>
             ) : null}
             {step.preview !== undefined && step.preview !== null ? (
               <div>
-                <div className="mb-1 text-[11.5px] font-semibold tracking-wide text-muted-foreground uppercase">Result preview</div>
+                <div className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Result preview</div>
                 {typeof step.preview === "string" ? (
-                  <pre className="max-h-56 overflow-auto rounded-lg border border-border bg-muted/50 p-3 text-[12px] whitespace-pre-wrap">{step.preview}</pre>
+                  <pre className="max-h-56 overflow-auto rounded-lg bg-card p-3 text-xs whitespace-pre-wrap">{step.preview}</pre>
                 ) : (
-                  <JsonView value={step.preview} className="max-h-56 p-3 text-[12px]" />
+                  <JsonView value={step.preview} className="max-h-56 bg-card p-3 text-xs" />
                 )}
               </div>
             ) : null}

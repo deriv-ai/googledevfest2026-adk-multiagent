@@ -6,7 +6,7 @@ import { useChatExamples, useGraph } from "@/api/hooks";
 import type { ChatEvent } from "@/api/types";
 import { LlmKeyCallout } from "@/components/HealthChips";
 import { Markdown } from "@/components/Markdown";
-import { Button, Skeleton } from "@/components/ui";
+import { Button, PRESS, Skeleton } from "@/components/ui";
 import { agentMeta, DEFAULT_GRAPH, toneColor } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
 import { buildRouteState, contextFromGraph } from "@/lib/routeGraph";
@@ -146,10 +146,10 @@ export default function ChatPage() {
 
 function ChatHeader({ onNew, disabled }: { onNew: () => void; disabled: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
+    <div className="flex min-h-16 items-center justify-between gap-3 border-b border-border px-5 py-2.5">
       <div>
-        <h1 className="text-[17px] font-semibold tracking-tight">Ask Nimbus</h1>
-        <p className="text-[13px] text-muted-foreground">Main agent → orchestrator → specialist agents</p>
+        <h1 className="text-base font-semibold tracking-tight">Ask Nimbus</h1>
+        <p className="text-xs text-muted-foreground">Main agent → orchestrator → specialist agents</p>
       </div>
       <Button size="sm" variant="outline" onClick={onNew} disabled={disabled}>
         <MessageSquarePlus className="size-4" aria-hidden /> New chat
@@ -178,12 +178,14 @@ function Examples({ onPick, compact }: { onPick: (p: string) => void; compact?: 
           onClick={() => onPick(ex.prompt)}
           title={ex.prompt}
           className={cn(
-            "group shrink-0 rounded-xl border border-border bg-card text-left transition-[border-color,background-color,transform] duration-150 hover:border-ring/60 hover:bg-muted/50 active:scale-[0.99]",
-            compact ? "rounded-full px-3 py-1.5 text-[13px]" : "w-full px-4 py-3",
+            "group shrink-0 text-left transition-[border-color,background-color,color,scale] duration-160 ease-out",
+            compact
+              ? cn("rounded-full bg-muted px-3 py-1.5 focus-visible:-outline-offset-2 text-[13px] text-muted-foreground hover:bg-subtle hover:text-foreground", PRESS)
+              : "w-full rounded-xl border border-border bg-card px-4 py-3 shadow-xs hover:border-input hover:bg-muted/40 active:scale-[0.98]",
           )}
         >
-          <span className={cn("font-semibold", compact ? "" : "block text-[13px] text-muted-foreground")}>{ex.label}</span>
-          {compact ? null : <span className="mt-1 block text-[14.5px] leading-snug">{ex.prompt}</span>}
+          <span className={cn("font-medium", compact ? "" : "block text-xs text-muted-foreground")}>{ex.label}</span>
+          {compact ? null : <span className="mt-1 block text-sm leading-snug">{ex.prompt}</span>}
         </button>
       ))}
     </div>
@@ -243,9 +245,9 @@ function TranscriptView({
         <div className="m-auto flex w-full max-w-3xl flex-col items-center gap-6">
         <LlmKeyCallout className="w-full max-w-2xl" />
         <div className="text-center">
-          <Waypoints className="mx-auto mb-3 size-9 text-agent-main" aria-hidden />
-          <h2 className="text-xl font-semibold tracking-tight">Ask about Nimbus Markets</h2>
-          <p className="mx-auto mt-1.5 max-w-md text-[14.5px] text-muted-foreground">
+          <Waypoints className="mx-auto mb-3 size-8 text-agent-main" aria-hidden />
+          <h2 className="text-lg font-semibold tracking-tight">Ask about Nimbus Markets</h2>
+          <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
             Finance, trading or, once you've built its agent, marketing. Watch the route panel to see which agents and tools answer, and which run in parallel.
           </p>
         </div>
@@ -280,26 +282,26 @@ function TranscriptView({
                   }
                 }}
                 className={cn(
-                  "group rounded-2xl rounded-tl-md border px-4 py-3 transition-[border-color,box-shadow,background-color] duration-150",
-                  m.id === selectedId ? "border-agent-main/50 bg-card shadow-[0_6px_20px_-12px_hsl(var(--agent-main)/0.6)]" : "border-border bg-card hover:border-input",
+                  "group rounded-2xl rounded-tl-md border bg-card px-4 py-3 transition-[border-color,box-shadow] duration-200 ease-out",
+                  m.id === selectedId ? "border-agent-main/45 shadow-md" : "border-border hover:border-input",
                 )}
               >
-                <div className="mb-1.5 flex items-center gap-2 text-[12.5px]">
-                  <span className="font-semibold" style={{ color: toneColor("main") }}>
+                <div className="mb-1.5 flex items-center gap-2 text-xs">
+                  <span className="shrink-0 font-semibold whitespace-nowrap" style={{ color: toneColor("main") }}>
                     Main agent
                   </span>
                   {m.status === "done" ? <RouteChips m={m} /> : null}
-                  <span className="ml-auto text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">{m.id === selectedId ? "showing route" : "show route"}</span>
+                  <span className="ml-auto shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">{m.id === selectedId ? "showing route" : "show route"}</span>
                 </div>
                 {m.status === "streaming" ? (
                   <div className="flex items-center gap-1.5 py-1.5 text-muted-foreground" aria-label="Agents are working">
                     <span className="typing-dot size-1.5 rounded-full bg-current" />
                     <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:150ms]" />
                     <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:300ms]" />
-                    <span className="ml-1.5 text-[13.5px]">{m.id === streamingId ? "Routing your question…" : ""}</span>
+                    <span className="ml-1.5 text-[13px]">{m.id === streamingId ? "Routing your question…" : ""}</span>
                   </div>
                 ) : m.status === "error" ? (
-                  <div className="text-[14.5px]">
+                  <div className="text-sm">
                     <p className="font-medium text-danger">Couldn't answer this one.</p>
                     <p className="mt-0.5 text-foreground/80">{m.error}</p>
                   </div>
@@ -338,7 +340,7 @@ function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSe
         </div>
       ) : null}
       <form
-        className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-input bg-card p-2 pl-4 transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15"
+        className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-input bg-card p-2 pl-4 shadow-xs transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -372,7 +374,7 @@ function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSe
           </Button>
         )}
       </form>
-      <p className="mx-auto mt-1.5 flex max-w-3xl items-center gap-1 text-[11.5px] text-muted-foreground">
+      <p className="mx-auto mt-2 flex max-w-3xl items-center gap-1.5 text-[11px] text-muted-foreground">
         <RotateCcw className="size-3" aria-hidden /> Enter to send · Shift+Enter for a new line · click an answer to see its route
       </p>
     </div>
