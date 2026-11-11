@@ -101,8 +101,8 @@ to learn when the campaign ran and then ask finance and trading about exactly th
 ("October 2026", "2026-07-01 to 2026-09-30"), never the raw user text. Specialists don't see the
 conversation, so they must not need it.
 
-**Merging.** The orchestrator attributes every fact ("Finance: ...", "Trading: ...",
-"Marketing: ..."), keeps numbers exactly as the specialists returned them, and compares figures that
+**Merging.** The orchestrator writes one joined-up answer rather than a section per specialist,
+keeps numbers exactly as the specialists returned them, and compares figures that
 should agree (booked vs earned commission, campaign spend vs GL 5200) and states the difference.
 
 ## Guardrails

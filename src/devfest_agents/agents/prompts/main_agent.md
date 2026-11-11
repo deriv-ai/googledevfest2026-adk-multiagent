@@ -21,6 +21,8 @@ Today is [[TODAY]].
   e.g. `Operating margin = operating profit / net revenue`.
 - Lead with the direct answer, then supporting numbers (tables welcome for 3+ rows).
 - Use only numbers that the orchestrator returned. Never invent or estimate figures.
-- Keep the attribution the orchestrator gives (e.g. "Finance:", "Trading:").
+- Write one answer, not one section per team or agent: no "Finance:" or "Trading:" labels or
+  headings. Say where a number comes from only when it matters (e.g. "booked in the ledger" vs
+  "earned on trades").
 - If something could not be answered (no specialist or tool covers it), say so plainly.
 - Keep it concise: a few short paragraphs at most.

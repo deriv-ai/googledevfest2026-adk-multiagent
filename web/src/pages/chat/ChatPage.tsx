@@ -267,55 +267,48 @@ function TranscriptView({
   return (
     <div className="flex-1 overflow-y-auto px-5 py-5">
       <LlmKeyCallout className="mb-4" />
-      <ol className="mx-auto flex max-w-3xl flex-col gap-5">
+      <ol className="mx-auto flex max-w-3xl flex-col gap-8">
         {messages.map((m) =>
           m.role === "user" ? (
             <li key={m.id} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[15px] whitespace-pre-wrap text-primary-foreground">{m.text}</div>
+              <div className="max-w-[80%] rounded-3xl bg-muted px-5 py-2.5 text-[15px] whitespace-pre-wrap">{m.text}</div>
             </li>
           ) : (
-            <li key={m.id}>
-              <div
-                role="button"
-                tabIndex={0}
-                aria-pressed={m.id === selectedId}
-                onClick={() => onSelect(m.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSelect(m.id);
-                  }
-                }}
-                className={cn(
-                  "group rounded-2xl rounded-tl-md border bg-card px-4 py-3 transition-[border-color,box-shadow] duration-200 ease-out",
-                  m.id === selectedId ? "border-agent-main/45 shadow-md" : "border-border hover:border-input",
-                )}
-              >
-                <div className="mb-1.5 flex items-center gap-2 text-xs">
-                  <span className="shrink-0 font-semibold whitespace-nowrap" style={{ color: toneColor("main") }}>
-                    Main agent
-                  </span>
-                  {m.status === "done" ? <RouteChips m={m} /> : null}
-                  <span className="ml-auto shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">{m.id === selectedId ? "showing route" : "show route"}</span>
+            <li key={m.id} className="min-w-0">
+              {m.status === "streaming" && m.text ? (
+                <Markdown>{m.text}</Markdown>
+              ) : m.status === "streaming" ? (
+                <div className="flex items-center gap-1.5 py-1.5 text-muted-foreground" aria-label="Agents are working">
+                  <span className="typing-dot size-1.5 rounded-full bg-current" />
+                  <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:150ms]" />
+                  <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:300ms]" />
+                  <span className="ml-1.5 text-[13px]">{m.id === streamingId ? "Routing your question…" : ""}</span>
                 </div>
-                {m.status === "streaming" && m.text ? (
-                  <Markdown>{m.text}</Markdown>
-                ) : m.status === "streaming" ? (
-                  <div className="flex items-center gap-1.5 py-1.5 text-muted-foreground" aria-label="Agents are working">
-                    <span className="typing-dot size-1.5 rounded-full bg-current" />
-                    <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:150ms]" />
-                    <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:300ms]" />
-                    <span className="ml-1.5 text-[13px]">{m.id === streamingId ? "Routing your question…" : ""}</span>
-                  </div>
-                ) : m.status === "error" ? (
-                  <div className="text-sm">
-                    <p className="font-medium text-danger">Couldn't answer this one.</p>
-                    <p className="mt-0.5 text-foreground/80">{m.error}</p>
-                  </div>
-                ) : (
-                  <Markdown>{m.text}</Markdown>
-                )}
-              </div>
+              ) : m.status === "error" ? (
+                <div className="text-[15px]">
+                  <p className="font-medium text-danger">Couldn't answer this one.</p>
+                  <p className="mt-0.5 text-foreground/80">{m.error}</p>
+                </div>
+              ) : (
+                <Markdown>{m.text}</Markdown>
+              )}
+              {m.status === "done" || m.status === "error" ? (
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                  {m.status === "done" ? <RouteChips m={m} /> : null}
+                  <button
+                    type="button"
+                    aria-pressed={m.id === selectedId}
+                    onClick={() => onSelect(m.id)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-colors duration-150",
+                      m.id === selectedId ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Waypoints className="size-3.5" aria-hidden />
+                    {m.id === selectedId ? "Showing route" : "Show route"}
+                  </button>
+                </div>
+              ) : null}
             </li>
           ),
         )}
