@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, MessageSquarePlus, RotateCcw, Square, Waypoints } from "lucide-react";
-import { toast } from "sonner";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowUp, MessageSquarePlus, Square, Waypoints, Workflow } from "@/components/icons";
 import { endpoints, streamChat } from "@/api/client";
 import { useChatExamples, useGraph } from "@/api/hooks";
 import type { ChatEvent } from "@/api/types";
-import { LlmKeyCallout } from "@/components/HealthChips";
+import { LlmKeyCallout } from "@/components/LlmKeyCallout";
 import { Markdown } from "@/components/Markdown";
-import { Button, Skeleton } from "@/components/ui";
+import { SplitView, type RightPane } from "@/components/SplitView";
+import { Button, PRESS, Skeleton } from "@/components/ui";
 import { agentMeta, DEFAULT_GRAPH, toneColor } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
 import { buildRouteState, contextFromGraph } from "@/lib/routeGraph";
@@ -48,7 +49,11 @@ export default function ChatPage() {
       const onEvent = (ev: ChatEvent) => {
         if (ev.type === "answer" || ev.type === "error") finished = true;
         patchMessage(asst.id, (m) => {
+          // Answer text streams in; it isn't part of the route, so it stays out of `events`.
+          if (ev.type === "answer_delta") return { ...m, text: m.text + ev.text };
           const events = [...(m.events ?? []), ev];
+          // Text the main agent wrote before handing off is a preamble; the answer comes after.
+          if (ev.type === "tool_call" && ev.agent === "main_agent") return { ...m, events, text: "" };
           if (ev.type === "answer") return { ...m, events, text: ev.text, status: "done", elapsedMs: ev.elapsed_ms ?? null };
           if (ev.type === "error") return { ...m, events, status: "error", error: ev.message };
           return { ...m, events };
@@ -66,6 +71,8 @@ export default function ChatPage() {
   );
 
   const stop = () => abortRef.current?.abort();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const newChat = async () => {
     abortRef.current?.abort();
@@ -78,8 +85,15 @@ export default function ChatPage() {
     } catch {
       /* the old session simply expires server-side */
     }
-    toast.success("Started a new conversation");
   };
+
+  // The sidebar's New chat button lands here with a fresh `newChat` marker in the route state.
+  const newChatMarker = (location.state as { newChat?: number } | null)?.newChat;
+  useEffect(() => {
+    if (!newChatMarker) return;
+    void newChat();
+    navigate(location.pathname, { replace: true, state: null });
+  }, [newChatMarker]);
 
   // ---- route shown on the right -------------------------------------------------------------
   const selected = transcript.messages.find((m) => m.id === selectedId && m.role === "assistant") ?? null;
@@ -112,22 +126,47 @@ export default function ChatPage() {
   const firstTs = selectedEvents[0]?.ts ?? selected?.createdAt ?? null;
 
   return (
-    <div className="grid h-full grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(340px,0.8fr)_minmax(0,1.25fr)] lg:overflow-hidden">
-      <section className="flex min-h-[70dvh] min-w-0 flex-col border-border lg:min-h-0 lg:border-r" aria-label="Conversation">
-        <ChatHeader onNew={newChat} disabled={!transcript.messages.length && !streamingId} />
-        <TranscriptView
-          messages={transcript.messages}
-          selectedId={selectedId}
-          streamingId={streamingId}
-          onSelect={(id) => {
-            setSelectedId(id);
-            setReplay(null);
-          }}
-          onExample={send}
-        />
-        <Composer onSend={send} onStop={stop} streaming={!!streamingId} showExamples={transcript.messages.length > 0} onExample={send} />
-      </section>
-      <section className="h-[860px] min-w-0 border-t border-border bg-card lg:h-auto lg:min-h-0 lg:border-t-0" aria-label="Agent route">
+    <SplitView
+      storageKey="nimbus.routePane"
+      rightLabel="Agent route"
+      left={(route) => (
+        <section className="flex min-h-0 flex-1 flex-col" aria-label="Conversation">
+          <ChatHeader
+            title={transcript.messages.find((m) => m.role === "user")?.text ?? "New chat"}
+            onNew={newChat}
+            canStartNew={transcript.messages.length > 0 || !!streamingId}
+            route={route}
+          />
+          {transcript.messages.length ? (
+            <>
+              <TranscriptView
+                messages={transcript.messages}
+                selectedId={selectedId}
+                streamingId={streamingId}
+                onSelect={(id) => {
+                  setSelectedId(id);
+                  setReplay(null);
+                }}
+              />
+              <div className="px-5 pt-2 pb-5">
+                <Composer onSend={send} onStop={stop} streaming={!!streamingId} />
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-5 pb-[12vh]">
+              <LlmKeyCallout className="w-full max-w-3xl" />
+              <h2 className="text-center text-[28px] font-semibold tracking-tight">What would you like to know?</h2>
+              <div className="w-full">
+                <Composer onSend={send} onStop={stop} streaming={!!streamingId} />
+              </div>
+              <div className="w-full max-w-3xl">
+                <Examples onPick={send} />
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+      right={(collapse) => (
         <RoutePanel
           graph={graph}
           state={routeState}
@@ -138,39 +177,41 @@ export default function ChatPage() {
           onReplay={() => selected && setReplay({ id: selected.id, upto: 0 })}
           onStopReplay={() => setReplay(null)}
           caption={question}
+          onCollapse={collapse}
         />
-      </section>
-    </div>
+      )}
+    />
   );
 }
 
-function ChatHeader({ onNew, disabled }: { onNew: () => void; disabled: boolean }) {
+function ChatHeader({ title, onNew, canStartNew, route }: { title: string; onNew: () => void; canStartNew: boolean; route: RightPane }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
-      <div>
-        <h1 className="text-[17px] font-semibold tracking-tight">Ask Nimbus</h1>
-        <p className="text-[13px] text-muted-foreground">Main agent → orchestrator → finance, trading & news specialists</p>
-      </div>
-      <Button size="sm" variant="outline" onClick={onNew} disabled={disabled}>
-        <MessageSquarePlus className="size-4" aria-hidden /> New chat
+    <header className="flex h-14 shrink-0 items-center gap-2 px-4">
+      <h1 className="min-w-0 flex-1 truncate text-[15px] font-medium">{title}</h1>
+      {/* The sidebar has New chat on larger screens. */}
+      <Button size="icon" variant="ghost" onClick={onNew} disabled={!canStartNew} className="md:hidden" aria-label="New chat" title="New chat">
+        <MessageSquarePlus className="size-[18px]" aria-hidden />
       </Button>
-    </div>
+      <Button size="sm" variant="ghost" onClick={route.toggle} aria-pressed={route.open} className={cn("hidden lg:inline-flex", route.open && "bg-muted")}>
+        <Workflow className="size-4" aria-hidden /> Agent route
+      </Button>
+    </header>
   );
 }
 
-function Examples({ onPick, compact }: { onPick: (p: string) => void; compact?: boolean }) {
+function Examples({ onPick }: { onPick: (p: string) => void }) {
   const { data, isLoading, isError } = useChatExamples();
   if (isLoading)
     return (
-      <div className={cn(compact ? "flex gap-2" : "grid grid-cols-1 gap-2.5 sm:grid-cols-2")}>
+      <div className="flex flex-wrap justify-center gap-2">
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className={compact ? "h-8 w-40 rounded-full" : "h-[72px] w-full rounded-xl"} />
+          <Skeleton key={i} className="h-9 w-40 rounded-full" />
         ))}
       </div>
     );
   if (isError || !data?.length) return null;
   return (
-    <div className={cn(compact ? "flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" : "grid grid-cols-1 gap-2.5 sm:grid-cols-2")}>
+    <div className="flex flex-wrap justify-center gap-2">
       {data.map((ex) => (
         <button
           key={ex.prompt}
@@ -178,12 +219,11 @@ function Examples({ onPick, compact }: { onPick: (p: string) => void; compact?: 
           onClick={() => onPick(ex.prompt)}
           title={ex.prompt}
           className={cn(
-            "group shrink-0 rounded-xl border border-border bg-card text-left transition-[border-color,background-color,transform] duration-150 hover:border-ring/60 hover:bg-muted/50 active:scale-[0.99]",
-            compact ? "rounded-full px-3 py-1.5 text-[13px]" : "w-full px-4 py-3",
+            "rounded-full border border-border px-3.5 py-2 text-[13px] text-muted-foreground transition-[background-color,color,scale] duration-160 ease-out hover:bg-muted hover:text-foreground",
+            PRESS,
           )}
         >
-          <span className={cn("font-semibold", compact ? "" : "block text-[13px] text-muted-foreground")}>{ex.label}</span>
-          {compact ? null : <span className="mt-1 block text-[14.5px] leading-snug">{ex.prompt}</span>}
+          {ex.label}
         </button>
       ))}
     </div>
@@ -223,13 +263,11 @@ function TranscriptView({
   selectedId,
   streamingId,
   onSelect,
-  onExample,
 }: {
   messages: ChatMessage[];
   selectedId: string | null;
   streamingId: string | null;
   onSelect: (id: string) => void;
-  onExample: (p: string) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const last = messages[messages.length - 1];
@@ -237,76 +275,51 @@ function TranscriptView({
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages.length, last?.text, last?.status]);
 
-  if (!messages.length) {
-    return (
-      <div className="flex flex-1 overflow-y-auto px-6 py-10">
-        <div className="m-auto flex w-full max-w-3xl flex-col items-center gap-6">
-        <LlmKeyCallout className="w-full max-w-2xl" />
-        <div className="text-center">
-          <Waypoints className="mx-auto mb-3 size-9 text-agent-main" aria-hidden />
-          <h2 className="text-xl font-semibold tracking-tight">Ask about Nimbus Markets</h2>
-          <p className="mx-auto mt-1.5 max-w-md text-[14.5px] text-muted-foreground">
-            Finance, trading or market news. Watch the route panel to see which agents and tools answer, and which run in parallel.
-          </p>
-        </div>
-        <div className="w-full">
-          <Examples onPick={onExample} />
-        </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex-1 overflow-y-auto px-5 py-5">
       <LlmKeyCallout className="mb-4" />
-      <ol className="mx-auto flex max-w-3xl flex-col gap-5">
+      <ol className="mx-auto flex max-w-3xl flex-col gap-8">
         {messages.map((m) =>
           m.role === "user" ? (
             <li key={m.id} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[15px] whitespace-pre-wrap text-primary-foreground">{m.text}</div>
+              <div className="max-w-[80%] rounded-3xl bg-muted px-5 py-2.5 text-[15px] whitespace-pre-wrap">{m.text}</div>
             </li>
           ) : (
-            <li key={m.id}>
-              <div
-                role="button"
-                tabIndex={0}
-                aria-pressed={m.id === selectedId}
-                onClick={() => onSelect(m.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSelect(m.id);
-                  }
-                }}
-                className={cn(
-                  "group rounded-2xl rounded-tl-md border px-4 py-3 transition-[border-color,box-shadow,background-color] duration-150",
-                  m.id === selectedId ? "border-agent-main/50 bg-card shadow-[0_6px_20px_-12px_hsl(var(--agent-main)/0.6)]" : "border-border bg-card hover:border-input",
-                )}
-              >
-                <div className="mb-1.5 flex items-center gap-2 text-[12.5px]">
-                  <span className="font-semibold" style={{ color: toneColor("main") }}>
-                    Main agent
-                  </span>
-                  {m.status === "done" ? <RouteChips m={m} /> : null}
-                  <span className="ml-auto text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">{m.id === selectedId ? "showing route" : "show route"}</span>
+            <li key={m.id} className="min-w-0">
+              {m.status === "streaming" && m.text ? (
+                <Markdown>{m.text}</Markdown>
+              ) : m.status === "streaming" ? (
+                <div className="flex items-center gap-1.5 py-1.5 text-muted-foreground" aria-label="Agents are working">
+                  <span className="typing-dot size-1.5 rounded-full bg-current" />
+                  <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:150ms]" />
+                  <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:300ms]" />
+                  <span className="ml-1.5 text-[13px]">{m.id === streamingId ? "Routing your question…" : ""}</span>
                 </div>
-                {m.status === "streaming" ? (
-                  <div className="flex items-center gap-1.5 py-1.5 text-muted-foreground" aria-label="Agents are working">
-                    <span className="typing-dot size-1.5 rounded-full bg-current" />
-                    <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:150ms]" />
-                    <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:300ms]" />
-                    <span className="ml-1.5 text-[13.5px]">{m.id === streamingId ? "Routing your question…" : ""}</span>
-                  </div>
-                ) : m.status === "error" ? (
-                  <div className="text-[14.5px]">
-                    <p className="font-medium text-danger">Couldn't answer this one.</p>
-                    <p className="mt-0.5 text-foreground/80">{m.error}</p>
-                  </div>
-                ) : (
-                  <Markdown>{m.text}</Markdown>
-                )}
-              </div>
+              ) : m.status === "error" ? (
+                <div className="text-[15px]">
+                  <p className="font-medium text-danger">Couldn't answer this one.</p>
+                  <p className="mt-0.5 text-foreground/80">{m.error}</p>
+                </div>
+              ) : (
+                <Markdown>{m.text}</Markdown>
+              )}
+              {m.status === "done" || m.status === "error" ? (
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                  {m.status === "done" ? <RouteChips m={m} /> : null}
+                  <button
+                    type="button"
+                    aria-pressed={m.id === selectedId}
+                    onClick={() => onSelect(m.id)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-colors duration-150",
+                      m.id === selectedId ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Waypoints className="size-3.5" aria-hidden />
+                    {m.id === selectedId ? "Showing route" : "Show route"}
+                  </button>
+                </div>
+              ) : null}
             </li>
           ),
         )}
@@ -316,7 +329,7 @@ function TranscriptView({
   );
 }
 
-function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSend: (t: string) => void; onStop: () => void; streaming: boolean; showExamples: boolean; onExample: (p: string) => void }) {
+function Composer({ onSend, onStop, streaming }: { onSend: (t: string) => void; onStop: () => void; streaming: boolean }) {
   const [text, setText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -331,14 +344,9 @@ function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSe
     setText("");
   };
   return (
-    <div className="border-t border-border px-5 pt-3 pb-4">
-      {showExamples && !streaming ? (
-        <div className="mx-auto mb-2.5 max-w-3xl">
-          <Examples onPick={onExample} compact />
-        </div>
-      ) : null}
+    <div>
       <form
-        className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-input bg-card p-2 pl-4 transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15"
+        className="mx-auto flex max-w-3xl items-end gap-2 rounded-[28px] border border-input bg-card p-2.5 pl-5 shadow-md transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -359,22 +367,19 @@ function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSe
               submit();
             }
           }}
-          placeholder="Ask about revenue, trades or market news…"
+          placeholder="Ask Nimbus anything…"
           className="max-h-[180px] min-h-[40px] flex-1 resize-none bg-transparent py-2 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/80"
         />
         {streaming ? (
-          <Button type="button" variant="outline" size="icon" onClick={onStop} aria-label="Stop" title="Stop">
+          <Button type="button" variant="outline" size="icon" onClick={onStop} aria-label="Stop" title="Stop" className="rounded-full">
             <Square className="size-4" />
           </Button>
         ) : (
-          <Button type="submit" variant="primary" size="icon" disabled={!text.trim()} aria-label="Send" title="Send (Enter)">
+          <Button type="submit" variant="primary" size="icon" disabled={!text.trim()} aria-label="Send" title="Send (Enter)" className="rounded-full">
             <ArrowUp className="size-[18px]" />
           </Button>
         )}
       </form>
-      <p className="mx-auto mt-1.5 flex max-w-3xl items-center gap-1 text-[11.5px] text-muted-foreground">
-        <RotateCcw className="size-3" aria-hidden /> Enter to send · Shift+Enter for a new line · click an answer to see its route
-      </p>
     </div>
   );
 }

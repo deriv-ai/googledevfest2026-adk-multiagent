@@ -6,14 +6,13 @@ from typing import Any
 
 from google.adk.agents import LlmAgent
 
-from .. import tracing
 from ..tools.toolset import SqlRegistryToolset
 from .common import GENERATION, static_instruction
 
 
 def build_registry_specialist(*, name: str, schema: str, description: str, services: Any, model: Any) -> LlmAgent:
     toolset = SqlRegistryToolset(schema, services.cache(schema), services.run_tool)
-    agent = LlmAgent(
+    return LlmAgent(
         name=name,
         model=model,
         description=description,
@@ -21,5 +20,3 @@ def build_registry_specialist(*, name: str, schema: str, description: str, servi
         tools=[toolset],
         generate_content_config=GENERATION,
     )
-    tracing.attach(agent)
-    return agent

@@ -1,7 +1,15 @@
-# Workshop: give the agents new skills by writing tools
+# Extra: teach finance and trading new skills from the UI
 
-**Time:** about 45 minutes. **You need:** the stack running (`make up` or `make podman-up`, see the
-README) and a browser at http://localhost:8080.
+> **The main workshop is [WORKSHOP.md](../WORKSHOP.md)**, where you build the marketing agent. This
+> page is an optional side exercise for when you finish early, or want better finance and trading
+> tools for the competition in [exercise 5](../exercises/5-evals.md).
+
+**Time:** about 45 minutes. **You need:** the stack running (`make up`, see
+[WORKSHOP.md](../WORKSHOP.md)) and a browser at http://localhost:8080.
+
+The finance and trading agents get their tools from a registry in Postgres, and the UI has an editor
+for it. The marketing agent is different: its tools are Python functions, so this page doesn't apply
+to it.
 
 The starter registry has 3 finance and 3 trading SQL tools. It deliberately has **no FX-rate tool, no
 client risk-level tool and no curated definitions**, and you will add all three. You won't touch any
@@ -190,9 +198,9 @@ finance agent calling `kpi_definitions` **and** `finance_monthly_pnl` (or
 Now use everything together. Watch the route panel for parallel branches.
 
 - *"Did GBP strength or weakness affect NM-UK's USD revenue in Q3 2026?"* (finance: FX + P&L)
-- *"Which risk level earned us the most commission last month, and what's the crypto news?"*
-  (trading + news)
-- *"Why did we miss revenue budget in August 2026?"* (finance → trading → news)
+- *"Which risk level earned us the most commission last month, and how did that month's revenue
+  compare with budget?"* (trading + finance)
+- *"Why did we miss revenue budget in August 2026?"* (finance → trading)
 
 ## Bonus challenges
 
@@ -202,4 +210,8 @@ Now use everything together. Watch the route panel for parallel branches.
   then ask whether the October crypto rally explains the commission spike.
 - Write `finance_expense_trend` for one category across entities, and find the entity whose Marketing
   spend keeps overrunning.
+- Write a finance tool for a **single GL account**, for example 5200 Performance marketing, per month
+  and entity. The starter finance tools only report by category, and the Marketing category also holds
+  5210 and 5220. With it, finance can reconcile the marketing agent's campaign spend against the ledger
+  to the cent. This is a useful idea for the competition.
 - Open the ADK dev UI (http://localhost:8000) and compare its event view with the app's route panel.

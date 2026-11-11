@@ -44,9 +44,9 @@ CREATE TABLE trading.instruments (
 );
 COMMENT ON TABLE trading.instruments IS
 'Tradable instruments (16 rows): generic, well-known public market symbols - FX pairs, Bitcoin/Ether, gold/silver/oil and broad equity indices. '
-'No single-company stocks. All prices for them in this database are SYNTHETIC. Use name (e.g. "Bitcoin", "Gold") as the search term for news.';
+'No single-company stocks. All prices for them in this database are SYNTHETIC.';
 COMMENT ON COLUMN trading.instruments.symbol      IS 'Ticker-style symbol, primary key: EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, EURGBP, BTCUSD, ETHUSD, XAUUSD, XAGUSD, USOIL, US100, US500, GER40, UK100, JP225.';
-COMMENT ON COLUMN trading.instruments.name        IS 'Plain-English name, e.g. "Bitcoin", "Gold", "US Tech 100 Index", "Euro / US Dollar". Good keyword for news searches.';
+COMMENT ON COLUMN trading.instruments.name        IS 'Plain-English name, e.g. "Bitcoin", "Gold", "US Tech 100 Index", "Euro / US Dollar".';
 COMMENT ON COLUMN trading.instruments.asset_class IS 'One of: forex, crypto, commodities, indices. Commission rates differ by asset class (crypto highest).';
 
 -- ---------------------------------------------------------------------------

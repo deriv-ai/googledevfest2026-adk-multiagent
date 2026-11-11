@@ -4,7 +4,6 @@ import type { ChatExample, Graph, Health, SchemaColumn, SchemaDetail, SchemaName
 export const health: Health = {
   ok: true,
   db: "ok",
-  news_mcp: "ok",
   llm_key: "configured",
   llm_mode: "direct",
   model: "gemini/gemini-2.5-flash",
@@ -14,9 +13,9 @@ export const health: Health = {
 export const examples: ChatExample[] = [
   { label: "Finance", prompt: "What was our operating profit by month last quarter?" },
   { label: "Trading", prompt: "What were the top 5 instruments by commission last month?" },
-  { label: "News", prompt: "What's in the news about gold prices today?" },
+  { label: "Marketing", prompt: "Which marketing campaign brought in the most sign-ups last quarter?" },
   { label: "Reconcile (parallel)", prompt: "Does the commission revenue we booked in Q3 match what the trading desk earned?" },
-  { label: "Driver + news (sequential)", prompt: "Which instrument drove the most commission last month, and what's in the news about it?" },
+  { label: "Marketing overrun (sequential)", prompt: "Which entity overspent on marketing, and did its campaigns bring in more clients?" },
   { label: "Budget miss (all agents)", prompt: "Why did we miss revenue budget in August?" },
 ];
 
@@ -242,22 +241,21 @@ export function toolRuns(name: string): ToolRun[] {
 export function graph(): Graph {
   return {
     agents: [
-      { id: "main_agent", label: "Main agent", role: "root", description: "Nimbus assistant persona. Answers small talk itself; sends data and news questions to the orchestrator and writes the final answer.", model: health.router_model },
-      { id: "orchestrator", label: "Orchestrator", role: "router", parent: "main_agent", description: "Routes each request to finance, trading and/or news specialists — in parallel when independent.", model: health.router_model },
+      { id: "main_agent", label: "Main agent", role: "root", description: "Nimbus assistant persona. Answers small talk itself; sends data questions to the orchestrator and writes the final answer.", model: health.router_model },
+      { id: "orchestrator", label: "Orchestrator", role: "router", parent: "main_agent", description: "Routes each request to finance, trading and/or marketing specialists — in parallel when independent.", model: health.router_model },
       { id: "finance_agent", label: "Finance agent", role: "specialist", parent: "orchestrator", datasource: "finance", description: "General ledger, P&L, budgets, FX and entities.", model: health.model },
       { id: "trading_agent", label: "Trading agent", role: "specialist", parent: "orchestrator", datasource: "trading", description: "Clients, trades, instruments, prices and commissions.", model: health.model },
-      { id: "news_agent", label: "News agent", role: "specialist", parent: "orchestrator", datasource: "internet", description: "Live market headlines through the news MCP server.", model: health.model },
+      { id: "marketing_agent", label: "Marketing agent", role: "specialist", parent: "orchestrator", datasource: "marketing", description: "Campaigns, spend and sign-ups, through Python function tools.", model: health.model },
     ],
     tools: [
       ...tools.filter((t) => t.enabled).map((t) => ({ name: t.name, agent: `${t.agent}_agent`, tool_type: t.tool_type, title: t.title })),
-      { name: "latest_headlines", agent: "news_agent", tool_type: "mcp" as const, title: "Latest headlines for a topic" },
-      { name: "search_news", agent: "news_agent", tool_type: "mcp" as const, title: "Search news" },
-      { name: "list_feeds", agent: "news_agent", tool_type: "mcp" as const, title: "List RSS feeds" },
+      { name: "campaign_performance", agent: "marketing_agent", tool_type: "function" as const, title: "Spend, clicks and sign-ups per campaign for a date range." },
+      { name: "channel_summary", agent: "marketing_agent", tool_type: "function" as const, title: "Spend, clicks and sign-ups per ad channel for a date range." },
     ],
     datasources: [
       { id: "finance", label: "finance schema" },
       { id: "trading", label: "trading schema" },
-      { id: "internet", label: "Internet (RSS)" },
+      { id: "marketing", label: "marketing schema" },
     ],
   };
 }
@@ -402,6 +400,48 @@ export const schemas: Record<SchemaName, SchemaDetail> = {
       },
     ],
   },
+  marketing: {
+    name: "marketing",
+    comment: "Nimbus Markets campaigns, spend and sign-ups (synthetic). Spend mirrors the finance GL's performance marketing lines.",
+    tables: [
+      {
+        name: "campaigns",
+        comment: "Marketing campaigns, one per entity, channel and quarter (plus the Nimbus Go launch at NM-SG).",
+        row_count: 96,
+        columns: [
+          c("campaign_id", "text", "Campaign code, e.g. CMP-007", { pk: true }),
+          c("name", "text", "Campaign name, e.g. NM-UK Q3 2026 - search ads"),
+          c("entity_id", "text", "Entity that runs the campaign", { fk: { schema: "finance", table: "entities", column: "entity_id" } }),
+          c("channel", "text", "search ads | social ads | video ads | app-store ads | affiliate network"),
+          c("start_date", "date", "First day with spend"),
+          c("end_date", "date", "Last day with spend"),
+        ],
+      },
+      {
+        name: "campaign_spend",
+        comment: "Spend lines. Each row mirrors one finance GL Performance marketing entry (same id, same USD amount).",
+        row_count: 1460,
+        columns: [
+          c("spend_id", "bigint", "Same id as the finance GL entry it mirrors", { pk: true }),
+          c("campaign_id", "text", "Campaign", { fk: { table: "campaigns", column: "campaign_id" } }),
+          c("spend_date", "date", "Spend date"),
+          c("spend_usd", "numeric(18,2)", "Spend in USD"),
+          c("impressions", "bigint", "Ad impressions"),
+          c("clicks", "bigint", "Ad clicks"),
+        ],
+      },
+      {
+        name: "signups",
+        comment: "New trading clients credited to a campaign that was running in their sign-up month.",
+        row_count: 331,
+        columns: [
+          c("client_id", "text", "Trading client", { pk: true, fk: { schema: "trading", table: "clients", column: "client_id" } }),
+          c("campaign_id", "text", "Campaign credited with the sign-up", { fk: { table: "campaigns", column: "campaign_id" } }),
+          c("signup_date", "date", "Account opening date"),
+        ],
+      },
+    ],
+  },
   tools: {
     name: "tools",
     comment: "Tool registry: every row becomes an ADK FunctionTool.",
@@ -456,6 +496,9 @@ export function sampleRows(schema: SchemaName, table: string, limit: number): { 
       if (n === "entity_id") return ["NM-UK", "NM-SG", "NM-AE", "NM-INTL"][i % 4];
       if (n === "client_id") return `C${String(42 + i * 7).padStart(5, "0")}`;
       if (n === "full_name") return `${firsts[i % 8]} ${lasts[(i * 3) % 8]}`;
+      if (n === "campaign_id") return `CMP-${String(3 + i * 4).padStart(3, "0")}`;
+      if (n === "channel") return ["search ads", "social ads", "video ads", "app-store ads", "affiliate network"][i % 5];
+      if (n === "name" && table === "campaigns") return ["NM-UK Q3 2026 - search ads", "Nimbus Go launch - social ads", "NM-AE Q3 2026 - video ads", "NM-INTL Q3 2026 - affiliate network"][i % 4];
       if (n === "symbol") return ["EURUSD", "BTCUSD", "XAUUSD", "US100", "GBPUSD"][i % 5];
       if (n === "segment") return ["retail", "pro", "vip"][i % 3];
       if (n === "country") return ["GB", "SG", "AE", "DE", "BR"][i % 5];

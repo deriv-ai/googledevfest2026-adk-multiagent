@@ -6,6 +6,9 @@
 #
 # Ports are published on 127.0.0.1 only (BIND_ADDRESS), so nobody else on your
 # Wi-Fi can reach Postgres (postgres/postgres) or the unauthenticated API.
+#
+# ./src is mounted into app and adk-web and both reload on change, so Python and prompt
+# edits show up without rebuilding the image.
 name: nimbus-adk
 
 services:
@@ -34,45 +37,29 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  news-mcp:
-    build:
-      context: .
-      dockerfile: docker/news-mcp.Dockerfile
-    image: nimbus-news-mcp:latest
-    container_name: nimbus-news-mcp
-    environment:
-      NEWS_POLL_SECONDS: ${NEWS_POLL_SECONDS:-300}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    ports:
-      - "${BIND_ADDRESS:-127.0.0.1}:8001:8001"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/healthz', timeout=3)"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
-    restart: unless-stopped
-
   app:
     build:
       context: .
       dockerfile: docker/app.Dockerfile
     image: nimbus-app:latest
     container_name: nimbus-app
+    command: ["uvicorn", "devfest_agents.api.main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers",
+              "--reload", "--reload-dir", "/app/src", "--reload-include", "*.md"]
     env_file: .env
     environment:
       DATABASE_URL: postgresql://app:app@db:5432/${POSTGRES_DB:-nimbus}
       AGENT_DATABASE_URL: postgresql://agent_ro:agent_ro@db:5432/${POSTGRES_DB:-nimbus}
-      NEWS_MCP_URL: http://news-mcp:8001/mcp
       STATIC_DIR: /app/static
       STARTER_TOOLS_PATH: /app/seed/starter_tools.yaml
+      WATCHFILES_FORCE_POLLING: "true"  # file events don't always cross the Docker/Podman VM boundary
+    volumes:
+      - ./src:/app/src:ro
+      - ./evals:/app/evals:ro
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:8080:8080"
     depends_on:
       db:
         condition: service_healthy
-      news-mcp:
-        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=5)"]
       interval: 10s
@@ -88,21 +75,20 @@ services:
       dockerfile: docker/app.Dockerfile
     image: nimbus-app:latest
     container_name: nimbus-adk-web
-    command: ["adk", "web", "--host", "0.0.0.0", "--port", "8000", "/app/src/devfest_agents/adk_apps"]
+    command: ["adk", "web", "--host", "0.0.0.0", "--port", "8000", "--reload_agents", "/app/src/devfest_agents/adk_apps"]
     env_file: .env
     environment:
       DATABASE_URL: postgresql://app:app@db:5432/${POSTGRES_DB:-nimbus}
       AGENT_DATABASE_URL: postgresql://agent_ro:agent_ro@db:5432/${POSTGRES_DB:-nimbus}
-      NEWS_MCP_URL: http://news-mcp:8001/mcp
       STATIC_DIR: /app/static
       STARTER_TOOLS_PATH: /app/seed/starter_tools.yaml
+    volumes:
+      - ./src:/app/src:ro
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:8000:8000"
     depends_on:
       db:
         condition: service_healthy
-      news-mcp:
-        condition: service_started
     restart: unless-stopped
 
 volumes:

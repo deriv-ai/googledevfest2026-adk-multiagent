@@ -35,10 +35,11 @@ async def test_failed_turn_rolls_back_session(fake_services):
 
 async def test_tool_errors_fail_soft(fake_services):
     root = build_tree(fake_services)
-    agents_by_name(root)["news_agent"].model = ScriptedLlm(model="x", responder=SCRIPTS["news_agent"], fail=True)
+    agents_by_name(root)["marketing_agent"].model = ScriptedLlm(model="x", responder=SCRIPTS["marketing_agent"],
+                                                                fail=True)
     events = await collect(AgentRuntime(root, settings=fake_services.settings))
-    news = [e for e in events if e["type"] == "tool_result" and e["tool"] == "news_agent"]
-    assert len(news) == 1 and news[0]["ok"] is False
+    failed = [e for e in events if e["type"] == "tool_result" and e["tool"] == "marketing_agent"]
+    assert len(failed) == 1 and failed[0]["ok"] is False
     assert events[-1]["type"] == "answer"
 
 
@@ -57,3 +58,23 @@ async def test_reset_forgets_conversation(fake_services):
     await runtime.reset("r1")
     assert await runtime.session_service.get_session(app_name="nimbus", user_id="web", session_id="r1") is None
     await runtime.reset("never-existed")
+
+
+async def test_answer_streams_as_deltas(fake_services):
+    from google.adk.models.llm_response import LlmResponse
+    from google.genai import types
+
+    class StreamingLlm(ScriptedLlm):
+        async def generate_content_async(self, llm_request, stream: bool = False):
+            chunks = ["Revenue was ", "up in Q3."]
+            if stream:
+                for chunk in chunks:
+                    yield LlmResponse(content=types.Content(role="model", parts=[text(chunk)]), partial=True)
+            yield LlmResponse(content=types.Content(role="model", parts=[text("".join(chunks))]))
+
+    root = build_tree(fake_services)
+    root.model = StreamingLlm(model="x", responder=SCRIPTS["main_agent"])
+    events = await collect(AgentRuntime(root, settings=fake_services.settings))
+    deltas = [e["text"] for e in events if e["type"] == "answer_delta"]
+    assert deltas == ["Revenue was ", "up in Q3."]
+    assert events[-1]["type"] == "answer" and events[-1]["text"] == "Revenue was up in Q3."

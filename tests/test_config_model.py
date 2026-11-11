@@ -4,10 +4,10 @@ from devfest_agents.config import Settings
 
 def test_direct_mode_defaults():
     s = Settings(_env_file=None, gemini_api_key="g" * 12)
-    assert s.llm_mode == "direct" and s.effective_agent_model == "gemini/gemini-3.8-flash"
+    assert s.llm_mode == "direct" and s.effective_agent_model == "gemini/gemini-3.7-flash"
     assert s.effective_router_model == s.effective_agent_model
     m = make_model(s.effective_agent_model, s)
-    assert m.model == "gemini/gemini-3.8-flash"
+    assert m.model == "gemini/gemini-3.7-flash"
     assert m._additional_args == {"api_key": "g" * 12, "timeout": 60.0, "num_retries": 2, "reasoning_effort": "low", "drop_params": True}  # no max_tokens
 
 
@@ -15,7 +15,7 @@ def test_proxy_mode_and_key_precedence():
     s = Settings(_env_file=None, gemini_api_key="g" * 12, litellm_gemini_api_key="l" * 12,
                  openai_base_url="https://proxy.invalid/v1", router_model="openai/gemini-3.5-flash")
     assert s.llm_mode == "proxy" and s.llm_api_key == "l" * 12
-    assert s.effective_agent_model == "openai/gemini-3.8-flash"
+    assert s.effective_agent_model == "openai/gemini-3.7-flash"
     assert s.effective_router_model == "openai/gemini-3.5-flash"
     m = make_model(s.effective_agent_model, s)
     assert m._additional_args == {"api_key": "l" * 12, "api_base": "https://proxy.invalid/v1", "timeout": 60.0, "num_retries": 2, "reasoning_effort": "low", "drop_params": True}

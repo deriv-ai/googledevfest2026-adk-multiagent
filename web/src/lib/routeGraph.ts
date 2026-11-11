@@ -20,7 +20,7 @@ export interface RouteNodeState {
   ms: number | null;
   /** Agent that owns a tool node. */
   agent?: string;
-  /** For tool nodes: sql | factual | mcp. */
+  /** For tool nodes: sql | factual | function. */
   toolKind?: ToolKind;
   /** For tool and datasource nodes: the name / id. */
   name?: string;

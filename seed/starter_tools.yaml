@@ -148,7 +148,7 @@ tools:
       Use it for "did we hit budget in June?", "which costs overran?" (try by_entity = true to
       see which entity overspent), and as the first step of "why did we miss budget?" - if
       trading commission or spread revenue is below budget, ask the trading agent about
-      volumes that month, and the news agent about market conditions.
+      volumes that month.
       The current month's budget is a full-month figure while actuals are month-to-date.
     params:
       - name: month
@@ -285,13 +285,11 @@ tools:
     description: >
       Ranks instruments for a date range (closed trades, by close_time) by commission earned,
       notional volume, or client PnL. Columns: symbol, name (plain English, e.g. "Bitcoin",
-      "Gold" - use it as the search term for news), asset_class, trades, notional_usd,
-      commission_usd, commission_share_pct (of all commission in the range), client_pnl_usd
-      (clients' profit; negative = clients lost money), win_rate_pct (share of trades where
-      the client made money).
-      Use it for "what were the most traded instruments?", "which instrument earned us the
-      most last month?" and as the first step of "...and what's in the news about it?" -
-      pass the top row's name to the news agent.
+      "Gold"), asset_class, trades, notional_usd, commission_usd, commission_share_pct (of all
+      commission in the range), client_pnl_usd (clients' profit; negative = clients lost
+      money), win_rate_pct (share of trades where the client made money).
+      Use it for "what were the most traded instruments?" or "which instrument earned us the
+      most last month?".
     params:
       - name: start_date
         type: date

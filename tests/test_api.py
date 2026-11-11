@@ -1,11 +1,10 @@
-"""API routes with the database, MCP and LLM all faked."""
+"""API routes with the database and LLM faked."""
 
 import json
 
 import pytest
 from fastapi.testclient import TestClient
 
-from devfest_agents.api import routes_health
 from devfest_agents.api.main import create_app
 from devfest_agents.api.routes_chat import sse_frame
 from devfest_agents.runtime import AgentRuntime
@@ -31,11 +30,7 @@ class FakeSchema:
 
 
 @pytest.fixture
-def client(fake_services, monkeypatch):
-    async def news_ok(url):
-        return True
-
-    monkeypatch.setattr(routes_health, "_news_ok", news_ok)
+def client(fake_services):
     runtime = AgentRuntime(agent_factory=lambda: build_tree(fake_services), settings=fake_services.settings)
     app = create_app(services=fake_services, runtime=runtime, schema=FakeSchema(), connect_db=False)
     with TestClient(app) as c:
@@ -44,20 +39,21 @@ def client(fake_services, monkeypatch):
 
 def test_health(client):
     body = client.get("/api/health").json()
-    assert body == {"ok": True, "db": "ok", "news_mcp": "ok", "llm_key": "configured", "llm_mode": "direct",
-                    "model": "gemini/gemini-3.8-flash", "router_model": "gemini/gemini-3.8-flash"}
+    assert body == {"ok": True, "db": "ok", "llm_key": "configured", "llm_mode": "direct",
+                    "model": "gemini/gemini-3.7-flash", "router_model": "gemini/gemini-3.7-flash"}
     assert "test-key-not-real" not in json.dumps(body)
 
 
 def test_graph(client):
     body = client.get("/api/graph").json()
     ids = [a["id"] for a in body["agents"]]
-    assert ids == ["main_agent", "orchestrator", "finance_agent", "trading_agent", "news_agent"]
+    assert ids == ["main_agent", "orchestrator", "finance_agent", "trading_agent", "marketing_agent"]
     assert body["agents"][2]["datasource"] == "finance" and body["agents"][1]["parent"] == "main_agent"
     tools = {t["name"]: t for t in body["tools"]}
     assert tools["trading_top_instruments"]["agent"] == "trading_agent"
-    assert tools["search_news"]["tool_type"] == "mcp"
-    assert [d["id"] for d in body["datasources"]] == ["finance", "trading", "internet"]
+    assert tools["channel_summary"] == {"name": "channel_summary", "agent": "marketing_agent", "tool_type": "function",
+                                        "title": "Spend per ad channel for a date range."}
+    assert [d["id"] for d in body["datasources"]] == ["finance", "trading", "marketing"]
 
 
 def test_examples(client):

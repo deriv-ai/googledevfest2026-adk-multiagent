@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Play, Radio, Square, Workflow } from "lucide-react";
+import { AlertTriangle, Loader2, PanelRightClose, Play, Square, Workflow } from "@/components/icons";
 import type { Graph } from "@/api/types";
 import { RouteGraph } from "@/graph/RouteGraph";
 import { Button } from "@/components/ui";
 import { agentMeta, toneColor } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
 import { activeAgents, parallelGroups, type RouteState } from "@/lib/routeGraph";
-import { cn } from "@/lib/utils";
 import { StepTimeline } from "./StepTimeline";
 
 function useTicker(on: boolean, since: number | null) {
@@ -30,9 +29,11 @@ export interface RoutePanelProps {
   onReplay: () => void;
   onStopReplay: () => void;
   caption: string | null;
+  /** Collapse the panel (large screens only). */
+  onCollapse?: () => void;
 }
 
-export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay, onReplay, onStopReplay, caption }: RoutePanelProps) {
+export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay, onReplay, onStopReplay, caption, onCollapse }: RoutePanelProps) {
   const elapsed = useTicker(live, liveSince);
   const working = activeAgents(state).filter((a) => a !== "main_agent" || activeAgents(state).length === 1);
   const groups = parallelGroups(state.steps);
@@ -40,15 +41,15 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-3">
+      <div className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-2.5">
         <div className="flex items-center gap-2">
-          <Workflow className="size-[18px] text-muted-foreground" aria-hidden />
+          <Workflow className="size-4 text-muted-foreground" aria-hidden />
           <h2 className="text-[15px] font-semibold">Agent route</h2>
         </div>
         <div className="flex min-w-0 flex-1 items-center gap-2 text-[13px]" aria-live="polite">
           {live ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-muted py-1 pr-3 pl-2 font-medium">
-              <Radio className="size-3.5 animate-pulse text-danger" aria-hidden />
+              <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />
               Working… <span className="font-mono tabular-nums">{(elapsed / 1000).toFixed(1)}s</span>
               {working.length ? (
                 <span className="hidden truncate font-normal text-muted-foreground sm:inline">
@@ -86,8 +87,13 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
             <Play className="size-3.5" aria-hidden /> Replay
           </Button>
         )}
+        {onCollapse ? (
+          <Button size="icon" variant="ghost" onClick={onCollapse} className="hidden lg:inline-flex" aria-label="Hide agent route" title="Hide agent route">
+            <PanelRightClose className="size-4" aria-hidden />
+          </Button>
+        ) : null}
       </div>
-      <div className="flex items-center gap-4 border-b border-border bg-muted/40 px-5 py-1.5 text-[12.5px] text-muted-foreground">
+      <div className="flex items-center gap-4 px-5 pt-3 pb-1 text-xs text-muted-foreground">
         <span className="min-w-0 flex-1 truncate">{caption ? <>Route for: “{caption}”</> : "No question selected"}</span>
         <Legend />
       </div>
@@ -98,7 +104,7 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
 
       <div className="min-h-[140px] flex-1 overflow-y-auto px-3 py-3">
         {state.error ? (
-          <div role="alert" className="mx-2 mb-3 flex gap-2.5 rounded-lg border border-danger/30 bg-danger/8 p-3 text-sm">
+          <div role="alert" className="mx-2 mb-3 flex gap-2.5 rounded-lg border border-danger/25 bg-danger/8 p-3 text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
             <div>
               <div className="font-semibold text-danger">The agents hit an error</div>
@@ -109,11 +115,11 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
         {state.steps.length ? (
           <StepTimeline steps={state.steps} />
         ) : (
-          <p className={cn("px-2 py-4 text-sm text-muted-foreground", state.status === "running" && "animate-pulse")}>
+          <p className="px-2 py-4 text-sm text-muted-foreground">
             {state.status === "running"
               ? "The main agent is reading the question…"
               : state.status === "done"
-                ? "The main agent answered directly — no delegation needed."
+                ? "The main agent answered this one itself, without calling a specialist."
                 : "Each delegation and tool call appears here in order, with its arguments, row count and timing."}
           </p>
         )}
@@ -128,13 +134,13 @@ function Legend() {
     ["orchestrator", "Orchestrator"],
     ["finance", "Finance"],
     ["trading", "Trading"],
-    ["news", "News"],
+    ["marketing", "Marketing"],
   ];
   return (
-    <div className="hidden shrink-0 gap-x-3 text-[11.5px] xl:flex" aria-label="Agent colours">
+    <div className="hidden shrink-0 gap-x-3 text-[11px] xl:flex" aria-label="Agent colours">
       {items.map(([tone, label]) => (
         <span key={tone} className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full" style={{ background: `hsl(var(--agent-${tone}))` }} />
+          <span className="size-1.5 rounded-full" style={{ background: `hsl(var(--agent-${tone}))` }} />
           {label}
         </span>
       ))}

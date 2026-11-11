@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { EditorView } from "@codemirror/view";
-import { AlertTriangle, ArrowLeft, CheckCircle2, CircleDashed, Database, FileText, FlaskConical, Save } from "lucide-react";
-import { toast } from "sonner";
+import { AlertTriangle, ArrowLeft, CheckCircle2, CircleDashed, Database, FileText, FlaskConical, Save } from "@/components/icons";
 import { ApiError } from "@/api/client";
 import { useSaveTool, useSchema, useTestTool, useTool } from "@/api/hooks";
 import { isSqlResult, type ToolAgent, type ToolSpec, type ToolTestResponse, type ToolType } from "@/api/types";
@@ -12,7 +11,6 @@ import { ResultTable } from "@/components/ResultTable";
 import { SqlEditor } from "@/components/SqlEditor";
 import { ErrorState } from "@/components/States";
 import { Button, Input, Label, Panel, Segmented, Select, Skeleton, Textarea } from "@/components/ui";
-import { agentMeta, toneColor, toolAgentId } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
 import { cleanParams, syncParams, TOOL_NAME_RE, type ParamRow } from "@/lib/placeholders";
 import { cn, stableStringify } from "@/lib/utils";
@@ -136,13 +134,11 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
     setSaveErrors([]);
     saveMut.mutate(spec, {
       onSuccess: (t) => {
-        toast.success(editName ? `Saved ${spec.name}` : `Created ${spec.name}`, { description: `The ${spec.agent} agent will use it from the next question.` });
         navigate(`/tools/${encodeURIComponent(t?.name ?? spec.name)}`);
       },
       onError: (e) => {
         const errs = e instanceof ApiError ? e.errors : [];
         setSaveErrors([e.message, ...errs]);
-        toast.error(`Couldn't save: ${e.message}`);
       },
     });
   };
@@ -157,17 +153,15 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
     v.focus();
   };
 
-  const meta = agentMeta(toolAgentId(f.agent));
-
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 lg:px-10">
-      <Link to={editName ? `/tools/${encodeURIComponent(editName)}` : "/tools"} className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden /> {editName ? "Back to tool" : "All tools"}
+      <Link to={editName ? `/tools/${encodeURIComponent(editName)}` : "/tools"} className="group mb-6 inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+        <ArrowLeft className="size-3.5 transition-[translate] duration-200 ease-out group-hover:-translate-x-0.5" aria-hidden /> {editName ? "Back to tool" : "All tools"}
       </Link>
-      <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-semibold tracking-tight">{editName ? <>Edit <span className="font-mono">{editName}</span></> : "New tool"}</h1>
-          <p className="mt-1 max-w-[70ch] text-[15px] text-muted-foreground">Describe it, write it, test it. Save unlocks once a test of exactly this version passes.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{editName ? <>Edit <span className="font-mono">{editName}</span></> : "New tool"}</h1>
+          <p className="mt-1.5 max-w-[68ch] text-[15px] text-muted-foreground">Describe it, write it, test it. Save unlocks once a test of exactly this version passes.</p>
         </div>
       </header>
 
@@ -193,7 +187,7 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
                   autoFocus={!editName}
                 />
                 {touched.name && nameError ? (
-                  <p id="name-err" className="mt-1 text-[12.5px] text-danger">
+                  <p id="name-err" className="mt-1 text-xs text-danger">
                     {nameError}
                   </p>
                 ) : null}
@@ -255,8 +249,8 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
             <>
               <section>
                 <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="text-[16px] font-semibold">SQL</h2>
-                  <span className="text-[13px] text-muted-foreground">
+                  <h2 className="text-[15px] font-semibold">SQL</h2>
+                  <span className="text-xs text-muted-foreground">
                     One SELECT/WITH over <code className="font-mono">{f.agent}.*</code> · <code className="font-mono">:name</code> placeholders · optional params arrive as NULL
                   </span>
                 </div>
@@ -274,8 +268,8 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
               </section>
               <section>
                 <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="text-[16px] font-semibold">Parameters</h2>
-                  <span className="text-[13px] text-muted-foreground">Synced from the SQL. Required params need an example for the test run.</span>
+                  <h2 className="text-[15px] font-semibold">Parameters</h2>
+                  <span className="text-xs text-muted-foreground">Synced from the SQL. Required params need an example for the test run.</span>
                 </div>
                 <ParamsEditor rows={f.params} orphans={orphans} onChange={(rows) => set("params", rows)} sqlEmpty={!f.sql.trim()} />
               </section>
@@ -284,7 +278,7 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
             <section className="space-y-4">
               <div>
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-[16px] font-semibold">Answer</h2>
+                  <h2 className="text-[15px] font-semibold">Answer</h2>
                   <Segmented
                     size="sm"
                     value={answerTab}
@@ -300,7 +294,7 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
                     rows={12}
                     value={f.answer}
                     onChange={(e) => set("answer", e.target.value)}
-                    className="font-mono text-[13.5px]"
+                    className="font-mono text-[13px]"
                     placeholder={"**Net revenue** = trading commission + spread revenue + subscription fees + interest income.\n\n**Operating profit** = net revenue − operating expenses."}
                     aria-label="Answer (markdown)"
                   />
@@ -319,12 +313,12 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
           )}
 
           {/* Test + save bar */}
-          <div className="sticky bottom-0 z-20 -mx-2 rounded-xl border border-border bg-card/95 px-4 py-3 shadow-[0_-6px_24px_-12px_rgb(0_0_0/0.25)] backdrop-blur">
+          <div className="sticky bottom-3 z-20 -mx-2 rounded-xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur">
             <div className="flex flex-wrap items-center gap-3">
-              <Button size="lg" variant="outline" onClick={runTest} loading={testMut.isPending}>
+              <Button variant="outline" onClick={runTest} loading={testMut.isPending}>
                 {!testMut.isPending ? <FlaskConical className="size-4" aria-hidden /> : null} Test run
               </Button>
-              <Button size="lg" variant="primary" onClick={save} disabled={!canSave} loading={saveMut.isPending}>
+              <Button variant="primary" onClick={save} disabled={!canSave} loading={saveMut.isPending}>
                 {!saveMut.isPending ? <Save className="size-4" aria-hidden /> : null} {editName ? "Save changes" : "Save tool"}
               </Button>
               <TestStatus test={test} current={testedCurrent} problems={problems} pending={testMut.isPending} />
@@ -338,7 +332,6 @@ function Editor({ initial, editName }: { initial: FormState; editName?: string }
         {f.tool_type === "sql" ? (
           <aside className="min-w-0">
             <Panel className="flex max-h-[calc(100dvh-8rem)] flex-col overflow-hidden xl:sticky xl:top-6">
-              <div className="h-1 shrink-0" style={{ background: toneColor(meta.tone) }} aria-hidden />
               <SchemaBrowser schema={f.agent} onInsert={insert} />
             </Panel>
           </aside>
@@ -366,7 +359,7 @@ function TestStatus({ test, current, problems, pending }: { test: { res: ToolTes
     text = "Test passed. Ready to save.";
   }
   return (
-    <span className="flex min-w-0 items-center gap-2 text-[13.5px]" aria-live="polite">
+    <span className="flex min-w-0 items-center gap-2 text-[13px] text-muted-foreground" aria-live="polite">
       {icon}
       <span>{text}</span>
     </span>
@@ -375,11 +368,11 @@ function TestStatus({ test, current, problems, pending }: { test: { res: ToolTes
 
 function ErrorList({ title, errors }: { title: string; errors: string[] }) {
   return (
-    <div role="alert" className="rounded-xl border border-danger/30 bg-danger/6 p-4">
+    <div role="alert" className="rounded-xl border border-danger/25 bg-danger/6 p-4">
       <div className="mb-1.5 flex items-center gap-2 font-semibold text-danger">
         <AlertTriangle className="size-4" aria-hidden /> {title}
       </div>
-      <ul className="list-disc space-y-0.5 pl-6 text-[14px]">
+      <ul className="list-disc space-y-0.5 pl-6 text-sm">
         {[...new Set(errors)].map((e) => (
           <li key={e} className="font-mono text-[13px]">
             {e}
@@ -397,16 +390,16 @@ function TestResults({ res, stale }: { res: ToolTestResponse; stale: boolean }) 
       <div className="grid gap-6 2xl:grid-cols-2">
         <section className="min-w-0">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[16px] font-semibold">Result</h2>
+            <h2 className="text-[15px] font-semibold">Result</h2>
             {res.result && isSqlResult(res.result) ? (
-              <span className="text-[13px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {res.result.row_count} row{res.result.row_count === 1 ? "" : "s"}
                 {res.result.truncated ? " (truncated)" : ""} · {formatMs(res.result.duration_ms)} · ran with the params' example/default values
               </span>
             ) : null}
           </div>
           {!res.result ? (
-            <p className="rounded-xl border border-dashed border-border px-5 py-6 text-sm text-muted-foreground">No result: the tool didn't run.</p>
+            <p className="rounded-xl border border-dashed border-input/70 px-5 py-6 text-sm text-muted-foreground">No result: the tool didn't run.</p>
           ) : isSqlResult(res.result) ? (
             <ResultTable columns={res.result.columns} rows={res.result.rows} maxHeight="22rem" />
           ) : (
@@ -418,10 +411,10 @@ function TestResults({ res, stale }: { res: ToolTestResponse; stale: boolean }) 
         </section>
         <section className="min-w-0">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[16px] font-semibold">What the LLM sees</h2>
-            <span className="text-[13px] text-muted-foreground">The function declaration ADK sends to the model</span>
+            <h2 className="text-[15px] font-semibold">What the LLM sees</h2>
+            <span className="text-xs text-muted-foreground">The function declaration ADK sends to the model</span>
           </div>
-          {res.declaration ? <JsonView value={res.declaration} className="max-h-[22rem]" /> : <p className="rounded-xl border border-dashed border-border px-5 py-6 text-sm text-muted-foreground">No declaration: fix the errors above first.</p>}
+          {res.declaration ? <JsonView value={res.declaration} className="max-h-[22rem]" /> : <p className="rounded-xl border border-dashed border-input/70 px-5 py-6 text-sm text-muted-foreground">No declaration: fix the errors above first.</p>}
         </section>
       </div>
     </div>

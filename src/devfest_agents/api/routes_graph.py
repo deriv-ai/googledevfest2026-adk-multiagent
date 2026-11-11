@@ -1,51 +1,38 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 
 from fastapi import APIRouter, Request
 
-from ..agents import GRAPH_AGENTS
-from ..tools.news_toolset import NEWS_TOOLS
+from ..agents import graph_agents
+from ..agents.common import list_tools, tool_title, walk_agents
+from ..tracing import tool_kind
 from . import deps
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-DATASOURCES = [
-    {"id": "finance", "label": "finance schema"},
-    {"id": "trading", "label": "trading schema"},
-    {"id": "internet", "label": "Internet (RSS)"},
-]
-
 
 @router.get("/api/graph")
 async def graph(request: Request):
-    svc = deps.services(request)
-    settings = svc.settings
+    settings = deps.services(request).settings
     agents = []
-    for a in GRAPH_AGENTS:
+    for a in graph_agents():
         item = {k: v for k, v in a.items() if k != "model_role" and v is not None}
         item["model"] = settings.effective_router_model if a["model_role"] == "router" else settings.effective_agent_model
         agents.append(item)
 
+    specialists = [a for a in agents if a["role"] == "specialist"]
+    built = {agent.name: agent for agent in walk_agents(deps.runtime(request).root_agent)}
     tools = []
-    for agent_id, schema in (("finance_agent", "finance"), ("trading_agent", "trading")):
+    for a in specialists:
         try:
-            specs, _ = await svc.cache(schema).refresh()
-        except Exception:  # noqa: BLE001
-            specs = []
-        tools.extend({"name": s.name, "agent": agent_id, "tool_type": s.tool_type, "title": s.title} for s in specs)
+            agent_tools = await list_tools(built[a["id"]])
+        except Exception as exc:  # noqa: BLE001 - e.g. the database is down
+            logger.warning("Could not list tools of %s: %s", a["id"], type(exc).__name__)
+            agent_tools = []
+        tools.extend({"name": t.name, "agent": a["id"], "tool_type": tool_kind(t), "title": tool_title(t)}
+                     for t in agent_tools)
 
-    news = svc.news()
-    names = list(getattr(news, "last_tool_names", None) or [])
-    if not names:
-        try:
-            listed = await asyncio.wait_for(news.get_tools(), timeout=4.0)
-            names = [t.name for t in listed]
-        except Exception:  # noqa: BLE001
-            names = []
-    for name in names or list(NEWS_TOOLS):
-        tools.append({"name": name, "agent": "news_agent", "tool_type": "mcp", "title": NEWS_TOOLS.get(name, name)})
-
-    return {"agents": agents, "tools": tools, "datasources": DATASOURCES}
+    datasources = [{"id": a["datasource"], "label": f"{a['datasource']} schema"} for a in specialists]
+    return {"agents": agents, "tools": tools, "datasources": datasources}

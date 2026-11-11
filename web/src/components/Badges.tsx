@@ -1,21 +1,21 @@
-import { Bot, Database, FileText, Globe, Network, Route, Sparkles, type LucideIcon } from "lucide-react";
+import { Bank, Bot, ChartLineUp, Database, FileText, Megaphone, Orchestrate, Sparkles, SquareFunction, type AppIcon } from "@/components/icons";
 import type { ToolKind } from "@/api/types";
 import { agentMeta, toneColor, type AgentTone } from "@/lib/agents";
 import { cn } from "@/lib/utils";
 
-export const TONE_ICON: Record<AgentTone, LucideIcon> = {
+export const TONE_ICON: Record<AgentTone, AppIcon> = {
   main: Sparkles,
-  orchestrator: Route,
-  finance: Bot,
-  trading: Bot,
-  news: Globe,
+  orchestrator: Orchestrate,
+  finance: Bank,
+  trading: ChartLineUp,
+  marketing: Megaphone,
   other: Bot,
 };
 
-export const KIND_ICON: Record<ToolKind, LucideIcon> = {
+export const KIND_ICON: Record<ToolKind, AppIcon> = {
   sql: Database,
   factual: FileText,
-  mcp: Network,
+  function: SquareFunction,
   agent: Bot,
 };
 
@@ -32,15 +32,15 @@ export function AgentBadge({ agent, className, size = "md" }: { agent: string; c
   );
 }
 
-const KIND_LABEL: Record<ToolKind, string> = { sql: "SQL", factual: "Factual", mcp: "MCP", agent: "Agent" };
+export const KIND_LABEL: Record<ToolKind, string> = { sql: "SQL", factual: "Factual", function: "Python", agent: "Agent" };
 
 export function ToolTypeBadge({ type, className }: { type: ToolKind; className?: string }) {
   const Icon = KIND_ICON[type];
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[11px] font-medium tracking-wide uppercase",
-        type === "factual" ? "border-success/30 text-success" : "border-border text-muted-foreground",
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+        type === "factual" ? "bg-success/12 text-success" : "bg-muted text-muted-foreground",
         className,
       )}
     >

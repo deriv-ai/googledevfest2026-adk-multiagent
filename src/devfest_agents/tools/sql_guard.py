@@ -6,8 +6,9 @@ timeout. The guard gives tool authors fast, readable feedback in the UI:
 
 * exactly one SELECT / WITH statement (one trailing ``;`` is tolerated);
 * no DDL / DML / session keywords;
-* only the tool's own agent schema (``finance.`` or ``trading.``); never
-  ``tools.``, ``pg_*``, ``information_schema`` or the other agent's schema;
+* only the tool's own agent schema (``finance.``, ``trading.`` or
+  ``marketing.``); never ``tools.``, ``pg_*``, ``information_schema`` or
+  another agent's schema;
 * tables in FROM / JOIN must be schema-qualified (CTE names excepted).
 
 String literals, quoted identifiers and comments are masked before any check,
@@ -21,7 +22,7 @@ from collections.abc import Mapping
 
 PLACEHOLDER_RE = re.compile(r"(?<!:):([a-zA-Z_][a-zA-Z0-9_]*)")
 
-AGENT_SCHEMAS = {"finance", "trading"}
+AGENT_SCHEMAS = {"finance", "trading", "marketing"}
 KNOWN_SCHEMAS = AGENT_SCHEMAS | {"tools", "public", "information_schema", "pg_catalog", "pg_toast"}
 
 # Postgres type each param type is bound as. Explicit casts make NULL optional
@@ -245,16 +246,30 @@ def compile_sql(sql: str, param_types: Mapping[str, str]) -> str:
     ``param_types`` maps param name -> ToolSpec type (date|string|integer|number|boolean).
     Raises SqlGuardError if a placeholder has no declared type.
     """
+    def placeholder(name: str) -> str:
+        if name not in param_types:
+            raise SqlGuardError(f"Placeholder :{name} has no declared parameter")
+        return f"%({name})s::{PG_CAST.get(param_types[name], 'text')}"
+
+    return _replace_placeholders(sql, placeholder)
+
+
+def compile_untyped_sql(sql: str) -> str:
+    """Convert ``:name`` to ``%(name)s`` (no casts) and escape literal ``%``.
+
+    For hand-written Python tools: Postgres infers each parameter's type from
+    where it is used. A bare NULL check needs a cast: ``:channel::text IS NULL``.
+    """
+    return _replace_placeholders(sql, lambda name: f"%({name})s")
+
+
+def _replace_placeholders(sql: str, placeholder) -> str:
     original, masked = _strip_statement(sql)
     out: list[str] = []
     pos = 0
     for m in PLACEHOLDER_RE.finditer(masked):
-        name = m.group(1)
-        if name not in param_types:
-            raise SqlGuardError(f"Placeholder :{name} has no declared parameter")
         out.append(original[pos:m.start()].replace("%", "%%"))
-        cast = PG_CAST.get(param_types[name], "text")
-        out.append(f"%({name})s::{cast}")
+        out.append(placeholder(m.group(1)))
         pos = m.end()
     out.append(original[pos:].replace("%", "%%"))
     return "".join(out)

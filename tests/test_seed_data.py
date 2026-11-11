@@ -2,7 +2,7 @@
 
 Headers must match the columns in docs/CONTRACT.md / db/init (COPY uses explicit
 column lists), foreign keys must resolve, sizes must stay in the expected ranges,
-and the finance <-> trading reconciliation property must hold.
+and the finance <-> trading and finance <-> marketing reconciliations must hold.
 """
 
 from __future__ import annotations
@@ -30,6 +30,9 @@ COLUMNS = {
     "trading_trades.csv": ["trade_id", "client_id", "symbol", "side", "quantity", "open_price", "close_price",
                            "open_time", "close_time", "notional_usd", "pnl_usd", "commission_usd", "status"],
     "trading_daily_prices.csv": ["symbol", "price_date", "open", "high", "low", "close", "volume"],
+    "marketing_campaigns.csv": ["campaign_id", "name", "entity_id", "channel", "start_date", "end_date"],
+    "marketing_campaign_spend.csv": ["spend_id", "campaign_id", "spend_date", "spend_usd", "impressions", "clicks"],
+    "marketing_signups.csv": ["client_id", "campaign_id", "signup_date"],
 }
 
 ROW_RANGES = {
@@ -42,6 +45,9 @@ ROW_RANGES = {
     "trading_instruments.csv": (10, 30),
     "trading_trades.csv": (15_000, 30_000),
     "trading_daily_prices.csv": (3_000, 12_000),
+    "marketing_campaigns.csv": (80, 200),
+    "marketing_campaign_spend.csv": (200, 500),
+    "marketing_signups.csv": (100, 400),
 }
 
 COUNTRY_TO_ENTITY = {"GB": "NM-UK", **{c: "NM-SG" for c in ("SG", "MY", "TH", "ID", "VN", "PH")},
@@ -87,6 +93,9 @@ def test_total_size_is_a_few_mb():
     ("trading_instruments.csv", ("symbol",)),
     ("trading_trades.csv", ("trade_id",)),
     ("trading_daily_prices.csv", ("symbol", "price_date")),
+    ("marketing_campaigns.csv", ("campaign_id",)),
+    ("marketing_campaign_spend.csv", ("spend_id",)),
+    ("marketing_signups.csv", ("client_id",)),
 ])
 def test_primary_keys_unique(name, keys):
     seen = [tuple(r[k] for k in keys) for r in rows(name)]
@@ -235,3 +244,56 @@ def test_storyline_marketing_overrun_in_one_entity():
         over[ent] = min(mk[m][0] / mk[m][1] for m in recent)
     assert over["NM-SG"] > Decimal("1.25"), over
     assert all(v < Decimal("1.15") for e, v in over.items() if e != "NM-SG"), over
+
+
+def test_marketing_foreign_keys():
+    ents = {r["entity_id"] for r in rows("finance_entities.csv")}
+    campaigns = {c["campaign_id"]: c for c in rows("marketing_campaigns.csv")}
+    channels = {"search ads", "social ads", "video ads", "app-store ads", "affiliate network"}
+    for c in campaigns.values():
+        assert c["entity_id"] in ents and c["channel"] in channels and c["name"].endswith(c["channel"])
+        assert c["start_date"] <= c["end_date"]
+    for s in rows("marketing_campaign_spend.csv"):
+        c = campaigns[s["campaign_id"]]
+        assert c["start_date"] <= s["spend_date"] <= c["end_date"]
+        assert Decimal(s["spend_usd"]) > 0 and 0 < int(s["clicks"]) < int(s["impressions"])
+    clients = {c["client_id"]: c for c in rows("trading_clients.csv")}
+    for g in rows("marketing_signups.csv"):
+        client = clients[g["client_id"]]
+        assert g["signup_date"] == client["signup_date"]
+        assert campaigns[g["campaign_id"]]["entity_id"] == COUNTRY_TO_ENTITY.get(client["country"], "NM-INTL")
+
+
+def test_campaign_spend_reconciles_with_gl():
+    gl = {g["entry_id"]: g for g in rows("finance_gl_entries.csv") if g["account_code"] == "5200"}
+    spend = {s["spend_id"]: s for s in rows("marketing_campaign_spend.csv")}
+    assert spend.keys() == gl.keys()
+    campaigns = {c["campaign_id"]: c for c in rows("marketing_campaigns.csv")}
+    for spend_id, s in spend.items():
+        assert s["spend_usd"] == gl[spend_id]["amount_usd"] and s["spend_date"] == gl[spend_id]["entry_date"]
+        assert campaigns[s["campaign_id"]]["entity_id"] == gl[spend_id]["entity_id"]
+
+
+def test_storyline_nimbus_go_cost_per_signup_rises():
+    """Nimbus Go vs NM-SG's campaigns in the same number of months just before it."""
+    campaigns = {c["campaign_id"]: c for c in rows("marketing_campaigns.csv") if c["entity_id"] == "NM-SG"}
+    go = {cid for cid, c in campaigns.items() if c["name"].startswith("Nimbus Go")}
+    spend, signups = defaultdict(Decimal), defaultdict(int)
+    for s in rows("marketing_campaign_spend.csv"):
+        if s["campaign_id"] in campaigns:
+            spend[(s["campaign_id"] in go, s["spend_date"][:7])] += Decimal(s["spend_usd"])
+    for g in rows("marketing_signups.csv"):
+        if g["campaign_id"] in campaigns:
+            signups[(g["campaign_id"] in go, g["signup_date"][:7])] += 1
+
+    go_months = sorted(m for is_go, m in spend if is_go)[:-1]  # skip the partial end month
+    before = sorted(m for is_go, m in spend if not is_go)[-len(go_months):]
+    assert before[-1] < go_months[0]
+
+    def totals(is_go, months):
+        return sum(spend[(is_go, m)] for m in months), sum(signups[(is_go, m)] for m in months)
+
+    go_spend, go_signups = totals(True, go_months)
+    old_spend, old_signups = totals(False, before)
+    assert go_spend > Decimal("1.5") * old_spend
+    assert go_spend / go_signups > Decimal("1.3") * old_spend / old_signups

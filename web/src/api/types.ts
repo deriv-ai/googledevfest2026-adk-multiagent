@@ -5,7 +5,6 @@
 export interface Health {
   ok: boolean;
   db: "ok" | "error";
-  news_mcp: "ok" | "error";
   llm_key: "configured" | "missing";
   /** How the backend reaches the model (never the URL itself). */
   llm_mode?: "proxy" | "direct";
@@ -14,7 +13,7 @@ export interface Health {
 }
 
 export type AgentRole = "root" | "router" | "specialist";
-export type DatasourceId = "finance" | "trading" | "internet" | (string & {});
+export type DatasourceId = "finance" | "trading" | "marketing" | (string & {});
 
 export interface GraphAgent {
   id: string;
@@ -26,7 +25,7 @@ export interface GraphAgent {
   datasource?: DatasourceId;
 }
 
-export type GraphToolType = "sql" | "factual" | "mcp";
+export type GraphToolType = "sql" | "factual" | "function";
 
 export interface GraphTool {
   name: string;
@@ -48,7 +47,7 @@ export interface Graph {
 
 // ---- Chat SSE -----------------------------------------------------------------------
 
-export type ToolKind = "agent" | "sql" | "factual" | "mcp";
+export type ToolKind = "agent" | "sql" | "factual" | "function";
 
 interface EventBase {
   ts?: number;
@@ -95,6 +94,12 @@ export interface AnswerEvent extends EventBase {
   route?: string[];
   elapsed_ms?: number;
 }
+/** The next chunk of the main agent's answer, as the model writes it. */
+export interface AnswerDeltaEvent {
+  type: "answer_delta";
+  text: string;
+  ts?: number;
+}
 export interface ErrorEvent extends EventBase {
   type: "error";
   message: string;
@@ -106,6 +111,7 @@ export type ChatEvent =
   | AgentEndEvent
   | ToolCallEvent
   | ToolResultEvent
+  | AnswerDeltaEvent
   | AnswerEvent
   | ErrorEvent;
 
@@ -206,7 +212,7 @@ export function isSqlResult(r: ToolTestResponse["result"]): r is SqlTestResult {
 
 // ---- Schema -------------------------------------------------------------------------
 
-export type SchemaName = "finance" | "trading" | "tools";
+export type SchemaName = "finance" | "trading" | "marketing" | "tools";
 
 export interface SchemaSummary {
   name: SchemaName;

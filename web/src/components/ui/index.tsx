@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 // ---- Button ------------------------------------------------------------------------------
@@ -7,17 +7,20 @@ import { cn } from "@/lib/utils";
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 type Size = "sm" | "md" | "lg" | "icon";
 
+/** Press feedback for anything clickable: a quick, subtle scale-down on :active. */
+export const PRESS = "active:scale-[0.97]";
+
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-primary-foreground hover:bg-primary/88 shadow-[0_1px_2px_rgb(0_0_0/0.12)]",
+  primary: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
   secondary: "bg-muted text-foreground hover:bg-subtle",
-  outline: "border border-border bg-card text-foreground hover:bg-muted",
+  outline: "border border-border bg-card text-foreground shadow-xs hover:border-input hover:bg-muted",
   ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
-  danger: "bg-danger text-white hover:bg-danger/90",
+  danger: "bg-danger text-white shadow-xs hover:bg-danger/90",
 };
 const sizes: Record<Size, string> = {
   sm: "h-8 px-3 text-[13px] gap-1.5",
   md: "h-9 px-3.5 text-sm gap-2",
-  lg: "h-11 px-5 text-[15px] gap-2",
+  lg: "h-10 px-4 text-sm gap-2",
   icon: "h-9 w-9 justify-center",
 };
 
@@ -34,7 +37,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type="button"
       disabled={disabled || loading}
       className={cn(
-        "inline-flex shrink-0 items-center rounded-md font-medium whitespace-nowrap transition-[background-color,color,box-shadow,opacity] duration-150 disabled:pointer-events-none disabled:opacity-45",
+        "inline-flex shrink-0 items-center rounded-md font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,opacity,scale] duration-160 ease-out disabled:pointer-events-none disabled:opacity-45",
+        PRESS,
         variants[variant],
         sizes[size],
         className,
@@ -50,10 +54,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 // ---- Inputs ------------------------------------------------------------------------------
 
 const field =
-  "w-full rounded-md border border-input bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground/80 transition-[border-color,box-shadow] duration-150 focus:border-ring focus:outline-none focus:ring-3 focus:ring-ring/20 disabled:opacity-60 aria-invalid:border-danger aria-invalid:focus:ring-danger/20";
+  "w-full rounded-md border border-input bg-card px-3 text-sm text-foreground shadow-xs placeholder:text-muted-foreground transition-[border-color,box-shadow] duration-150 ease-out hover:border-muted-foreground/40 focus:border-ring focus:outline-none focus:ring-3 focus:ring-ring/20 disabled:opacity-60 aria-invalid:border-danger aria-invalid:focus:ring-danger/20";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
-  return <input ref={ref} className={cn(field, "h-9", className)} {...rest} />;
+  return <input ref={ref} className={cn(field, "h-9 read-only:bg-muted/40 read-only:focus:ring-0", className)} {...rest} />;
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {
@@ -71,7 +75,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 export function Label({ children, htmlFor, hint, className }: { children: ReactNode; htmlFor?: string; hint?: ReactNode; className?: string }) {
   return (
     <div className={cn("mb-1.5 flex items-baseline justify-between gap-3", className)}>
-      <label htmlFor={htmlFor} className="text-[13px] font-semibold text-foreground">
+      <label htmlFor={htmlFor} className="text-[13px] font-medium text-foreground">
         {children}
       </label>
       {hint ? <span className="text-xs text-muted-foreground">{hint}</span> : null}
@@ -93,14 +97,14 @@ export function Switch({ checked, onChange, label, disabled, size = "md" }: { ch
         onChange(!checked);
       }}
       className={cn(
-        "relative inline-flex shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-50",
+        "relative inline-flex shrink-0 items-center rounded-full transition-[background-color,scale] duration-160 ease-out active:scale-[0.95] disabled:opacity-50",
         size === "sm" ? "h-5 w-9" : "h-6 w-11",
         checked ? "bg-success" : "bg-input",
       )}
     >
       <span
         className={cn(
-          "inline-block rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.25)] transition-transform duration-200 ease-out",
+          "inline-block rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.25)] transition-transform duration-200 ease-out motion-reduce:transition-none",
           size === "sm" ? "size-4" : "size-5",
           checked ? (size === "sm" ? "translate-x-[18px]" : "translate-x-[22px]") : "translate-x-0.5",
         )}
@@ -113,7 +117,7 @@ export function Switch({ checked, onChange, label, disabled, size = "md" }: { ch
 
 export function Segmented<T extends string>({ value, onChange, options, className, size = "md" }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode; disabled?: boolean }[]; className?: string; size?: "sm" | "md" }) {
   return (
-    <div role="tablist" className={cn("inline-flex rounded-lg bg-muted p-1", className)}>
+    <div role="tablist" className={cn("inline-flex max-w-full overflow-x-auto rounded-lg bg-muted p-0.5 [scrollbar-width:none]", className)}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -123,9 +127,10 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
           disabled={o.disabled}
           onClick={() => onChange(o.value)}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md font-medium transition-[background-color,color,box-shadow] duration-150 disabled:opacity-40",
-            size === "sm" ? "h-7 px-2.5 text-[13px]" : "h-8 px-3.5 text-sm",
-            o.value === value ? "bg-card text-foreground shadow-[0_1px_3px_rgb(0_0_0/0.12)]" : "text-muted-foreground hover:text-foreground",
+            "inline-flex shrink-0 items-center gap-1.5 rounded-md font-medium whitespace-nowrap focus-visible:-outline-offset-2 transition-[background-color,color,box-shadow,scale] duration-160 ease-out disabled:opacity-40",
+            PRESS,
+            size === "sm" ? "h-7 px-2.5 text-[13px]" : "h-8 px-3 text-[13px]",
+            o.value === value ? "bg-card text-foreground shadow-xs dark:bg-subtle" : "text-muted-foreground hover:text-foreground",
           )}
         >
           {o.label}
@@ -143,7 +148,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function Panel({ children, className, ...rest }: { children: ReactNode; className?: string } & React.HTMLAttributes<HTMLElement>) {
   return (
-    <section className={cn("rounded-xl border border-border bg-card", className)} {...rest}>
+    <section className={cn("rounded-xl border border-border bg-card shadow-xs", className)} {...rest}>
       {children}
     </section>
   );
@@ -186,10 +191,10 @@ export function ConfirmDialog({
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
-      className="m-auto w-[min(440px,calc(100vw-32px))] rounded-xl border border-border bg-card p-0 text-foreground shadow-[0_24px_64px_-12px_rgb(0_0_0/0.35)] backdrop:bg-black/40"
+      className="dialog m-auto w-[min(440px,calc(100vw-32px))] rounded-xl border border-border bg-card p-0 text-foreground shadow-lg"
     >
       <div className="p-6">
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="text-base font-semibold">{title}</h2>
         <div className="mt-2 text-sm text-muted-foreground">{body}</div>
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={busy}>

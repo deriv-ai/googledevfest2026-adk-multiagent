@@ -33,3 +33,7 @@ Thumbs.db
 .vscode/
 *.swp
 .trivy-*.tar
+
+# --- evals --------------------------------------------------------------------
+evals/report.json
+evals/final.yaml

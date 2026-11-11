@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowLeft, Pencil, Trash2 } from "@/components/icons";
 import { ApiError } from "@/api/client";
 import { useDeleteTool, useSetToolEnabled, useTool } from "@/api/hooks";
 import type { ToolParam, ToolRun } from "@/api/types";
@@ -53,24 +52,22 @@ export default function ToolDetailPage() {
             <AgentBadge agent={tool.agent} />
             <ToolTypeBadge type={tool.tool_type} />
           </div>
-          <h1 className="font-mono text-[24px] font-semibold tracking-tight break-all">{tool.name}</h1>
-          <p className="mt-1 text-[16px] text-foreground/85">{tool.title}</p>
+          <h1 className="font-mono text-2xl font-semibold tracking-tight break-all">{tool.name}</h1>
+          <p className="mt-1 text-[15px] text-muted-foreground">{tool.title}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm font-medium">
+          <label className="mr-1 flex items-center gap-2 text-[13px] font-medium">
             <Switch
               checked={tool.enabled}
               label={tool.enabled ? "Disable tool" : "Enable tool"}
               disabled={toggle.isPending}
               onChange={(enabled) =>
-                toggle.mutate(
-                  { name: tool.name, enabled },
-                  { onSuccess: () => toast.success(enabled ? "Enabled" : "Disabled"), onError: (e) => toast.error(e.message) },
-                )
+                toggle.mutate({ name: tool.name, enabled })
               }
             />
             {tool.enabled ? "Enabled" : "Disabled"}
           </label>
+          {toggle.isError ? <span className="text-xs text-danger">Couldn't update: {toggle.error.message}</span> : null}
           <Link to={`/tools/${encodeURIComponent(tool.name)}/edit`}>
             <Button variant="outline">
               <Pencil className="size-4" aria-hidden /> Edit
@@ -82,7 +79,7 @@ export default function ToolDetailPage() {
         </div>
       </header>
 
-      <div className="space-y-8">
+      <div className="space-y-10">
         <Section title="Description" hint="This is what the LLM reads to decide when to call the tool.">
           <p className="max-w-[75ch] text-[15px] leading-relaxed whitespace-pre-wrap">{tool.description}</p>
         </Section>
@@ -112,17 +109,18 @@ export default function ToolDetailPage() {
       <ConfirmDialog
         open={confirm}
         title={`Delete ${tool.name}?`}
-        body={<>The {tool.agent} agent loses this tool on its next question. This can't be undone; disable it instead if you might want it back.</>}
+        body={
+          <>
+            The {tool.agent} agent loses this tool on its next question. This can't be undone; disable it instead if you might want it back.
+            {del.isError ? <span className="mt-2 block text-danger">Couldn't delete: {del.error.message}</span> : null}
+          </>
+        }
         confirmLabel="Delete tool"
         busy={del.isPending}
         onClose={() => setConfirm(false)}
         onConfirm={() =>
           del.mutate(tool.name, {
-            onSuccess: () => {
-              toast.success(`Deleted ${tool.name}`);
-              navigate("/tools");
-            },
-            onError: (e) => toast.error(`Couldn't delete: ${e.message}`),
+            onSuccess: () => navigate("/tools"),
           })
         }
       />
@@ -132,8 +130,8 @@ export default function ToolDetailPage() {
 
 function BackLink() {
   return (
-    <Link to="/tools" className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-      <ArrowLeft className="size-4" aria-hidden /> All tools
+    <Link to="/tools" className="group mb-6 inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+      <ArrowLeft className="size-3.5 transition-[translate] duration-200 ease-out group-hover:-translate-x-0.5" aria-hidden /> All tools
     </Link>
   );
 }
@@ -141,10 +139,10 @@ function BackLink() {
 export function Section({ title, hint, children, actions }: { title: string; hint?: string; children: React.ReactNode; actions?: React.ReactNode }) {
   return (
     <section>
-      <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h2 className="text-[16px] font-semibold">{title}</h2>
-          {hint ? <span className="text-[13px] text-muted-foreground">{hint}</span> : null}
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <h2 className="text-[15px] font-semibold">{title}</h2>
+          {hint ? <span className="text-xs text-muted-foreground">{hint}</span> : null}
         </div>
         {actions}
       </div>
@@ -157,8 +155,8 @@ function ParamsTable({ params }: { params: ToolParam[] }) {
   if (!params.length) return <p className="text-sm text-muted-foreground">No parameters: the function takes no arguments.</p>;
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
-      <table className="w-full text-left text-[13.5px]">
-        <thead className="bg-muted text-[12.5px] text-muted-foreground">
+      <table className="w-full text-left text-[13px]">
+        <thead className="bg-muted/60 text-xs text-muted-foreground">
           <tr>
             {["Name", "Type", "Required", "Description", "Example", "Default", "Allowed"].map((h) => (
               <th key={h} className="px-3 py-2 font-medium whitespace-nowrap">
@@ -176,7 +174,7 @@ function ParamsTable({ params }: { params: ToolParam[] }) {
               <td className="max-w-[24rem] px-3 py-2">{p.description || <span className="text-muted-foreground">–</span>}</td>
               <td className="px-3 py-2 font-mono">{fmt(p.example)}</td>
               <td className="px-3 py-2 font-mono">{fmt(p.default)}</td>
-              <td className="px-3 py-2 font-mono text-[12.5px]">
+              <td className="px-3 py-2 font-mono text-xs">
                 {p.enum?.length ? p.enum.join(" | ") : typeof p.min === "number" || typeof p.max === "number" ? `${p.min ?? "−∞"} … ${p.max ?? "∞"}` : <span className="text-muted-foreground">–</span>}
               </td>
             </tr>
@@ -193,8 +191,8 @@ function RunsTable({ runs }: { runs: ToolRun[] }) {
   if (!runs.length) return <p className="text-sm text-muted-foreground">No runs yet. Ask a question in Chat that needs this tool, or test it from the editor.</p>;
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
-      <table className="w-full text-left text-[13.5px]">
-        <thead className="bg-muted text-[12.5px] text-muted-foreground">
+      <table className="w-full text-left text-[13px]">
+        <thead className="bg-muted/60 text-xs text-muted-foreground">
           <tr>
             {["When", "Arguments", "Rows", "Duration", "Result"].map((h) => (
               <th key={h} className="px-3 py-2 font-medium">
@@ -209,7 +207,7 @@ function RunsTable({ runs }: { runs: ToolRun[] }) {
               <td className="px-3 py-2 whitespace-nowrap text-muted-foreground" title={r.created_at}>
                 {formatRelative(r.created_at)}
               </td>
-              <td className="max-w-[26rem] truncate px-3 py-2 font-mono text-[12.5px]" title={JSON.stringify(r.args)}>
+              <td className="max-w-[26rem] truncate px-3 py-2 font-mono text-xs" title={JSON.stringify(r.args)}>
                 {summarizeArgs(r.args ?? null, 80) || "–"}
               </td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{r.row_count ?? "–"}</td>

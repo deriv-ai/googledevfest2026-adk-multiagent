@@ -9,6 +9,8 @@ from google.adk.agents import LlmAgent
 from .specialists import build_registry_specialist
 
 NAME = "trading_agent"
+LABEL = "Trading agent"
+DATASOURCE = "trading"
 DESCRIPTION = (
     "Trading specialist for Nimbus Markets. Answers questions about brokerage activity: number of trades, "
     "notional volume, commission earned per instrument / asset class / client segment / country, client PnL "
@@ -17,6 +19,6 @@ DESCRIPTION = (
 )
 
 
-def build_trading_agent(services: Any, model: Any) -> LlmAgent:
-    return build_registry_specialist(name=NAME, schema="trading", description=DESCRIPTION,
+def build(services: Any, model: Any) -> LlmAgent:
+    return build_registry_specialist(name=NAME, schema=DATASOURCE, description=DESCRIPTION,
                                      services=services, model=model)

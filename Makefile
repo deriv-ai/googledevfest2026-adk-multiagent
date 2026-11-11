@@ -26,7 +26,7 @@ ENV_MSG := add your LITELLM_GEMINI_API_KEY (or GEMINI_API_KEY) to .env, then re-
 .DEFAULT_GOAL := help
 .PHONY: help check-env up down logs ps reset build \
         podman-up podman-down podman-logs podman-ps podman-reset podman-build \
-        test data seed-tools dev update-pkg \
+        test eval eval-final check data seed-tools dev update-pkg \
         trivy-scan trivy-config trivy-image trivy-patch trivy-verify trivy-audit
 
 help: ## Show this help
@@ -47,7 +47,7 @@ check-env: ## Make sure .env exists and has an LLM key (creates it from .env.exa
 	@key_set() { grep -E "^[[:space:]]*(export[[:space:]]+)?$$1[[:space:]]*=" .env | tail -n 1 \
 		| sed -E 's/^[^=]*=[[:space:]]*//; s/^#.*$$//; s/[[:space:]]+#.*$$//; s/^"(.*)"[[:space:]]*$$/\1/; s/^'"'"'(.*)'"'"'[[:space:]]*$$/\1/; s/[[:space:]]*$$//' \
 		| grep -q .; }; \
-	if key_set LITELLM_GEMINI_API_KEY || key_set GEMINI_API_KEY; then \
+	if key_set LITELLM_GEMINI_API_KEY || key_set LLM_API_KEY || key_set GEMINI_API_KEY; then \
 		echo "check-env: LLM key configured."; \
 	else \
 		echo "$(ENV_MSG)"; \
@@ -57,7 +57,8 @@ check-env: ## Make sure .env exists and has an LLM key (creates it from .env.exa
 # --- docker compose (ENGINE=docker) ---------------------------------------------
 up: check-env ## Build + start everything (docker compose)
 	$(COMPOSE) up -d --build
-	@echo "Chat UI: http://localhost:8080   ADK dev UI: http://localhost:8000   Postgres: localhost:5432"
+	@echo "Chat UI: http://localhost:8080   ADK dev UI: http://localhost:8000"
+	@echo "Next: open WORKSHOP.md and start with exercise 0."
 
 down: ## Stop everything (keeps the database volume)
 	$(COMPOSE) down
@@ -78,7 +79,8 @@ reset: ## Wipe the database volume and start again (reloads the synthetic CSVs)
 # --- podman-compose ---------------------------------------------------------------
 podman-up: check-env ## Build + start everything (podman-compose)
 	$(PODMAN_COMPOSE) up -d --build
-	@echo "Chat UI: http://localhost:8080   ADK dev UI: http://localhost:8000   Postgres: localhost:5432"
+	@echo "Chat UI: http://localhost:8080   ADK dev UI: http://localhost:8000"
+	@echo "Next: open WORKSHOP.md and start with exercise 0."
 
 podman-down: ## Stop everything (podman; keeps the database volume)
 	$(PODMAN_COMPOSE) down
@@ -101,6 +103,21 @@ test: ## Python tests + web typecheck
 	$(PYTEST)
 	cd web && npm run typecheck
 
+eval: ## Score your agents on the practice questions (one question: Q=<id>)
+	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json \
+		&& echo "Full report: evals/report.json" || true
+
+eval-final: ## Score your agents on the hidden competition questions (KEY=<passphrase>)
+	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --key "$(KEY)" > evals/report.json \
+		&& echo "Full report: evals/report.json" || true
+
+check: ## Check a workshop exercise: make check-0, make check-1 ... make check-4
+	@echo "Run make check-N, where N is the exercise number (0 to 4)."
+
+# `|| true`: a check with things to fix is normal progress, not a make error.
+check-%:
+	@$(EXEC) nimbus-app python -m devfest_agents.check $* || true
+
 data: ## Regenerate db/seed/*.csv (dev only; then `make reset` / `make podman-reset` to load them)
 	$(PYTHON) scripts/generate_synthetic_data.py
 	@echo "CSV files regenerated. Run 'make reset' (or 'make podman-reset') to reload the database."
@@ -108,13 +125,13 @@ data: ## Regenerate db/seed/*.csv (dev only; then `make reset` / `make podman-re
 seed-tools: ## Force re-upsert seed/starter_tools.yaml into tools.tools (ENGINE=podman for podman)
 	$(EXEC) nimbus-app python -m devfest_agents.seed --force
 
-dev: ## db + news-mcp in containers; run the API (uv) and the SPA (vite) locally
-	$(COMPOSE) up -d --build db news-mcp
+dev: ## db in a container; run the API (uv) and the SPA (vite) locally
+	$(COMPOSE) up -d db
 	@echo ""
 	@echo "Now, in two terminals:"
 	@echo "  DATABASE_URL=postgresql://app:app@localhost:5432/nimbus \\"
 	@echo "  AGENT_DATABASE_URL=postgresql://agent_ro:agent_ro@localhost:5432/nimbus \\"
-	@echo "  NEWS_MCP_URL=http://localhost:8001/mcp STARTER_TOOLS_PATH=seed/starter_tools.yaml \\"
+	@echo "  STARTER_TOOLS_PATH=seed/starter_tools.yaml \\"
 	@echo "    uv run --env-file .env uvicorn devfest_agents.api.main:app --reload --port 8080"
 	@echo "  cd web && npm install && npm run dev      # http://localhost:5173"
 
@@ -133,7 +150,7 @@ endif
 # Needs trivy (https://trivy.dev, e.g. `brew install trivy`).
 TRIVY_SEVERITY ?= HIGH,CRITICAL
 TRIVY_SKIP     := --skip-dirs web/node_modules --skip-dirs .venv --skip-dirs .claude
-TRIVY_IMAGES   := nimbus-app nimbus-news-mcp
+TRIVY_IMAGES   := nimbus-app
 
 trivy-scan: ## Fail on fixable HIGH/CRITICAL vulns in uv.lock + web/package-lock.json
 	trivy fs --scanners vuln --severity $(TRIVY_SEVERITY) --ignore-unfixed --exit-code 1 $(TRIVY_SKIP) .

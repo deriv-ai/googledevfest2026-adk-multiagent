@@ -12,15 +12,16 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react";
-import { AlertCircle, Check, Database, Globe, User } from "lucide-react";
+import { AlertCircle, Check, Database, User } from "@/components/icons";
 import type { Graph } from "@/api/types";
-import { KIND_ICON, TONE_ICON } from "@/components/Badges";
+import { KIND_ICON, KIND_LABEL, TONE_ICON } from "@/components/Badges";
 import { toneColor } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
 import { layoutRoute, type RouteEdgeData, type RouteNodeData } from "@/lib/routeLayout";
 import type { RouteState } from "@/lib/routeGraph";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { roundedPath } from "./paths";
 import { useAutoFit, useSyncedNodes } from "./useAutoFit";
 
 type RNode = Node<RouteNodeData>;
@@ -35,7 +36,7 @@ function StepBadges({ steps, tone }: { steps: number[]; tone: RouteNodeData["ton
       {steps.slice(-3).map((n) => (
         <span
           key={n}
-          className="pop-in inline-flex size-6 items-center justify-center rounded-full font-mono text-[11.5px] font-semibold text-white shadow-[0_2px_6px_-1px_rgb(0_0_0/0.35)]"
+          className="pop-in inline-flex size-6 items-center justify-center rounded-full font-mono text-[11px] font-semibold text-white shadow-[0_2px_6px_-1px_rgb(0_0_0/0.35)]"
           style={{ background: toneColor(tone) }}
           title={`Step ${n}`}
         >
@@ -71,16 +72,18 @@ function nodeChrome(d: RouteNodeData) {
   const lit = d.status !== "idle";
   return {
     className: cn(
-      "relative rounded-xl border bg-card transition-[opacity,border-color,box-shadow,transform] duration-300",
+      "relative rounded-xl border bg-card transition-[opacity,border-color,outline-color,box-shadow] duration-300 ease-out",
       d.status === "active" && "node-active",
       d.status === "error" && "border-danger!",
       d.dim && "opacity-40",
     ),
     style: {
       ["--tone" as string]: `var(--agent-${d.tone})`,
+      // Lit nodes get a 2px edge from border + outline, so the content never shifts by a pixel.
       borderColor: lit ? tone : undefined,
-      borderWidth: lit ? 2 : 1,
-      boxShadow: d.status === "done" ? `0 4px 14px -6px ${toneColor(d.tone, 0.45)}` : d.status === "idle" ? "0 1px 2px rgb(0 0 0 / 0.06)" : undefined,
+      outline: `1px solid ${d.status === "error" ? "hsl(var(--danger))" : lit ? tone : "transparent"}`,
+      outlineOffset: 0,
+      boxShadow: d.status === "done" ? `0 4px 14px -8px ${toneColor(d.tone, 0.45)}` : d.status === "idle" ? "var(--elev-1)" : undefined,
     } as React.CSSProperties,
   };
 }
@@ -90,7 +93,7 @@ function nodeChrome(d: RouteNodeData) {
 const UserNode = memo(function UserNode({ data }: NodeProps<RNode>) {
   return (
     <div
-      className={cn("flex h-11 w-[140px] items-center justify-center gap-2 rounded-full border-2 bg-card text-[15px] font-semibold", data.status === "active" ? "border-foreground" : "border-border")}
+      className={cn("flex h-11 w-[140px] items-center justify-center gap-2 rounded-full border bg-card text-sm font-semibold shadow-xs outline-1 transition-[border-color,outline-color] duration-300 ease-out", data.status === "active" ? "border-foreground outline-foreground" : "border-border outline-transparent")}
     >
       <User className="size-4" aria-hidden /> User
       <Handle type="source" position={Position.Right} />
@@ -137,7 +140,7 @@ function breakable(name: string) {
 }
 
 const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
-  const kind = data.toolKind === "factual" || data.toolKind === "mcp" ? data.toolKind : "sql";
+  const kind = data.toolKind === "factual" || data.toolKind === "function" ? data.toolKind : "sql";
   const Icon = KIND_ICON[kind];
   const chrome = nodeChrome(data);
   return (
@@ -147,14 +150,14 @@ const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
         <span
           className="mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-md"
           style={{ color: toneColor(data.tone), background: toneColor(data.tone, 0.12) }}
-          aria-label={kind === "sql" ? "SQL tool" : kind === "factual" ? "Factual tool" : "MCP tool"}
+          aria-label={`${KIND_LABEL[kind]} tool`}
         >
           <Icon className="size-3.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[12.5px] leading-snug font-medium [overflow-wrap:anywhere]">{breakable(data.label)}</div>
-          <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-            {data.status === "idle" ? <span className="font-mono tracking-wide uppercase">{kind}</span> : <StatusLine d={data} />}
+          <div className="font-mono text-xs leading-snug font-medium [overflow-wrap:anywhere]">{breakable(data.label)}</div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground">
+            {data.status === "idle" ? <span>{KIND_LABEL[kind]}</span> : <StatusLine d={data} />}
           </div>
         </div>
       </div>
@@ -165,17 +168,15 @@ const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
 });
 
 const DatasourceNode = memo(function DatasourceNode({ data }: NodeProps<RNode>) {
-  const internet = data.label.toLowerCase().includes("internet");
-  const Icon = internet ? Globe : Database;
   const chrome = nodeChrome(data);
   return (
     <div className={cn(chrome.className, "w-[232px] border-dashed px-3 py-2.5")} style={{ ...chrome.style, borderStyle: data.status === "idle" ? "dashed" : "solid" }}>
       <Handle type="target" id="side" position={Position.Right} />
       <div className="flex items-center gap-2.5">
-        <Icon className="size-4 shrink-0" style={{ color: toneColor(data.tone) }} aria-hidden />
+        <Database className="size-4 shrink-0" style={{ color: toneColor(data.tone) }} aria-hidden />
         <div className="min-w-0">
-          <div className="truncate text-[13.5px] font-semibold">{data.label}</div>
-          <div className="truncate text-[11.5px] text-muted-foreground">{data.status === "active" ? "reading…" : data.sublabel}</div>
+          <div className="truncate text-[13px] font-semibold">{data.label}</div>
+          <div className="truncate text-[11px] text-muted-foreground">{data.status === "active" ? "reading…" : data.sublabel}</div>
         </div>
       </div>
     </div>
@@ -184,9 +185,20 @@ const DatasourceNode = memo(function DatasourceNode({ data }: NodeProps<RNode>) 
 
 // ---- edge ---------------------------------------------------------------------------------
 
-const FlowEdge = memo(function FlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }: EdgeProps<REdge>) {
+function routePath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, sourceHandleId }: EdgeProps<REdge>): string {
+  // A tool rail runs straight down from the agent, with one rounded corner into each tool.
+  if (sourceHandleId === "rail") return roundedPath([[sourceX, sourceY], [sourceX, targetY], [targetX, targetY]]);
+  // Nodes a few pixels off one row would get a tiny step: draw the straight line they mean.
+  if (sourcePosition === Position.Right && targetPosition === Position.Left && Math.abs(sourceY - targetY) < 6) {
+    return `M ${sourceX},${targetY} L ${targetX},${targetY}`;
+  }
   const sameSide = sourcePosition === Position.Right && targetPosition === Position.Right;
-  const [path] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 12, offset: sameSide ? 18 : 16 });
+  return getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 12, offset: sameSide ? 18 : 16 })[0];
+}
+
+const FlowEdge = memo(function FlowEdge(props: EdgeProps<REdge>) {
+  const { id, data } = props;
+  const path = routePath(props);
   const st = data?.status ?? "idle";
   const color = st === "error" ? "hsl(var(--danger))" : st === "idle" ? "hsl(var(--input))" : toneColor(data?.tone ?? "other");
   return (
@@ -199,7 +211,7 @@ const FlowEdge = memo(function FlowEdge({ id, sourceX, sourceY, targetX, targetY
           strokeWidth: st === "active" ? 2.75 : st === "idle" ? 1.25 : 2,
           strokeDasharray: data?.dashed ? "4 4" : undefined,
           opacity: data?.dim ? 0.3 : st === "done" ? 0.85 : 1,
-          transition: "stroke 300ms, opacity 300ms, stroke-width 300ms",
+          transition: "stroke 300ms var(--curve-out), opacity 300ms var(--curve-out), stroke-width 300ms var(--curve-out)",
         }}
       />
       {st === "active" ? (

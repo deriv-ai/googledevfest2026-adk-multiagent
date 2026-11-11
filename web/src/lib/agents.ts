@@ -1,7 +1,7 @@
 import type { Graph, GraphAgent, ToolAgent } from "@/api/types";
 
 /** Visual identity per agent. `tone` maps to the --agent-* tokens in index.css. */
-export type AgentTone = "main" | "orchestrator" | "finance" | "trading" | "news" | "other";
+export type AgentTone = "main" | "orchestrator" | "finance" | "trading" | "marketing" | "other";
 
 export interface AgentMeta {
   id: string;
@@ -15,7 +15,7 @@ const KNOWN: Record<string, AgentMeta> = {
   orchestrator: { id: "orchestrator", label: "Orchestrator", tone: "orchestrator", short: "Orchestrator" },
   finance_agent: { id: "finance_agent", label: "Finance agent", tone: "finance", short: "Finance" },
   trading_agent: { id: "trading_agent", label: "Trading agent", tone: "trading", short: "Trading" },
-  news_agent: { id: "news_agent", label: "News agent", tone: "news", short: "News" },
+  marketing_agent: { id: "marketing_agent", label: "Marketing agent", tone: "marketing", short: "Marketing" },
 };
 
 export function agentMeta(id: string, graphAgent?: GraphAgent): AgentMeta {
@@ -46,12 +46,10 @@ export const DEFAULT_GRAPH: Graph = {
     { id: "orchestrator", label: "Orchestrator", role: "router", parent: "main_agent" },
     { id: "finance_agent", label: "Finance agent", role: "specialist", parent: "orchestrator", datasource: "finance" },
     { id: "trading_agent", label: "Trading agent", role: "specialist", parent: "orchestrator", datasource: "trading" },
-    { id: "news_agent", label: "News agent", role: "specialist", parent: "orchestrator", datasource: "internet" },
   ],
   tools: [],
   datasources: [
     { id: "finance", label: "finance schema" },
     { id: "trading", label: "trading schema" },
-    { id: "internet", label: "Internet (RSS)" },
   ],
 };

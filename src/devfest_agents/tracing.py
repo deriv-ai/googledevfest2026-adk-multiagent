@@ -26,7 +26,6 @@ from typing import Any
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.base_tool import BaseTool
 
-AGENT_NAMES = ("main_agent", "orchestrator", "finance_agent", "trading_agent", "news_agent")
 PREVIEW_CHARS = 300
 
 
@@ -103,7 +102,7 @@ class TraceSink:
             error = _error_of(response)
         if error is None and isinstance(response, dict):
             rc = response.get("row_count")
-            row_count = rc if isinstance(rc, int) else _mcp_count(response) if kind == "mcp" else None
+            row_count = rc if isinstance(rc, int) else None
         self.emit({
             "type": "tool_result", "agent": agent, "tool": tool, "call_id": call_id, "ms": ms, "kind": kind,
             "ok": error is None, "row_count": row_count, "error": error,
@@ -135,14 +134,7 @@ def tool_kind(tool: Any) -> str:
     tool_type = getattr(tool, "tool_type", None)
     if tool_type in ("sql", "factual"):
         return tool_type
-    try:
-        from google.adk.tools.mcp_tool import McpTool
-
-        if isinstance(tool, McpTool):
-            return "mcp"
-    except Exception:  # noqa: BLE001
-        pass
-    return "mcp" if type(tool).__name__.lower().startswith("mcp") else "function"
+    return "function"
 
 
 def _jsonable(value: Any) -> Any:
@@ -158,19 +150,6 @@ def _error_of(response: Any) -> str | None:
         err = response.get("error")
         if err:
             return str(err)
-        if response.get("isError") or response.get("is_error"):
-            return _preview(response) or "tool reported an error"
-    return None
-
-
-def _mcp_count(response: dict) -> int | None:
-    structured = response.get("structuredContent") or response.get("structured_content")
-    if isinstance(structured, dict):
-        result = structured.get("result")
-        if isinstance(result, list):
-            return len(result)
-    if isinstance(structured, list):
-        return len(structured)
     return None
 
 
@@ -186,8 +165,6 @@ def _preview(response: Any) -> str | None:
             text = json.dumps(response.get("rows", [])[:5], default=str)
         elif "answer" in response:
             text = str(response.get("answer"))
-        elif isinstance(response.get("content"), list):
-            text = " ".join(str(c.get("text", "")) for c in response["content"] if isinstance(c, dict))
         else:
             text = json.dumps(response, default=str)
     else:
@@ -236,7 +213,7 @@ def after_tool(tool, args, tool_context, tool_response) -> None:
 
 def on_tool_error(tool, args, tool_context, error) -> dict[str, Any] | None:
     """Record the failure and fail soft: the model gets an error dict instead of
-    the whole turn crashing (e.g. news-mcp dropped mid-call). Unknown tool
+    the whole turn crashing (e.g. the database dropped mid-call). Unknown tool
     names (hallucinated calls) are left to ADK's own not-found response."""
     message = f"{type(error).__name__}: {error}"[:500]
     sink = current_sink()
@@ -276,11 +253,20 @@ class DelegationGuard:
 
 
 def attach(agent, *, guard: DelegationGuard | None = None) -> None:
-    """Add tracing (and optionally the delegation guard) to an LlmAgent."""
-    agent.before_agent_callback = [before_agent]
-    agent.after_agent_callback = [after_agent]
+    """Add tracing (and optionally the delegation guard) to an LlmAgent.
+
+    Callbacks the agent already has are kept and run after ours.
+    """
+    agent.before_agent_callback = _first(agent.before_agent_callback, before_agent)
+    agent.after_agent_callback = _first(agent.after_agent_callback, after_agent)
     # Order matters: trace first so a blocked call still shows as a tool_call;
     # ADK still runs after_tool callbacks on the guard's dict, closing it.
-    agent.before_tool_callback = [before_tool] + ([guard] if guard else [])
-    agent.after_tool_callback = [after_tool]
-    agent.on_tool_error_callback = [on_tool_error]
+    agent.before_tool_callback = _first(agent.before_tool_callback, before_tool, *([guard] if guard else []))
+    agent.after_tool_callback = _first(agent.after_tool_callback, after_tool)
+    agent.on_tool_error_callback = _first(agent.on_tool_error_callback, on_tool_error)
+
+
+def _first(existing, *ours) -> list:
+    """Our callbacks, then the agent's own (ADK allows one callable, a list, or None)."""
+    existing = [] if existing is None else existing if isinstance(existing, list) else [existing]
+    return [*ours, *(callback for callback in existing if callback not in ours)]

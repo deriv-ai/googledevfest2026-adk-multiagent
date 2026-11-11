@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
-import { toast } from "sonner";
+import { Check, Copy } from "@/components/icons";
 import { Button } from "./ui";
 
-export function CopyButton({ text, label = "Copy", size = "sm", variant = "outline", toastMessage }: { text: string; label?: string; size?: "sm" | "md" | "icon"; variant?: "outline" | "ghost" | "secondary"; toastMessage?: string }) {
-  const [done, setDone] = useState(false);
+export function CopyButton({ text, label = "Copy", size = "sm", variant = "outline" }: { text: string; label?: string; size?: "sm" | "md" | "icon"; variant?: "outline" | "ghost" | "secondary" }) {
+  const [state, setState] = useState<"idle" | "copied" | "blocked">("idle");
   return (
     <Button
       size={size}
@@ -14,16 +13,15 @@ export function CopyButton({ text, label = "Copy", size = "sm", variant = "outli
         e.stopPropagation();
         try {
           await navigator.clipboard.writeText(text);
-          setDone(true);
-          if (toastMessage) toast.success(toastMessage);
-          setTimeout(() => setDone(false), 1400);
+          setState("copied");
         } catch {
-          toast.error("Clipboard is blocked in this browser.");
+          setState("blocked");
         }
+        setTimeout(() => setState("idle"), 1600);
       }}
     >
-      {done ? <Check className="size-3.5 text-success" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
-      {size === "icon" ? null : done ? "Copied" : label}
+      {state === "copied" ? <Check className="size-3.5 text-success" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+      {size === "icon" ? null : state === "copied" ? "Copied" : state === "blocked" ? "Clipboard blocked" : label}
     </Button>
   );
 }

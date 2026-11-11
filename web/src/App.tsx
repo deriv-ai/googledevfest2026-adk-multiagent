@@ -2,10 +2,8 @@ import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { ApiError } from "@/api/client";
-import { useTheme } from "@/lib/theme";
 import { Skeleton } from "@/components/ui";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
@@ -54,17 +52,11 @@ const router = createBrowserRouter([
   },
 ]);
 
-function ThemedToaster() {
-  const { resolved } = useTheme();
-  return <Toaster theme={resolved} position="bottom-right" richColors closeButton />;
-}
-
 export function mount(el: HTMLElement) {
   createRoot(el).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
-        <ThemedToaster />
       </QueryClientProvider>
     </StrictMode>,
   );

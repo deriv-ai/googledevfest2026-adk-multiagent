@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { Background, BackgroundVariant, Controls, Handle, MarkerType, Position, ReactFlow, ReactFlowProvider, type Edge, type Node, type NodeProps } from "@xyflow/react";
-import { KeyRound, Link2 } from "lucide-react";
+import { KeyRound, Link2 } from "@/components/icons";
 import type { SchemaDetail, SchemaTable } from "@/api/types";
 import { formatCount } from "@/lib/format";
 import { useTheme } from "@/lib/theme";
@@ -20,14 +20,14 @@ const ROW_H = 26;
 const TableNode = memo(function TableNode({ data }: NodeProps<TNode>) {
   const { table, onSelect } = data;
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_4px_16px_-8px_rgb(0_0_0/0.25)]" style={{ width: NODE_W }}>
-      <button type="button" onClick={() => onSelect?.(table.name)} className="flex h-[46px] w-full items-center justify-between gap-2 border-b border-border bg-muted px-3 text-left hover:bg-subtle" title={table.comment ?? undefined}>
-        <span className="truncate font-mono text-[14px] font-semibold">{table.name}</span>
-        <span className="shrink-0 text-[11.5px] text-muted-foreground tabular-nums">{formatCount(table.row_count)} rows</span>
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md" style={{ width: NODE_W }}>
+      <button type="button" onClick={() => onSelect?.(table.name)} className="flex h-[46px] w-full items-center justify-between gap-2 border-b border-border bg-muted/70 px-3 text-left transition-colors hover:bg-subtle" title={table.comment ?? undefined}>
+        <span className="truncate font-mono text-[13px] font-semibold">{table.name}</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">{formatCount(table.row_count)} rows</span>
       </button>
       <ul>
         {table.columns.map((c) => (
-          <li key={c.name} className="relative flex h-[26px] items-center gap-2 px-3 text-[12.5px]" title={c.comment ?? undefined}>
+          <li key={c.name} className="relative flex h-[26px] items-center gap-2 px-3 text-xs" title={c.comment ?? undefined}>
             <Handle type="source" id={`l-${c.name}`} position={Position.Left} />
             <Handle type="target" id={`r-${c.name}`} position={Position.Right} />
             <span className="inline-flex w-3.5 shrink-0 justify-center">

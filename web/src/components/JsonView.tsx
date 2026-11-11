@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function JsonView({ value, className }: { value: unknown; className?: string }) {
   const text = JSON.stringify(value, null, 2) ?? "null";
   return (
-    <pre className={cn("overflow-auto rounded-lg border border-border bg-muted/50 p-4 text-[13px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]", className)}>
+    <pre className={cn("overflow-auto rounded-lg bg-muted/60 p-4 text-[13px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]", className)}>
       <code>{highlight(text)}</code>
     </pre>
   );
