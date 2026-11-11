@@ -29,7 +29,15 @@ COPY trading.trades (trade_id, client_id, symbol, side, quantity, open_price, cl
 COPY trading.daily_prices (symbol, price_date, open, high, low, close, volume)
     FROM '/seed/trading_daily_prices.csv' WITH (FORMAT csv, HEADER true);
 
+COPY marketing.campaigns (campaign_id, name, entity_id, channel, start_date, end_date)
+    FROM '/seed/marketing_campaigns.csv' WITH (FORMAT csv, HEADER true);
+COPY marketing.campaign_spend (spend_id, campaign_id, spend_date, spend_usd, impressions, clicks)
+    FROM '/seed/marketing_campaign_spend.csv' WITH (FORMAT csv, HEADER true);
+COPY marketing.signups (client_id, campaign_id, signup_date)
+    FROM '/seed/marketing_signups.csv' WITH (FORMAT csv, HEADER true);
+
 ANALYZE finance.entities, finance.accounts, finance.fx_rates, finance.gl_entries, finance.budgets,
-        trading.clients, trading.instruments, trading.trades, trading.daily_prices;
+        trading.clients, trading.instruments, trading.trades, trading.daily_prices,
+        marketing.campaigns, marketing.campaign_spend, marketing.signups;
 
 \echo 'Seed data loaded.'

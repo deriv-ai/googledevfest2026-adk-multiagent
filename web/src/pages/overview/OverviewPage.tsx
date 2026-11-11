@@ -1,10 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Database, MessagesSquare, MousePointerClick, Plus } from "lucide-react";
+import { useGraph } from "@/api/hooks";
 import { HealthChips, LlmKeyCallout } from "@/components/HealthChips";
 import { Panel } from "@/components/ui";
-import { ARCH_NODES, ArchitectureGraph } from "@/graph/ArchitectureGraph";
-import { toneColor } from "@/lib/agents";
+import { ARCH_NODES, ArchitectureGraph, iconStyle, pendingNodes, WORKSHOP_NOTE } from "@/graph/ArchitectureGraph";
 
 const LINKS = [
   { to: "/chat", Icon: MessagesSquare, title: "Ask the agents", body: "Try a cross-agent question and watch the route light up." },
@@ -16,6 +16,9 @@ export default function OverviewPage() {
   const [selected, setSelected] = useState<string | null>("orchestrator");
   const onSelect = useCallback((id: string) => setSelected((s) => (s === id ? null : id)), []);
   const info = ARCH_NODES.find((n) => n.id === selected) ?? null;
+  const { data: graph } = useGraph();
+  const pending = useMemo(() => pendingNodes(graph), [graph]);
+  const infoPending = !!info && pending.includes(info.id);
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 lg:px-10">
@@ -23,7 +26,7 @@ export default function OverviewPage() {
         <div className="min-w-0">
           <h1 className="text-[30px] leading-tight font-semibold tracking-tight">Nimbus Markets assistant</h1>
           <p className="mt-2 max-w-[68ch] text-[16px] text-muted-foreground">
-            A main agent, an orchestrator and three specialists built with Google ADK. Finance and trading tools live in a database table, so you can add one from the browser and the agents use it on the next question.
+            A main agent, an orchestrator and specialist agents built with Google ADK. Finance and trading tools live in a database table, so you can add one from the browser and the agents use it on the next question. The marketing agent is yours to build in the workshop.
           </p>
         </div>
         <HealthChips />
@@ -33,20 +36,17 @@ export default function OverviewPage() {
 
       <Panel className="overflow-hidden" aria-label="Architecture diagram">
         <div className="relative h-[clamp(420px,58vh,620px)]">
-          <ArchitectureGraph selected={selected} onSelect={onSelect} />
+          <ArchitectureGraph selected={selected} onSelect={onSelect} pending={pending} />
         </div>
         <div className="flex min-h-[112px] flex-wrap items-start gap-x-8 gap-y-3 border-t border-border px-5 py-4">
           {info ? (
             <div key={info.id} className="fade-up flex min-w-0 flex-[2] basis-[420px] gap-3.5">
-              <span
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg"
-                style={info.tone ? { background: toneColor(info.tone), color: "white" } : { background: "hsl(var(--muted))" }}
-              >
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg" style={iconStyle(info.tone, infoPending)}>
                 <info.icon className="size-5" aria-hidden />
               </span>
               <div className="min-w-0">
                 <h2 className="text-[17px] leading-tight font-semibold">
-                  {info.title} <span className="ml-1 text-[13px] font-normal text-muted-foreground">{info.subtitle}</span>
+                  {info.title} <span className="ml-1 text-[13px] font-normal text-muted-foreground">{infoPending ? WORKSHOP_NOTE : info.subtitle}</span>
                 </h2>
                 <p className="mt-1 max-w-[75ch] text-[15px] leading-relaxed">{info.body}</p>
                 {info.link ? (

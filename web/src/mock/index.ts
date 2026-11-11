@@ -1,10 +1,11 @@
 /**
  * Dev-only mock backend (VITE_MOCK=1). Patches window.fetch so every `/api/*`
  * call is answered from fixtures, including a scripted SSE chat that exercises
- * parallel fan-out, sequential hops, the news agent and the error path.
+ * parallel fan-out, sequential hops, the marketing agent and the error path.
+ * Set localStorage `mock-no-marketing` to see the graph before the workshop adds it.
  * Imported only behind `import.meta.env.DEV`, so it never ships in a build.
  */
-import type { ChatEvent, SchemaName, Tool, ToolParam, ToolSpec, ToolTestResponse } from "@/api/types";
+import type { ChatEvent, Graph, SchemaName, Tool, ToolParam, ToolSpec, ToolTestResponse } from "@/api/types";
 import { extractPlaceholders } from "@/lib/placeholders";
 import * as fx from "./fixtures";
 
@@ -31,7 +32,7 @@ function delegate(from: string, to: string, request: string, inner: Step[], inne
   ];
 }
 
-function leaf(agent: string, tool: string, kind: "sql" | "factual" | "mcp", args: Record<string, unknown>, ms: number, rows: number | null, preview: unknown, error?: string): Step[] {
+function leaf(agent: string, tool: string, kind: "sql" | "factual" | "function", args: Record<string, unknown>, ms: number, rows: number | null, preview: unknown, error?: string): Step[] {
   const id = cid();
   return [
     [380, { type: "tool_call", agent, tool, call_id: id, kind, args }],
@@ -75,6 +76,12 @@ function wrap(inner: Step[], answer: string, route: string[]): Step[] {
   ];
 }
 
+const campaignRows = [
+  ["CMP-041", "Nimbus Go launch - social ads", 31_620.4, 34],
+  ["CMP-042", "Nimbus Go launch - search ads", 27_310.9, 29],
+  ["CMP-033", "NM-SG Q2 2026 - search ads", 18_240.0, 30],
+];
+
 const topRows = [
   ["BTCUSD", "Bitcoin", "crypto", 812, 41_220_000, 96_480.5, -12_300.1],
   ["XAUUSD", "Gold", "commodities", 640, 28_900_000, 61_210.0, 8_420.9],
@@ -90,7 +97,7 @@ function scriptFor(message: string): Step[] {
       [0, (c) => ({ type: "start", conversation_id: c.conversationId })],
       [150, { type: "agent_start", agent: "main_agent" }],
       [900, { type: "agent_end", agent: "main_agent", ms: 900 }],
-      [50, (c) => ({ type: "answer", text: "Hi! I'm the Nimbus Markets assistant. Ask me about our **finance** numbers, **trading** activity, or the latest **market news**.", route: ["main_agent"], elapsed_ms: Date.now() - c.t0 })],
+      [50, (c) => ({ type: "answer", text: "Hi! I'm the Nimbus Markets assistant. Ask me about our **finance** numbers, **trading** activity or **marketing** campaigns.", route: ["main_agent"], elapsed_ms: Date.now() - c.t0 })],
     ];
   }
 
@@ -128,6 +135,29 @@ function scriptFor(message: string): Step[] {
     );
   }
 
+  if (m.includes("overspen") || m.includes("overrun")) {
+    return wrap(
+      [
+        ...delegate(
+          "orchestrator",
+          "finance_agent",
+          "Marketing budget vs actual by entity, Jun–Sep 2026.",
+          leaf("finance_agent", "finance_budget_vs_actual", "sql", { month: "2026-08-01", by_entity: true }, 58, 6, [["NM-SG", "Marketing", 40_000, 62_100, 22_100]]),
+          1500,
+        ),
+        ...delegate(
+          "orchestrator",
+          "marketing_agent",
+          "Spend and sign-ups per campaign at NM-SG, Jun–Sep 2026.",
+          leaf("marketing_agent", "campaign_performance", "function", { entity_id: "NM-SG", start_date: "2026-06-01", end_date: "2026-09-30" }, 36, 3, campaignRows),
+          1300,
+        ),
+      ],
+      "**NM-SG** overspent its Marketing budget by about **55%** since June (finance agent, `finance_budget_vs_actual`).\n\nIt did **not** buy more clients (marketing agent, `campaign_performance`): the **Nimbus Go launch** campaigns cost about 50% more than NM-SG's earlier campaigns but brought in about the same number of sign-ups, so cost per sign-up rose from ~$610 to ~$930.",
+      ["finance_agent", "marketing_agent", "finance_budget_vs_actual", "campaign_performance"],
+    );
+  }
+
   if (m.includes("budget")) {
     return wrap(
       [
@@ -147,39 +177,28 @@ function scriptFor(message: string): Step[] {
         ]),
         ...delegate(
           "orchestrator",
-          "news_agent",
-          "Market headlines about trading volumes / volatility in August 2026.",
-          leaf("news_agent", "latest_headlines", "mcp", { topic: "markets", limit: 5 }, 320, 5, [{ title: "Summer lull: volatility hits multi-month low", source: "RSS" }]),
+          "marketing_agent",
+          "Spend and sign-ups per campaign at NM-SG for August 2026.",
+          leaf("marketing_agent", "campaign_performance", "function", { entity_id: "NM-SG", start_date: "2026-08-01", end_date: "2026-08-31" }, 34, 3, campaignRows),
           1300,
         ),
       ],
-      "**We missed August revenue budget by $96k (−8.1%)**, almost entirely in **Trading commission** (−$83k).\n\n- Trading volume fell **31%** vs July (4,210 trades vs 6,110) — fewer active clients, not lower fees.\n- Costs were on plan except **NM-SG Marketing** (+$22k over).\n- News: headlines describe a **summer volatility lull** across FX and indices, consistent with the volume drop.",
-      ["finance_agent", "trading_agent", "news_agent", "finance_budget_vs_actual", "trading_activity_summary", "latest_headlines"],
+      "**We missed August revenue budget by $96k (−8.1%)**, almost entirely in **Trading commission** (−$83k).\n\n- Trading volume fell **31%** vs July (4,210 trades vs 6,110) — fewer active clients, not lower fees.\n- Costs were on plan except **NM-SG Marketing** (+$22k over).\n- Marketing: the NM-SG overspend is the **Nimbus Go launch** campaigns, which brought in about as many sign-ups as earlier, cheaper campaigns.",
+      ["finance_agent", "trading_agent", "marketing_agent", "finance_budget_vs_actual", "trading_activity_summary", "campaign_performance"],
     );
   }
 
-  if (m.includes("news about it") || (m.includes("instrument") && m.includes("news")) || m.includes("drove")) {
+  if (m.includes("campaign") || m.includes("sign-up") || m.includes("marketing")) {
     return wrap(
-      [
-        ...delegate(
-          "orchestrator",
-          "trading_agent",
-          "Which instrument earned the most commission in October 2026?",
-          leaf("trading_agent", "trading_top_instruments", "sql", { start_date: "2026-10-01", end_date: "2026-10-31", metric: "commission", limit: 5 }, 44, 5, topRows),
-          1500,
-        ),
-        ...delegate("orchestrator", "news_agent", "Recent news about Bitcoin.", leaf("news_agent", "search_news", "mcp", { query: "Bitcoin", limit: 5 }, 410, 5, [{ title: "Bitcoin climbs as ETF flows return", source: "RSS" }]), 1200),
-      ],
-      "**Bitcoin (BTCUSD)** drove the most commission last month: **$96,481** from 812 trades (trading agent).\n\nIn the news (news agent):\n- *Bitcoin climbs as ETF flows return*\n- *Crypto volumes rebound after quiet September*\n\nNote: prices and trades are synthetic; headlines are live RSS.",
-      ["trading_agent", "news_agent", "trading_top_instruments", "search_news"],
-    );
-  }
-
-  if (m.includes("news") || m.includes("headline")) {
-    return wrap(
-      delegate("orchestrator", "news_agent", "Latest headlines about gold prices.", leaf("news_agent", "search_news", "mcp", { query: "gold price", limit: 5 }, 380, 5, [{ title: "Gold steadies near record", source: "RSS" }]), 1100),
-      "Top gold headlines right now (news agent, `search_news`):\n\n1. *Gold steadies near record as yields slip*\n2. *Central-bank buying keeps bullion supported*\n3. *Traders eye inflation print for next move*",
-      ["news_agent", "search_news"],
+      delegate(
+        "orchestrator",
+        "marketing_agent",
+        "Sign-ups and spend per campaign for Q3 2026 (Jul–Sep).",
+        leaf("marketing_agent", "campaign_performance", "function", { start_date: "2026-07-01", end_date: "2026-09-30" }, 38, 5, campaignRows),
+        1200,
+      ),
+      "Top campaigns by sign-ups last quarter (marketing agent, `campaign_performance`):\n\n| # | Campaign | Sign-ups | Spend | Cost per sign-up |\n|---|---|---:|---:|---:|\n| 1 | NM-UK Q3 2026 - search ads | 38 | $21,940 | $577 |\n| 2 | Nimbus Go launch - social ads | 34 | $31,620 | $930 |\n| 3 | NM-AE Q3 2026 - app-store ads | 21 | $12,480 | $594 |",
+      ["marketing_agent", "campaign_performance"],
     );
   }
 
@@ -295,7 +314,7 @@ function lint(spec: ToolSpec): string[] {
     if (!/^(select|with)\b/i.test(sql)) errors.push("sql: must be a single SELECT or WITH statement");
     if (/;\s*\S/.test(sql)) errors.push("sql: only one statement is allowed");
     const other = spec.agent === "finance" ? "trading" : "finance";
-    if (new RegExp(`\\b(${other}|tools)\\.`, "i").test(sql)) errors.push(`sql: a ${spec.agent} tool may only read the ${spec.agent} schema`);
+    if (new RegExp(`\\b(${other}|marketing|tools)\\.`, "i").test(sql)) errors.push(`sql: a ${spec.agent} tool may only read the ${spec.agent} schema`);
     const ph = extractPlaceholders(sql);
     const declared = spec.params.map((p) => p.name);
     for (const p of ph) if (!declared.includes(p)) errors.push(`params: placeholder :${p} has no declared param`);
@@ -322,6 +341,15 @@ function testTool(spec: ToolSpec): ToolTestResponse {
 
 // ---- router -----------------------------------------------------------------------------------
 
+/** The graph as it is at the start of the workshop, before anyone adds the marketing agent. */
+function withoutMarketing(g: Graph): Graph {
+  return {
+    agents: g.agents.filter((a) => a.id !== "marketing_agent"),
+    tools: g.tools.filter((t) => t.agent !== "marketing_agent"),
+    datasources: g.datasources.filter((d) => d.id !== "marketing"),
+  };
+}
+
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -334,8 +362,8 @@ async function handle(url: URL, init: RequestInit | undefined): Promise<Response
   if (path === "/health") return json(200, { ...fx.health, llm_key: localStorage.getItem("mock-llm-missing") ? "missing" : "configured" });
   if (path === "/graph") {
     const g = fx.graph();
-    g.tools = [...tools.filter((t) => t.enabled).map((t) => ({ name: t.name, agent: `${t.agent}_agent`, tool_type: t.tool_type, title: t.title })), ...g.tools.filter((t) => t.tool_type === "mcp")];
-    return json(200, g);
+    g.tools = [...tools.filter((t) => t.enabled).map((t) => ({ name: t.name, agent: `${t.agent}_agent`, tool_type: t.tool_type, title: t.title })), ...g.tools.filter((t) => t.tool_type === "function")];
+    return json(200, localStorage.getItem("mock-no-marketing") ? withoutMarketing(g) : g);
   }
   if (path === "/chat/examples") return json(200, fx.examples);
   if (path === "/chat/reset") return json(200, { ok: true });

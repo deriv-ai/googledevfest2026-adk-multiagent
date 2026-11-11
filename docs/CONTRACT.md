@@ -1,9 +1,9 @@
 # System contract
 
 The reference for how the pieces of this demo talk to each other: services and
-ports, environment variables, the database schema, the tool spec format, the news
-MCP tools, the HTTP API and the chat SSE events. Read it if you want to build your
-own tools, write another frontend, or swap a component out.
+ports, environment variables, the database schema, the specialist interface, the tool
+spec format, Python tools, the HTTP API, the chat SSE events and the evals. Read it if
+you want to build your own tools or agents, write another frontend, or swap a component out.
 
 All data is 100% synthetic (fictional company "Nimbus Markets").
 
@@ -13,9 +13,10 @@ All ports are published on `127.0.0.1` only (`BIND_ADDRESS` in `.env`); there is
 | service | port | notes |
 |---|---|---|
 | `db` | 5432 | postgres:17-alpine, DB `nimbus`, superuser `postgres`/`postgres` (env overridable) |
-| `news-mcp` | 8001 | FastMCP streamable HTTP, endpoint `http://news-mcp:8001/mcp` |
-| `app` | 8080 | FastAPI: `/api/*` + built SPA from `STATIC_DIR` |
-| `adk-web` | 8000 | `adk web --host 0.0.0.0 --port 8000 /app/src/devfest_agents/adk_apps` (same image as app). Discovered via `src/devfest_agents/adk_apps/nimbus/__init__.py` (`from . import agent`) + `agent.py` exporting `root_agent`. |
+| `app` | 8080 | FastAPI: `/api/*` + built SPA from `STATIC_DIR`. uvicorn `--reload --reload-dir /app/src` with `WATCHFILES_FORCE_POLLING=true`. Mounts `./src` → `/app/src:ro` and `./evals` → `/app/evals:ro`. |
+| `adk-web` | 8000 | `adk web --host 0.0.0.0 --port 8000 --reload_agents /app/src/devfest_agents/adk_apps` (same image as app). Mounts `./src` → `/app/src:ro`. Discovered via `src/devfest_agents/adk_apps/nimbus/__init__.py` (`from . import agent`) + `agent.py` exporting `root_agent`. |
+
+Compose container names: `nimbus-db`, `nimbus-app`, `nimbus-adk-web` (`make seed-tools` and `make eval` exec into `nimbus-app`).
 
 ## Environment variables (read by `config.py`, provided via `.env` + compose)
 | var | default | meaning |
@@ -25,21 +26,21 @@ All ports are published on `127.0.0.1` only (`BIND_ADDRESS` in `.env`); there is
 | `OPENAI_BASE_URL` | – | Optional OpenAI-compatible LiteLLM proxy base (e.g. `https://proxy.example.com/v1`). When set → proxy mode: pass `api_base`+`api_key` to `LiteLlm`, model strings use the `openai/` prefix |
 | `AGENT_MODEL` | proxy mode: `openai/gemini-3.8-flash`; direct mode: `gemini/gemini-3.8-flash` | specialists' model (LiteLLM model string) |
 | `ROUTER_MODEL` | = AGENT_MODEL | main_agent + orchestrator model |
-| `DATABASE_URL` | `postgresql://app:app@db:5432/nimbus` | rw on `tools` schema, read on finance/trading for schema browsing |
-| `AGENT_DATABASE_URL` | `postgresql://agent_ro:agent_ro@db:5432/nimbus` | SELECT-only on finance + trading |
-| `NEWS_MCP_URL` | `http://news-mcp:8001/mcp` | |
+| `DATABASE_URL` | role `app` on `db:5432/nimbus` (see compose.yaml) | rw on `tools` schema, read on finance/trading/marketing for schema browsing |
+| `AGENT_DATABASE_URL` | role `agent_ro` on `db:5432/nimbus` (see compose.yaml) | SELECT-only on finance + trading + marketing |
 | `STATIC_DIR` | `/app/static` | built SPA |
 | `STARTER_TOOLS_PATH` | `/app/seed/starter_tools.yaml` | upserted on startup (insert-if-missing) |
-| `TOOL_MAX_ROWS` | `200` | |
+| `TOOL_MAX_ROWS` | `200` | row cap for registry tools and `run_sql` |
 | `MAX_DELEGATIONS` | `4` | orchestrator cap per turn |
 | `LOG_LEVEL` | `INFO` | |
 | `LLM_TIMEOUT_SECONDS` / `LLM_NUM_RETRIES` | `60` / `2` | Per LLM call timeout + retries (fail fast on proxy hiccups) |
 | `LLM_REASONING_EFFORT` | `low` (empty = provider default) | Optional `low`/`medium`/`high`, passed to LiteLLM as `reasoning_effort` (with `drop_params`). Lower = faster answers on Gemini 3.x reasoning models. |
 
-## Database (one DB `nimbus`, three schemas, DDL in `db/init/`)
+## Database (one DB `nimbus`, four schemas, DDL in `db/init/`)
 Roles (created in `db/init/00_roles.sql`): `app` / password `app` (owner of schema `tools`,
-SELECT on finance+trading); `agent_ro` / password `agent_ro` (SELECT on finance+trading only,
-no access to `tools`). Every table and column gets `COMMENT ON` (the UI renders these).
+SELECT on finance+trading+marketing); `agent_ro` / password `agent_ro` (SELECT on
+finance+trading+marketing only, no access to `tools`). Every table and column gets `COMMENT ON`
+(the UI renders these).
 
 ### finance
 - `finance.entities` (entity_id text PK e.g. `NM-UK`, name text, country text, currency char(3))
@@ -64,6 +65,21 @@ no access to `tools`). Every table and column gets `COMMENT ON` (the UI renders 
 Reconciliation property: for every month and entity, `SUM(trades.commission_usd)` for that entity's clients
 ≈ GL `Trading commission` revenue. Client → entity mapping: by `clients.country` (`GB`→`NM-UK`, `SG`/`MY`/… →`NM-SG`, `AE`/… → `NM-AE`, others → `NM-INTL`); documented in a column comment.
 
+### marketing (`db/init/25_marketing.sql`)
+- `marketing.campaigns` (campaign_id text PK e.g. `CMP-001`, name text, entity_id → finance.entities,
+  channel text check in (`search ads`,`social ads`,`video ads`,`app-store ads`,`affiliate network`), start_date date, end_date date)
+  - one channel for one entity for one quarter, named like `NM-UK Q3 2026 - search ads`; from June 2026 NM-SG runs
+    `Nimbus Go launch - <channel>` (filter with `name LIKE 'Nimbus Go%'`)
+- `marketing.campaign_spend` (spend_id bigint PK, campaign_id → campaigns, spend_date date, spend_usd numeric(18,2) > 0,
+  impressions bigint, clicks bigint) — one row per ad invoice; bucket by `spend_date`
+- `marketing.signups` (client_id text PK → trading.clients, campaign_id → campaigns, signup_date date) — new clients
+  credited to a campaign; about half of all new clients. `signup_date` = `trading.clients.signup_date`
+
+Reconciliation property: every GL line on account `5200` (Performance marketing) is one `campaign_spend` row with
+`spend_id` = `gl_entries.entry_id` and the same `amount_usd`, so campaign spend = GL 5200 to the cent, per entity and date.
+The GL `Marketing` category also holds 5210 and 5220, which have no campaign.
+Cost per sign-up = `SUM(spend_usd) / COUNT(signups)` for the same campaigns and period.
+
 ### tools
 ```sql
 tools.tools (
@@ -84,6 +100,22 @@ tools.tools (
 tools.tool_runs (id bigserial PK, name text, agent text, args jsonb, row_count int, duration_ms int, error text, created_at timestamptz default now())
 ```
 The `tools` table starts EMPTY in SQL; the backend seeds it from `seed/starter_tools.yaml` at app startup.
+The registry is for finance and trading only; there are no marketing rows.
+
+## Specialist interface (`src/devfest_agents/agents/`)
+Each specialist module defines:
+
+| name | type | example |
+|---|---|---|
+| `NAME` | str | `"finance_agent"` (function name the orchestrator calls) |
+| `LABEL` | str | `"Finance agent"` |
+| `DATASOURCE` | str | `"finance"` (schema it reads) |
+| `DESCRIPTION` | str | what it answers; the orchestrator routes on it |
+| `build(services, model)` | → `LlmAgent` | |
+
+`agents/__init__.py`: `SPECIALISTS = [finance_agent, trading_agent]` at the start of the workshop; participants
+add `marketing_agent`. `build_root_agent` builds and traces every entry, and `graph_agents()` builds the
+`/api/graph` agents and datasources from it.
 
 ## Tool spec (YAML seed + API JSON share this shape)
 ```yaml
@@ -122,18 +154,23 @@ tools:
 Starter tools (the 6 seeded on first start): `finance_monthly_pnl`, `finance_revenue_breakdown`,
 `finance_budget_vs_actual`, `trading_activity_summary`, `trading_top_instruments`, `trading_client_segment_performance`.
 
-## News MCP server — tools exposed to the news agent
-- `latest_headlines(topic: str = "markets", limit: int = 10) -> list[{title, link, source, published, summary}]`
-  topics: `markets`, `crypto`, `forex`, `commodities`, `economy`
-- `search_news(query: str, limit: int = 10) -> same shape` (Google News RSS search)
-- `list_feeds() -> list[{topic, url, items_cached, last_polled}]`
-Background listener polls topic feeds every `NEWS_POLL_SECONDS` (default 300). Fail soft: on network error (or no results) the tools return a single-item list `[{"note": "..."}]` instead of raising. Implemented with mcp 2.x `MCPServer` (the v2 name of FastMCP), stateless streamable HTTP; `GET /mcp` answers 405 immediately (cheap liveness probe), `GET /healthz` returns JSON.
-Compose container names: `nimbus-db`, `nimbus-news-mcp`, `nimbus-app`, `nimbus-adk-web` (`make seed-tools` execs into `nimbus-app`).
+## Python function tools (`src/devfest_agents/tools/sql_query.py`)
+Plain async functions passed in `LlmAgent(tools=[...])`. ADK wraps each in a `FunctionTool`: name, typed signature
+and docstring become the declaration the LLM sees (the first docstring line is also its title in the catalogue and graph).
+They query the DB with:
+```python
+await run_sql(schema: str, sql: str, **params) -> {"row_count": int, "truncated": bool, "rows": [dict, ...]} | {"error": "..."}
+```
+- `:name` placeholders, bound from `params`; a placeholder without a value is an error. No declared types: a bare NULL
+  check needs a cast, e.g. `(:entity_id::text IS NULL OR c.entity_id = :entity_id)`.
+- Same SQL guard as registry tools (single SELECT/WITH, only `schema`, schema-qualified tables), run as `agent_ro` in a
+  read-only transaction, 5 s statement timeout, `TOOL_MAX_ROWS` cap.
+- Guard and execution errors are returned as `{"error": ...}`, never raised.
 
 ## HTTP API (all JSON, base `/api`)
 
 ### Health / graph
-- `GET /api/health` → `{"ok": true, "db": "ok"|"error", "news_mcp": "ok"|"error", "llm_key": "configured"|"missing", "llm_mode": "proxy"|"direct", "model": "...", "router_model": "..."}  (never expose key or base URL)`
+- `GET /api/health` → `{"ok": true, "db": "ok"|"error", "llm_key": "configured"|"missing", "llm_mode": "proxy"|"direct", "model": "...", "router_model": "..."}  (never expose key or base URL)`
 - `GET /api/graph` →
 ```json
 {"agents": [
@@ -141,11 +178,15 @@ Compose container names: `nimbus-db`, `nimbus-news-mcp`, `nimbus-app`, `nimbus-a
    {"id":"orchestrator","label":"Orchestrator","role":"router","parent":"main_agent",...},
    {"id":"finance_agent","label":"Finance agent","role":"specialist","parent":"orchestrator","datasource":"finance"},
    {"id":"trading_agent", ... "datasource":"trading"},
-   {"id":"news_agent", ... "datasource":"internet"}],
+   {"id":"marketing_agent", ... "datasource":"marketing"}],
  "tools": [{"name":"finance_monthly_pnl","agent":"finance_agent","tool_type":"sql","title":"..."},
-           {"name":"latest_headlines","agent":"news_agent","tool_type":"mcp","title":"..."}],
- "datasources": [{"id":"finance","label":"finance schema"},{"id":"trading","label":"trading schema"},{"id":"internet","label":"Internet (RSS)"}]}
+           {"name":"channel_summary","agent":"marketing_agent","tool_type":"function","title":"Spend, clicks and sign-ups per ad channel for a date range."}],
+ "datasources": [{"id":"finance","label":"finance schema"},{"id":"trading","label":"trading schema"},{"id":"marketing","label":"marketing schema"}]}
 ```
+Specialists, tools and datasources come from `SPECIALISTS`: `marketing_agent` and its tools appear only once it is
+in the list. `tool_type`: `sql` | `factual` (registry) | `function` (Python tool). Tool titles: the registry `title`
+for registry tools, the first docstring line for Python tools. The SPA draws the marketing agent dashed
+("built in the workshop") until it appears here.
 
 ### Chat (SSE over POST)
 `POST /api/chat` body `{"conversation_id": "uuid", "message": "text"}` → `text/event-stream`.
@@ -154,17 +195,19 @@ Each frame: `data: <json>\n\n`; keepalive comments `: ping\n\n`. Event JSON (`ts
 {"type":"start","conversation_id":"..."}
 {"type":"agent_start","agent":"orchestrator","invocation_id":"..."}
 {"type":"agent_end","agent":"orchestrator","invocation_id":"...","ms":1234}
-{"type":"tool_call","agent":"orchestrator","tool":"trading_agent","call_id":"c1","args":{"request":"..."},"kind":"agent"}   // kind: agent | sql | factual | mcp
+{"type":"tool_call","agent":"orchestrator","tool":"trading_agent","call_id":"c1","args":{"request":"..."},"kind":"agent"}   // kind: agent | sql | factual | function
 {"type":"tool_result","agent":"orchestrator","tool":"trading_agent","call_id":"c1","ms":2100,"kind":"agent","ok":true,"row_count":null,"error":null,"preview":"first ~300 chars / rows"}
 {"type":"answer","text":"markdown","route":["main_agent","orchestrator","trading_agent","trading_top_instruments"],"elapsed_ms":5400}
 {"type":"error","message":"..."}
 ```
-A `tool_call` with `kind:"agent"` is a delegation edge from `agent` → `tool`. Others are leaf tool nodes under `agent`.
+A `tool_call` with `kind:"agent"` is a delegation edge from `agent` → `tool`. Others are leaf tool nodes under `agent`
+(`function` = Python tool, labelled "Python" in the route panel).
 Parallel fan-out = several `tool_call`s before their `tool_result`s.
 - `POST /api/chat/reset` body `{"conversation_id"}` → `{"ok":true}`
-- `GET /api/chat/examples` → `[{"label":"Finance","prompt":"..."}, ...]`
+- `GET /api/chat/examples` → `[{"label":"Finance","prompt":"..."}, ...]` (the list is `EXAMPLES` in `api/routes_chat.py`;
+  it includes Marketing and cross-agent prompts that need the marketing agent)
 
-### Tools
+### Tools (registry: finance and trading only)
 - `GET /api/tools?agent=&q=` → `[{name, agent, tool_type, title, description, enabled, params, sql, answer, source, updated_at, last_run: {created_at, row_count, duration_ms, error}|null}]`
 - `GET /api/tools/{name}` → same object + `"runs": [last 10 tool_runs]`
 - `POST /api/tools` body = tool spec JSON (keys as YAML; `sql`, `answer`, `source`) → 201 tool object; 409 if name exists; 422 `{"detail": "...", "errors": ["..."]}` on validation
@@ -181,7 +224,7 @@ Parallel fan-out = several `tool_call`s before their `tool_result`s.
 - There is no placeholder endpoint: the UI extracts `:name` placeholders itself with the regex `(?<!:):([a-zA-Z_][a-zA-Z0-9_]*)`.
 
 ### Schema
-- `GET /api/schema` → `{"schemas":[{"name":"finance","comment":"..."},{"name":"trading",...},{"name":"tools",...}]}`
+- `GET /api/schema` → `{"schemas":[{"name":"finance","comment":"..."},{"name":"trading",...},{"name":"marketing",...},{"name":"tools",...}]}`
 - `GET /api/schema/{schema}` →
 ```json
 {"name":"finance","comment":"...","tables":[{"name":"gl_entries","comment":"...","row_count":15000,
@@ -191,6 +234,23 @@ Parallel fan-out = several `tool_call`s before their `tool_result`s.
 - `GET /api/schema/{schema}/{table}/sample?limit=5` → `{"columns":[...],"rows":[[...]]}` (limit ≤ 50)
 
 Errors: non-2xx JSON `{"detail": "..."}`.
+
+## Evals (`src/devfest_agents/evals.py`, `evals/practice.yaml`)
+`make eval` runs `python -m devfest_agents.evals /app/evals/practice.yaml [--only ID]` inside `nimbus-app` and writes
+`evals/report.json` (progress on stderr). Options: `Q=<id>` for one question, `ENGINE=podman` for podman.
+
+Question format:
+```yaml
+- id: sg-spend-reconciles
+  question: Does NM-SG's ad campaign spend in September 2026 match the Performance marketing expense booked in the ledger for that month?
+  agents: [marketing_agent, finance_agent]   # exactly the specialists the orchestrator should call
+  numbers: [13025.12]                        # each must appear in the answer, within 1%
+  words: []                                  # optional; each must appear, case-insensitive
+```
+Each question runs as a fresh conversation and scores 2 points: **route** (the set of agents the orchestrator called
+equals `agents`) and **answer** (every number and word found; numbers like `$117,844.95`, `1.2M`, `58k` are parsed).
+Report: `{"score", "max_score", "results": [{id, question, expected_agents, called_agents, route_point, answer_point,
+missing, answer, error, elapsed_ms}]}`. A leaderboard with its own question set is coming later.
 
 ## SPA build
 - `web/` is a Vite + React 18 + TS + Tailwind 4 app. `npm ci && npm run build` → `web/dist/`.

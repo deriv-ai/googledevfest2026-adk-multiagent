@@ -2,10 +2,10 @@
  * Static layered layout for the Agent Route graph:
  *
  *   User → Main agent → Orchestrator   ← one row, so the graph stays landscape
- *   Finance   Trading   News          ← one column per specialist
+ *   Finance   Trading   Marketing     ← one column per specialist
  *    ├ tool    ├ tool    ├ tool     ← tools stacked on a rail under their agent
  *    └ tool    └ tool    └ tool
- *   [schema]  [schema]  [internet]  ← datasource, bracketed from each tool
+ *   [schema]  [schema]  [schema]    ← datasource, bracketed from each tool
  *
  * Positions depend only on the topology (graph + any tools/agents that showed
  * up in events), never on status, so nodes don't jump while a turn streams.
@@ -187,7 +187,7 @@ export function layoutRoute(graph: Graph, state: RouteState): { nodes: LayoutNod
         type: "datasource",
         position: { x: x + TOOL_INDENT, y: DS_Y },
         width: TOOL_W,
-        data: { label, tone, status: st?.status ?? "idle", steps: [], ms: null, dim: running && (st?.status ?? "idle") === "idle", sublabel: ds === "internet" ? "via news MCP server" : `Postgres · ${ds}.*` },
+        data: { label, tone, status: st?.status ?? "idle", steps: [], ms: null, dim: running && (st?.status ?? "idle") === "idle", sublabel: `Postgres · ${ds}.*` },
       });
     }
   });

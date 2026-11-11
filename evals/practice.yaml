@@ -1,0 +1,75 @@
+# Practice questions. `make eval` runs each one through your agents and scores it.
+#
+# Every question is worth 2 points:
+#   route   the orchestrator called exactly the agents in `agents`
+#   answer  the final answer contains every number in `numbers` (within 1%)
+#           and every word in `words` (case-insensitive)
+#
+# The leaderboard uses a different set of questions in the same style, so tune
+# your agents to answer this kind of question well, not to these exact ones.
+
+# --- marketing only ----------------------------------------------------------
+- id: campaign-spend-q3
+  question: How much did our ad campaigns spend in total from 1 July to 30 September 2026?
+  agents: [marketing_agent]
+  numbers: [117844.95]
+
+- id: cheapest-channel-q3
+  question: Which ad channel had the lowest cost per sign-up in Q3 2026 (July to September), and what was it?
+  agents: [marketing_agent]
+  numbers: [1635.34]
+  words: [app-store]
+
+- id: nimbus-go-signups
+  question: How many new clients have the Nimbus Go launch campaigns brought in so far?
+  agents: [marketing_agent]
+  numbers: [18]
+
+- id: uk-monthly-spend
+  question: What did NM-UK spend on ad campaigns in each month of Q3 2026?
+  agents: [marketing_agent]
+  numbers: [8337.90, 8497.54, 8719.35]
+
+# --- routing trap: the ledger, not the campaigns -----------------------------
+- id: sg-marketing-booked
+  question: What was NM-SG's total Marketing expense booked in the ledger in September 2026?
+  agents: [finance_agent]
+  numbers: [20353.74]
+
+# --- more than one domain ----------------------------------------------------
+- id: sg-spend-reconciles
+  question: >
+    Does NM-SG's ad campaign spend in September 2026 match the Performance marketing
+    expense booked in the ledger for that month?
+  agents: [marketing_agent, finance_agent]
+  numbers: [13025.12]
+
+- id: new-clients-from-campaigns
+  question: >
+    How many new clients signed up in Q3 2026 in total, and how many of them were
+    brought in by ad campaigns?
+  agents: [trading_agent, marketing_agent]
+  numbers: [113, 58]
+
+- id: spend-per-new-client
+  question: >
+    In Q3 2026, what was our total ad campaign spend divided by the number of all new
+    clients who signed up?
+  agents: [marketing_agent, trading_agent]
+  numbers: [1042.88]
+
+- id: top-signup-entity-commission
+  question: >
+    Which entity's campaigns brought in the most sign-ups in Q3 2026, and how much
+    trading commission did that entity's clients generate in Q3 2026?
+  agents: [marketing_agent, trading_agent]
+  numbers: [188762.95]
+  words: [NM-INTL]
+
+- id: nimbus-go-worth-it
+  question: >
+    Was Nimbus Go worth it? Give what the Nimbus Go launch campaigns spent from June to
+    October 2026, how many new clients they brought in, and how far NM-SG's Marketing
+    costs were over budget in October 2026.
+  agents: [marketing_agent, finance_agent]
+  numbers: [60335.35, 18, 7541.64]

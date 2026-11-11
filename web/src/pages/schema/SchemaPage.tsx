@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 const SCHEMAS: { value: SchemaName; label: string; tone: AgentTone; who: string }[] = [
   { value: "finance", label: "finance", tone: "finance", who: "Read by the finance agent's tools" },
   { value: "trading", label: "trading", tone: "trading", who: "Read by the trading agent's tools" },
+  { value: "marketing", label: "marketing", tone: "marketing", who: "Read by the marketing agent's Python tools" },
   { value: "tools", label: "tools", tone: "main", who: "The tool registry itself (not readable by agents)" },
 ];
 
@@ -34,7 +35,7 @@ export default function SchemaPage() {
     <div className="mx-auto max-w-[1200px] px-6 py-8 lg:px-10">
       <PageHeader
         title="Data schema"
-        description="One Postgres database, three schemas. Every description below comes live from the database's COMMENT ON, so it can't drift. Use it to write your own tools."
+        description="One Postgres database, four schemas. Every description below comes live from the database's COMMENT ON, so it can't drift. Use it to write your own tools."
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-4">

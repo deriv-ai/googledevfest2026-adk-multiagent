@@ -1,5 +1,5 @@
 """main_agent: the root persona. Handles greetings/meta itself and sends every
-data or news question to AgentTool(orchestrator), then writes the final answer."""
+data question to AgentTool(orchestrator), then writes the final answer."""
 
 from __future__ import annotations
 

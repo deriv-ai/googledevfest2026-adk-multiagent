@@ -1,8 +1,10 @@
 # Architecture
 
-This demo re-implements a production-style pattern, **agents whose tools live in a database
+This repo re-implements a production-style pattern, **agents whose tools live in a database
 registry**, as a small, self-contained Google ADK app. On top of it sits a three-tier multi-agent
-hierarchy. Everything runs in four containers. All business data is synthetic.
+hierarchy. In the workshop you add one more specialist, a marketing agent with hand-written Python
+tools (see [GUIDE.md](../GUIDE.md)). Everything runs in three containers. All business data is
+synthetic.
 
 ## Containers
 
@@ -10,36 +12,40 @@ hierarchy. Everything runs in four containers. All business data is synthetic.
 flowchart TB
     subgraph host [your laptop]
         B[Browser]
+        SRC[./src  ./evals]
     end
     subgraph compose [compose project nimbus-adk]
         DB[(db<br/>postgres:17-alpine<br/>:5432)]
-        NM[news-mcp<br/>MCP server<br/>:8001]
         APP[app<br/>FastAPI + ADK + SPA<br/>:8080]
         ADKW[adk-web<br/>adk web dev UI<br/>:8000]
     end
     B --> APP
     B --> ADKW
     APP --> DB
-    APP --> NM
     ADKW --> DB
-    ADKW --> NM
-    NM --> NET((Internet RSS))
+    SRC -. "mounted read-only" .-> APP
+    SRC -. "./src mounted read-only" .-> ADKW
 ```
 
 | Service | Image | Notes |
 |---|---|---|
 | `db` | `postgres:17-alpine` | `./db/init` → `/docker-entrypoint-initdb.d` (run once on an empty volume), `./db/seed` → `/seed:ro`. Healthcheck: `pg_isready -h 127.0.0.1`. This only passes after init has finished, because the init-time server listens on the unix socket only. |
-| `news-mcp` | `docker/news-mcp.Dockerfile` | Python 3.13 slim, installs only the `news` dependency group from `uv.lock`. Serves `/mcp` (stateless streamable HTTP) and `/healthz`. |
-| `app` | `docker/app.Dockerfile` | Stage 1 (`node:22`) builds `web/` → `web/dist`. Stage 2 (Python 3.13 + uv) runs `uv sync --frozen --no-dev` and copies `src/`, `seed/` and the SPA to `/app/static`. Runs as non-root. `uvicorn devfest_agents.api.main:app` on 8080. |
-| `adk-web` | same image as `app` | `adk web --host 0.0.0.0 --port 8000 /app/src/devfest_agents/adk_apps`. The `nimbus` app exports the same `root_agent`. |
+| `app` | `docker/app.Dockerfile` | Stage 1 (`node:22`) builds `web/` → `web/dist`. Stage 2 (Python 3.13 + uv) runs `uv sync --frozen --no-dev` and copies `src/`, `seed/` and the SPA to `/app/static`. Runs as non-root. `uvicorn devfest_agents.api.main:app --reload` on 8080. `./src` → `/app/src:ro` and `./evals` → `/app/evals:ro`. |
+| `adk-web` | same image as `app` | `adk web --host 0.0.0.0 --port 8000 --reload_agents /app/src/devfest_agents/adk_apps`. The `nimbus` app exports the same `root_agent`. `./src` → `/app/src:ro`. |
 
 `app` and `adk-web` read `.env` (`env_file`) for the LLM key and model. Compose sets the
-service-to-service URLs (`DATABASE_URL`, `AGENT_DATABASE_URL`, `NEWS_MCP_URL`). They wait for
-`db` to be healthy, and the app also retries its DB connection on its own.
+service-to-service URLs (`DATABASE_URL`, `AGENT_DATABASE_URL`). They wait for `db` to be healthy, and
+the app also retries its DB connection on its own.
+
+**Live reload.** Because `./src` is mounted over the copy in the image, a Python edit on your laptop
+reaches both containers straight away. The app's uvicorn restarts on change
+(`WATCHFILES_FORCE_POLLING=true`, because file events don't always cross the Docker/Podman VM
+boundary), and `adk web --reload_agents` reloads the agents. You only rebuild the image when
+dependencies or the SPA change.
 
 ## Data model
 
-There is one database (`nimbus`) with three schemas. Every table and column has a `COMMENT ON`, and
+There is one database (`nimbus`) with four schemas. Every table and column has a `COMMENT ON`, and
 the Schema page renders those comments live, so the docs can't drift from the DB. The comments state
 units, sign conventions, join keys and enum values.
 
@@ -54,6 +60,11 @@ erDiagram
     INSTRUMENTS ||--o{ TRADES : "traded in"
     INSTRUMENTS ||--o{ DAILY_PRICES : "priced"
     CLIENTS }o..|| ENTITIES : "country maps to entity"
+    ENTITIES ||--o{ CAMPAIGNS : runs
+    CAMPAIGNS ||--o{ CAMPAIGN_SPEND : spends
+    CAMPAIGNS ||--o{ SIGNUPS : "brings in"
+    SIGNUPS |o--|| CLIENTS : "is a"
+    CAMPAIGN_SPEND |o..|| GL_ENTRIES : "same id as 5200 line"
 ```
 
 **`finance`**: `entities` (NM-UK GBP, NM-SG SGD, NM-AE AED, NM-INTL USD), `accounts` (fictional
@@ -66,33 +77,71 @@ symbols: FX pairs, BTC/ETH, gold/silver/oil, broad indices; no single-company st
 (about 20k; `notional_usd`, `commission_usd` = Nimbus revenue, `pnl_usd` = client result) and
 `daily_prices` (random-walk OHLC).
 
+**`marketing`**: `campaigns` (117; one channel for one entity for one quarter, named like
+"NM-UK Q3 2026 - search ads"; from June 2026 NM-SG runs the "Nimbus Go launch - <channel>" campaigns),
+`campaign_spend` (276 ad invoices with `spend_usd`, `impressions` and `clicks`) and `signups` (195 new
+clients credited to the campaign that brought them in). About half of all new clients come from a
+campaign; the rest are only in `trading.clients`.
+
 **`tools`**: `tools` (the registry) and `tool_runs` (an execution log). See [the registry](#the-tool-registry).
 
 **Finance ↔ trading link.** A client's `country` decides the booking entity: GB→NM-UK;
 SG/MY/TH/ID/VN/PH→NM-SG; AE/SA/QA/KW/BH/OM→NM-AE; anything else→NM-INTL. For every month and
 entity, GL account 4100 (Trading commission) equals `SUM(trades.commission_usd)` of that entity's
 closed trades, bucketed by `close_time`. The two differ only by cents of FX rounding, because the GL
-books in local currency and re-translates to USD. That is why cross-agent questions give consistent
-answers.
+books in local currency and re-translates to USD.
+
+**Marketing ↔ finance link.** Every GL line on account 5200 (Performance marketing) is one
+`marketing.campaign_spend` row with the same id (`spend_id` = `entry_id`) and the same USD amount, so
+campaign spend reconciles with the ledger to the cent. The GL **Marketing** category is wider: it also
+holds 5210 (Brand and events) and 5220 (Introducing-partner commissions), which have no campaign.
+
+**Marketing ↔ trading link.** `signups.client_id` is a `trading.clients.client_id`, and
+`signup_date` equals the client's `signup_date`. These links are why cross-agent questions give
+consistent answers.
 
 **Roles.**
 
 | Role | Can do |
 |---|---|
 | `postgres` | Superuser. Runs the init scripts. |
-| `app` | Owns `tools` (read/write). Has `SELECT` on finance/trading for the schema browser and sample rows. |
-| `agent_ro` | `SELECT` on finance/trading **only**. No access to `tools`. `default_transaction_read_only=on`, `statement_timeout=5s`, empty `search_path` (so table names must be schema-qualified). Every agent tool query runs as this role. |
+| `app` | Owns `tools` (read/write). Has `SELECT` on finance, trading and marketing for the schema browser and sample rows. |
+| `agent_ro` | `SELECT` on finance, trading and marketing **only**. No access to `tools`. `default_transaction_read_only=on`, `statement_timeout=5s`, empty `search_path` (so table names must be schema-qualified). Every agent tool query runs as this role. |
 
 ### Synthetic data generation
 `scripts/generate_synthetic_data.py` is deterministic (fixed seed, stdlib only). It writes
 `db/seed/*.csv`, which are committed and simply `COPY`'d at first start, so there is no ETL. It plants
-four storylines (crypto spike, revenue miss, marketing overrun, commission reconciliation), which are
-described in its docstring and in [DEMO_SCRIPT.md](DEMO_SCRIPT.md). `make data` regenerates the CSVs
-(the window ends at the current month). Then run `make reset` to reload them.
+five storylines (crypto spike, revenue miss, marketing overrun, commission reconciliation, the Nimbus Go
+campaign), which are described in its docstring and in [DEMO_SCRIPT.md](DEMO_SCRIPT.md). The marketing
+CSVs are built from the GL's 5200 lines with their own RNG, so adding them did not change the finance
+and trading CSVs. `make data` regenerates the CSVs (the window ends at the current month). Then run
+`make reset` to reload them.
+
+## Specialists
+
+Each specialist is a module in `src/devfest_agents/agents/` with the same small interface:
+
+| Name | Meaning |
+|---|---|
+| `NAME` | Agent name, e.g. `finance_agent`. Also the function name the orchestrator calls. |
+| `LABEL` | Display name for the UI, e.g. `Finance agent`. |
+| `DATASOURCE` | The schema it reads, e.g. `finance`. |
+| `DESCRIPTION` | What it answers. Becomes the `AgentTool` description the orchestrator routes on. |
+| `build(services, model)` | Returns the ADK `LlmAgent`. |
+
+`agents/__init__.py` holds the list. At the start of the workshop it is
+`SPECIALISTS = [finance_agent, trading_agent]`, and you add `marketing_agent`. Everything else follows
+from that list: `build_root_agent` builds each specialist, attaches tracing to it and hands them all to
+the orchestrator; `graph_agents()` builds the `/api/graph` topology, so the new agent appears on the
+Overview diagram and in the route panel without any frontend change.
+
+The finance and trading agents are built by `build_registry_specialist` (`agents/specialists.py`):
+an `LlmAgent` whose only tool is a `SqlRegistryToolset` for its schema. The marketing agent uses
+Python function tools instead.
 
 ## The tool registry
 
-A tool is a row in `tools.tools`:
+The finance and trading agents get their tools from the registry. A tool is a row in `tools.tools`:
 
 | `tool_type` | Stored | LLM-facing signature | Returns |
 |---|---|---|---|
@@ -122,21 +171,39 @@ How a row becomes an ADK tool (`src/devfest_agents/tools/`):
 spec and guard, and inserts the missing ones (`ON CONFLICT DO NOTHING`), so edits made in the UI
 survive restarts. `make seed-tools` forces a re-upsert from the YAML.
 
-## News MCP server
+The registry and the UI tool editor cover **finance and trading only** (`tools.agent` is
+`finance` or `trading`). Marketing tools live in Python.
 
-`news_mcp/server.py` uses the `mcp` SDK (`MCPServer`, the v2 name of `FastMCP`) over stateless
-streamable HTTP. A background **news listener** task polls five Google News RSS topic searches
-(markets, crypto, forex, commodities, economy) every `NEWS_POLL_SECONDS` into an in-memory rolling
-buffer. It exposes three tools:
+## Python function tools and `run_sql`
 
-- `latest_headlines(topic, limit)`: newest headlines for a topic, from the buffer.
-- `search_news(query, limit)`: a live Google News RSS search, cached for 5 minutes. If the live
-  search fails, it falls back to a keyword search of the buffer.
-- `list_feeds()`: the polled feeds with item counts and last poll times.
+The marketing agent's tools are plain async Python functions. ADK wraps each one in a `FunctionTool`:
+the function name, the typed signature and the docstring become the declaration the LLM sees. They read
+the database through `run_sql` (`src/devfest_agents/tools/sql_query.py`):
 
-All three fail soft. When offline they return a single `{"note": "..."}` item instead of raising, so
-the news agent can say that live news is unavailable. The app's `news_agent` connects with ADK's
-`McpToolset`.
+```python
+async def channel_summary(start_date: str, end_date: str, entity_id: str | None = None) -> dict:
+    """Spend, clicks and sign-ups per ad channel for a date range.
+
+    Args:
+        start_date: First day, YYYY-MM-DD.
+        end_date: Last day (inclusive), YYYY-MM-DD.
+        entity_id: Only campaigns of this entity: NM-UK, NM-SG, NM-AE or NM-INTL. Omit for all.
+    """
+    return await run_sql("marketing", SQL, start_date=start_date, end_date=end_date, entity_id=entity_id)
+```
+
+`run_sql(schema, sql, **params)` gives Python tools the same safety as registry tools:
+
+- `:name` placeholders, bound from the keyword arguments. A missing value is reported, not guessed.
+  There are no declared types, so Postgres infers each parameter from where it is used. A bare NULL
+  check needs a cast: `(:entity_id::text IS NULL OR c.entity_id = :entity_id)`.
+- the same SQL guard: single `SELECT`/`WITH`, only the given schema, schema-qualified tables;
+- the same executor: the `agent_ro` role, a read-only transaction, the 5 s statement timeout and the
+  row cap (`TOOL_MAX_ROWS`);
+- problems come back as `{"error": "..."}`. Success is `{"row_count", "truncated", "rows"}`.
+
+Python tools are not hot-reloaded from the database. They change when the code changes, which the
+mounted `./src` and the reloading containers make just as quick.
 
 ## Request flow and live route visualisation
 
@@ -148,18 +215,32 @@ streams those events as SSE:
 
 - `agent_start` / `agent_end`;
 - `tool_call` / `tool_result`, where `kind` is `agent` for a delegation edge, or `sql` / `factual` /
-  `mcp` for a leaf tool;
+  `function` for a leaf tool (`function` = a Python tool, shown as "Python" in the route panel);
 - `answer`, which includes the `route`.
 
 The SPA animates the route graph from these events. A parallel fan-out shows up as several
-`tool_call`s before their results.
+`tool_call`s before their results. Tracing is attached to every agent in `SPECIALISTS`, so a new
+specialist shows up in the route with no extra work.
+
+## Evals
+
+`make eval` runs `src/devfest_agents/evals.py` inside the `app` container over
+`evals/practice.yaml` and writes `evals/report.json`. Each question runs as a fresh conversation and
+is worth 2 points:
+
+- **route**: the orchestrator called exactly the agents listed for the question;
+- **answer**: the final answer contains every expected number (within 1%) and every expected word.
+
+The scorer reads the same trace events as the route panel, so routing is judged on what the
+orchestrator actually called. A leaderboard on a separate question set is coming later.
 
 ## Safety summary
 
 - The LLM never writes SQL at question time. It can only call registered, reviewed and tested queries
-  with validated arguments.
+  or hand-written Python tools, with validated arguments.
 - Defence in depth: the SQL guard (single SELECT, own schema only), the read-only `agent_ro` role
-  with no access to the registry, read-only transactions, a 5 s statement timeout and a row cap.
+  with no access to the registry, read-only transactions, a 5 s statement timeout and a row cap. These
+  apply to registry tools and to `run_sql` alike.
 - The orchestrator caps delegations per turn and blocks recursion (see
   [ORCHESTRATION.md](ORCHESTRATION.md)).
 - The LLM key comes only from `.env`. It is never committed, baked into an image, or sent to the

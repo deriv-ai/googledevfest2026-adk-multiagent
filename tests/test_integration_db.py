@@ -77,6 +77,24 @@ async def test_agent_role_cannot_touch_tools_or_write(db):
         assert "error" in out, sql
 
 
+async def test_run_sql_against_marketing_schema(db, settings):
+    from devfest_agents.services import set_services
+    from devfest_agents.tools.sql_query import run_sql
+
+    set_services(Services(settings=settings, db_provider=lambda: db))
+    try:
+        result = await run_sql(
+            "marketing",
+            "SELECT c.channel, SUM(s.spend_usd) AS spend_usd FROM marketing.campaign_spend s "
+            "JOIN marketing.campaigns c ON c.campaign_id = s.campaign_id "
+            "WHERE s.spend_date BETWEEN :start_date AND :end_date AND c.name LIKE 'Nimbus Go%' "
+            "AND (:entity_id::text IS NULL OR c.entity_id = :entity_id) GROUP BY c.channel",
+            start_date="2026-07-01", end_date="2026-09-30", entity_id=None)
+    finally:
+        set_services(None)
+    assert result["row_count"] == 5 and all(r["spend_usd"] > 0 for r in result["rows"])
+
+
 async def test_truncation_flag(db):
     spec = ToolSpec.model_validate({"name": "trading_all_trades", "agent": "trading", "tool_type": "sql",
                                     "title": "t", "description": "d",
@@ -108,7 +126,7 @@ async def test_hot_reload_against_real_registry(db):
 async def test_schema_introspection(db):
     svc = SchemaService(lambda: db)
     names = [s["name"] for s in (await svc.list_schemas())["schemas"]]
-    assert names == ["finance", "trading", "tools"]
+    assert names == ["finance", "trading", "marketing", "tools"]
     finance = await svc.describe("finance")
     tables = {t["name"]: t for t in finance["tables"]}
     assert {"entities", "accounts", "gl_entries", "budgets", "fx_rates"} <= set(tables)
@@ -126,7 +144,7 @@ def test_api_against_real_db(monkeypatch):
     from devfest_agents.api.main import create_app
 
     settings = Settings(_env_file=None, database_url=APP_URL, agent_database_url=AGENT_URL,
-                        starter_tools_path=str(STARTER), news_mcp_url="http://127.0.0.1:9/mcp")
+                        starter_tools_path=str(STARTER))
     holder = {}
 
     def db_provider():

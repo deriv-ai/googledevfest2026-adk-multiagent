@@ -18,6 +18,7 @@ web/dist
 # not needed inside images (db/ is bind-mounted into the postgres container)
 db
 docs
+evals
 tests
 scripts
 .trivy-*.tar

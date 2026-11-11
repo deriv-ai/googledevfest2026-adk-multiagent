@@ -12,9 +12,9 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react";
-import { AlertCircle, Check, Database, Globe, User } from "lucide-react";
+import { AlertCircle, Check, Database, User } from "lucide-react";
 import type { Graph } from "@/api/types";
-import { KIND_ICON, TONE_ICON } from "@/components/Badges";
+import { KIND_ICON, KIND_LABEL, TONE_ICON } from "@/components/Badges";
 import { toneColor } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
 import { layoutRoute, type RouteEdgeData, type RouteNodeData } from "@/lib/routeLayout";
@@ -137,7 +137,7 @@ function breakable(name: string) {
 }
 
 const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
-  const kind = data.toolKind === "factual" || data.toolKind === "mcp" ? data.toolKind : "sql";
+  const kind = data.toolKind === "factual" || data.toolKind === "function" ? data.toolKind : "sql";
   const Icon = KIND_ICON[kind];
   const chrome = nodeChrome(data);
   return (
@@ -147,14 +147,14 @@ const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
         <span
           className="mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-md"
           style={{ color: toneColor(data.tone), background: toneColor(data.tone, 0.12) }}
-          aria-label={kind === "sql" ? "SQL tool" : kind === "factual" ? "Factual tool" : "MCP tool"}
+          aria-label={`${KIND_LABEL[kind]} tool`}
         >
           <Icon className="size-3.5" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[12.5px] leading-snug font-medium [overflow-wrap:anywhere]">{breakable(data.label)}</div>
           <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-            {data.status === "idle" ? <span className="font-mono tracking-wide uppercase">{kind}</span> : <StatusLine d={data} />}
+            {data.status === "idle" ? <span className="font-mono tracking-wide uppercase">{KIND_LABEL[kind]}</span> : <StatusLine d={data} />}
           </div>
         </div>
       </div>
@@ -165,14 +165,12 @@ const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
 });
 
 const DatasourceNode = memo(function DatasourceNode({ data }: NodeProps<RNode>) {
-  const internet = data.label.toLowerCase().includes("internet");
-  const Icon = internet ? Globe : Database;
   const chrome = nodeChrome(data);
   return (
     <div className={cn(chrome.className, "w-[232px] border-dashed px-3 py-2.5")} style={{ ...chrome.style, borderStyle: data.status === "idle" ? "dashed" : "solid" }}>
       <Handle type="target" id="side" position={Position.Right} />
       <div className="flex items-center gap-2.5">
-        <Icon className="size-4 shrink-0" style={{ color: toneColor(data.tone) }} aria-hidden />
+        <Database className="size-4 shrink-0" style={{ color: toneColor(data.tone) }} aria-hidden />
         <div className="min-w-0">
           <div className="truncate text-[13.5px] font-semibold">{data.label}</div>
           <div className="truncate text-[11.5px] text-muted-foreground">{data.status === "active" ? "reading…" : data.sublabel}</div>

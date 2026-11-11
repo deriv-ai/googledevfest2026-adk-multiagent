@@ -8,6 +8,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from google.adk.agents import LlmAgent
+from google.adk.tools import FunctionTool
+from google.adk.tools.agent_tool import AgentTool
+from google.adk.tools.base_tool import BaseTool
+from google.adk.tools.base_toolset import BaseToolset
 from google.genai import types
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
@@ -43,3 +48,32 @@ def static_instruction(name: str):
 
     provider.__name__ = f"{name}_instruction"
     return provider
+
+
+def walk_agents(agent: LlmAgent):
+    """The agent and every agent below it. AgentTool agents are not sub_agents, so follow the tools."""
+    yield agent
+    for tool in agent.tools:
+        if isinstance(tool, AgentTool):
+            yield from walk_agents(tool.agent)
+
+
+async def list_tools(agent: LlmAgent) -> list[BaseTool]:
+    """The agent's tools as the model sees them: toolsets expanded, plain functions wrapped."""
+    tools: list[BaseTool] = []
+    for item in agent.tools:
+        if isinstance(item, BaseToolset):
+            tools.extend(await item.get_tools())
+        elif isinstance(item, BaseTool):
+            tools.append(item)
+        else:
+            tools.append(FunctionTool(item))
+    return tools
+
+
+def tool_title(tool: BaseTool) -> str:
+    """Registry tools have a title; Python tools use the first line of their docstring."""
+    spec = getattr(tool, "spec", None)
+    if spec is not None:
+        return spec.title + (" (curated answer)" if spec.tool_type == "factual" else "")
+    return (tool.description or "").strip().split("\n")[0]

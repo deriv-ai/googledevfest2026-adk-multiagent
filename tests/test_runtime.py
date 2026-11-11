@@ -35,10 +35,11 @@ async def test_failed_turn_rolls_back_session(fake_services):
 
 async def test_tool_errors_fail_soft(fake_services):
     root = build_tree(fake_services)
-    agents_by_name(root)["news_agent"].model = ScriptedLlm(model="x", responder=SCRIPTS["news_agent"], fail=True)
+    agents_by_name(root)["marketing_agent"].model = ScriptedLlm(model="x", responder=SCRIPTS["marketing_agent"],
+                                                                fail=True)
     events = await collect(AgentRuntime(root, settings=fake_services.settings))
-    news = [e for e in events if e["type"] == "tool_result" and e["tool"] == "news_agent"]
-    assert len(news) == 1 and news[0]["ok"] is False
+    failed = [e for e in events if e["type"] == "tool_result" and e["tool"] == "marketing_agent"]
+    assert len(failed) == 1 and failed[0]["ok"] is False
     assert events[-1]["type"] == "answer"
 
 

@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 from collections.abc import Callable
+from types import SimpleNamespace
 from typing import Any
 
+from google.adk.agents import LlmAgent
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models.llm_response import LlmResponse
-from google.adk.tools import FunctionTool
-from google.adk.tools.base_toolset import BaseToolset
 from google.genai import types
 
 from devfest_agents.config import Settings
@@ -18,6 +18,7 @@ from devfest_agents.services import Services
 from devfest_agents.tools.executor import QueryResult, validate_args
 from devfest_agents.tools.registry import ToolExistsError, ToolNotFoundError
 from devfest_agents.tools.spec import ToolSpec
+from devfest_agents.tools.sql_query import run_sql
 
 TOP_INSTRUMENTS = {
     "name": "trading_top_instruments",
@@ -75,8 +76,8 @@ KPI_FACTUAL = {
 
 def make_settings() -> Settings:
     return Settings(_env_file=None, gemini_api_key="test-key-not-real", database_url="postgresql://x@nowhere/x",
-                    agent_database_url="postgresql://x@nowhere/x", news_mcp_url="http://127.0.0.1:9/mcp",
-                    static_dir="/nonexistent", starter_tools_path="/nonexistent.yaml")
+                    agent_database_url="postgresql://x@nowhere/x", static_dir="/nonexistent",
+                    starter_tools_path="/nonexistent.yaml")
 
 
 class FakeRepo:
@@ -163,22 +164,11 @@ class FakeExecutor:
         return QueryResult(columns=["symbol", "commission_usd"], rows=[["BTCUSD", 10.5]], truncated=False,
                            duration_ms=3)
 
-
-async def search_news(query: str, limit: int = 5) -> dict:
-    """Search recent news (fake)."""
-    await asyncio.sleep(0.02)
-    return {"result": [{"title": f"News about {query}", "source": "Fake Wire", "published": "2026-11-05"}]}
-
-
-class FakeNewsToolset(BaseToolset):
-    def __init__(self):
-        super().__init__()
-        self.last_tool_names = ["search_news"]
-        self.available = True
-        self._tools = [FunctionTool(search_news)]
-
-    async def get_tools(self, readonly_context=None):
-        return self._tools
+    async def execute(self, compiled, values):
+        self.calls.append((compiled, dict(values)))
+        await asyncio.sleep(self.delay)
+        return QueryResult(columns=["channel", "spend_usd"], rows=[["search ads", 1200.5]], truncated=False,
+                           duration_ms=3)
 
 
 class FakeDB:
@@ -195,9 +185,32 @@ class FakeDB:
         return None
 
 
+async def channel_summary(start_date: str, end_date: str) -> dict:
+    """Spend per ad channel for a date range.
+
+    A hand-written Python tool, like the ones workshop participants write.
+    """
+    return await run_sql("marketing", "SELECT c.channel, SUM(s.spend_usd) AS spend_usd "
+                                      "FROM marketing.campaign_spend s JOIN marketing.campaigns c USING (campaign_id) "
+                                      "WHERE s.spend_date BETWEEN :start_date AND :end_date GROUP BY c.channel",
+                         start_date=start_date, end_date=end_date)
+
+
+# A specialist module with Python function tools. Tests plug it in next to finance and
+# trading, so they pass whether or not the workshop's marketing_agent is wired in yet.
+PYTHON_SPECIALIST = SimpleNamespace(
+    NAME="marketing_agent",
+    LABEL="Marketing agent",
+    DATASOURCE="marketing",
+    DESCRIPTION="Marketing specialist (test double).",
+    build=lambda services, model: LlmAgent(name="marketing_agent", model=model, description="Marketing specialist.",
+                                           instruction="Answer with your tools.", tools=[channel_summary]),
+)
+
+
 def make_fake_services(settings) -> Services:
     return Services(settings=settings, db_provider=lambda: FakeDB(), repo=FakeRepo([TOP_INSTRUMENTS, MONTHLY_PNL]),
-                    executor=FakeExecutor(), news_toolset=FakeNewsToolset())
+                    executor=FakeExecutor())
 
 
 # ---------------------------------------------------------------------------

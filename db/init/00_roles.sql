@@ -13,10 +13,11 @@ SET timezone TO 'UTC';
 
 -- ---------------------------------------------------------------------------
 -- Roles
---   app       the FastAPI backend: owns the tools registry, can read finance +
---             trading (schema browser, sample rows).
---   agent_ro  used to EXECUTE agent tool SQL: SELECT on finance + trading only,
---             no access to tools, read-only transactions, 5 s statement timeout.
+--   app       the FastAPI backend: owns the tools registry, can read finance,
+--             trading and marketing (schema browser, sample rows).
+--   agent_ro  used to EXECUTE agent tool SQL: SELECT on finance, trading and
+--             marketing only, no access to tools, read-only transactions, 5 s
+--             statement timeout.
 -- ---------------------------------------------------------------------------
 CREATE ROLE app LOGIN PASSWORD 'app';
 CREATE ROLE agent_ro LOGIN PASSWORD 'agent_ro';
@@ -41,20 +42,22 @@ END $$;
 -- ---------------------------------------------------------------------------
 CREATE SCHEMA finance;            -- owned by postgres, read-only for app + agent_ro
 CREATE SCHEMA trading;            -- owned by postgres, read-only for app + agent_ro
+CREATE SCHEMA marketing;          -- owned by postgres, read-only for app + agent_ro
 CREATE SCHEMA tools AUTHORIZATION app;
 
-REVOKE ALL ON SCHEMA finance, trading, tools FROM PUBLIC;
+REVOKE ALL ON SCHEMA finance, trading, marketing, tools FROM PUBLIC;
 
-GRANT USAGE ON SCHEMA finance, trading TO app, agent_ro;
+GRANT USAGE ON SCHEMA finance, trading, marketing TO app, agent_ro;
 GRANT USAGE, CREATE ON SCHEMA tools TO app;
 -- agent_ro intentionally gets nothing on schema tools.
 
 -- (No FOR ROLE clause: applies to objects created by the current role, i.e. the
 -- superuser running these init scripts, whatever POSTGRES_USER is.)
--- Tables created later by postgres in finance/trading become SELECT-able
--- automatically (10_finance.sql / 20_trading.sql run after this file).
+-- Tables created later by postgres in finance/trading/marketing become SELECT-able
+-- automatically (10_finance.sql / 20_trading.sql / 25_marketing.sql run after this file).
 ALTER DEFAULT PRIVILEGES IN SCHEMA finance GRANT SELECT ON TABLES TO app, agent_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA trading GRANT SELECT ON TABLES TO app, agent_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA marketing GRANT SELECT ON TABLES TO app, agent_ro;
 
 -- Anything postgres creates in tools is usable by app (30_tools.sql also
 -- transfers ownership to app explicitly).
@@ -62,5 +65,5 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA tools GRANT ALL ON TABLES TO app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA tools GRANT ALL ON SEQUENCES TO app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA tools GRANT EXECUTE ON FUNCTIONS TO app;
 
-COMMENT ON ROLE app IS 'Backend service role: owns schema tools (tool registry), SELECT on finance and trading for schema browsing.';
-COMMENT ON ROLE agent_ro IS 'Executes agent tool SQL: SELECT on finance and trading only, read-only transactions, 5s statement timeout, no access to tools.';
+COMMENT ON ROLE app IS 'Backend service role: owns schema tools (tool registry), SELECT on finance, trading and marketing for schema browsing.';
+COMMENT ON ROLE agent_ro IS 'Executes agent tool SQL: SELECT on finance, trading and marketing only, read-only transactions, 5s statement timeout, no access to tools.';

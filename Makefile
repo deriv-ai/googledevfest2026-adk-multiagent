@@ -26,7 +26,7 @@ ENV_MSG := add your LITELLM_GEMINI_API_KEY (or GEMINI_API_KEY) to .env, then re-
 .DEFAULT_GOAL := help
 .PHONY: help check-env up down logs ps reset build \
         podman-up podman-down podman-logs podman-ps podman-reset podman-build \
-        test data seed-tools dev update-pkg \
+        test eval data seed-tools dev update-pkg \
         trivy-scan trivy-config trivy-image trivy-patch trivy-verify trivy-audit
 
 help: ## Show this help
@@ -101,6 +101,10 @@ test: ## Python tests + web typecheck
 	$(PYTEST)
 	cd web && npm run typecheck
 
+eval: ## Score your agents on evals/practice.yaml (one question: Q=<id>; podman: ENGINE=podman)
+	$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json
+	@echo "Full report: evals/report.json"
+
 data: ## Regenerate db/seed/*.csv (dev only; then `make reset` / `make podman-reset` to load them)
 	$(PYTHON) scripts/generate_synthetic_data.py
 	@echo "CSV files regenerated. Run 'make reset' (or 'make podman-reset') to reload the database."
@@ -108,13 +112,13 @@ data: ## Regenerate db/seed/*.csv (dev only; then `make reset` / `make podman-re
 seed-tools: ## Force re-upsert seed/starter_tools.yaml into tools.tools (ENGINE=podman for podman)
 	$(EXEC) nimbus-app python -m devfest_agents.seed --force
 
-dev: ## db + news-mcp in containers; run the API (uv) and the SPA (vite) locally
-	$(COMPOSE) up -d --build db news-mcp
+dev: ## db in a container; run the API (uv) and the SPA (vite) locally
+	$(COMPOSE) up -d db
 	@echo ""
 	@echo "Now, in two terminals:"
 	@echo "  DATABASE_URL=postgresql://app:app@localhost:5432/nimbus \\"
 	@echo "  AGENT_DATABASE_URL=postgresql://agent_ro:agent_ro@localhost:5432/nimbus \\"
-	@echo "  NEWS_MCP_URL=http://localhost:8001/mcp STARTER_TOOLS_PATH=seed/starter_tools.yaml \\"
+	@echo "  STARTER_TOOLS_PATH=seed/starter_tools.yaml \\"
 	@echo "    uv run --env-file .env uvicorn devfest_agents.api.main:app --reload --port 8080"
 	@echo "  cd web && npm install && npm run dev      # http://localhost:5173"
 
@@ -133,7 +137,7 @@ endif
 # Needs trivy (https://trivy.dev, e.g. `brew install trivy`).
 TRIVY_SEVERITY ?= HIGH,CRITICAL
 TRIVY_SKIP     := --skip-dirs web/node_modules --skip-dirs .venv --skip-dirs .claude
-TRIVY_IMAGES   := nimbus-app nimbus-news-mcp
+TRIVY_IMAGES   := nimbus-app
 
 trivy-scan: ## Fail on fixable HIGH/CRITICAL vulns in uv.lock + web/package-lock.json
 	trivy fs --scanners vuln --severity $(TRIVY_SEVERITY) --ignore-unfixed --exit-code 1 $(TRIVY_SKIP) .

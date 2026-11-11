@@ -1,4 +1,4 @@
-import { Bot, Database, FileText, Globe, Network, Route, Sparkles, type LucideIcon } from "lucide-react";
+import { Bot, Database, FileText, Megaphone, Route, Sparkles, SquareFunction, type LucideIcon } from "lucide-react";
 import type { ToolKind } from "@/api/types";
 import { agentMeta, toneColor, type AgentTone } from "@/lib/agents";
 import { cn } from "@/lib/utils";
@@ -8,14 +8,14 @@ export const TONE_ICON: Record<AgentTone, LucideIcon> = {
   orchestrator: Route,
   finance: Bot,
   trading: Bot,
-  news: Globe,
+  marketing: Megaphone,
   other: Bot,
 };
 
 export const KIND_ICON: Record<ToolKind, LucideIcon> = {
   sql: Database,
   factual: FileText,
-  mcp: Network,
+  function: SquareFunction,
   agent: Bot,
 };
 
@@ -32,7 +32,7 @@ export function AgentBadge({ agent, className, size = "md" }: { agent: string; c
   );
 }
 
-const KIND_LABEL: Record<ToolKind, string> = { sql: "SQL", factual: "Factual", mcp: "MCP", agent: "Agent" };
+export const KIND_LABEL: Record<ToolKind, string> = { sql: "SQL", factual: "Factual", function: "Python", agent: "Agent" };
 
 export function ToolTypeBadge({ type, className }: { type: ToolKind; className?: string }) {
   const Icon = KIND_ICON[type];

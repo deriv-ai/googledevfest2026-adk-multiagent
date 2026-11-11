@@ -149,7 +149,7 @@ function ChatHeader({ onNew, disabled }: { onNew: () => void; disabled: boolean 
     <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
       <div>
         <h1 className="text-[17px] font-semibold tracking-tight">Ask Nimbus</h1>
-        <p className="text-[13px] text-muted-foreground">Main agent → orchestrator → finance, trading & news specialists</p>
+        <p className="text-[13px] text-muted-foreground">Main agent → orchestrator → specialist agents</p>
       </div>
       <Button size="sm" variant="outline" onClick={onNew} disabled={disabled}>
         <MessageSquarePlus className="size-4" aria-hidden /> New chat
@@ -246,7 +246,7 @@ function TranscriptView({
           <Waypoints className="mx-auto mb-3 size-9 text-agent-main" aria-hidden />
           <h2 className="text-xl font-semibold tracking-tight">Ask about Nimbus Markets</h2>
           <p className="mx-auto mt-1.5 max-w-md text-[14.5px] text-muted-foreground">
-            Finance, trading or market news. Watch the route panel to see which agents and tools answer, and which run in parallel.
+            Finance, trading or, once you've built its agent, marketing. Watch the route panel to see which agents and tools answer, and which run in parallel.
           </p>
         </div>
         <div className="w-full">
@@ -359,7 +359,7 @@ function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSe
               submit();
             }
           }}
-          placeholder="Ask about revenue, trades or market news…"
+          placeholder="Ask about revenue, trades or campaigns…"
           className="max-h-[180px] min-h-[40px] flex-1 resize-none bg-transparent py-2 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/80"
         />
         {streaming ? (

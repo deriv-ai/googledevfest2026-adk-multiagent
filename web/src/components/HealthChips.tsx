@@ -28,7 +28,7 @@ export function HealthChips({ className }: { className?: string }) {
   if (isLoading)
     return (
       <div className={cn("flex flex-wrap gap-2", className)}>
-        {["API", "Database", "News MCP", "LLM key"].map((l) => (
+        {["API", "Database", "LLM key"].map((l) => (
           <Chip key={l} label={l} state="unknown" value="checking…" />
         ))}
       </div>
@@ -43,7 +43,6 @@ export function HealthChips({ className }: { className?: string }) {
     <div className={cn("flex flex-wrap gap-2", className)}>
       <Chip label="API" state="ok" value="up" />
       <Chip label="Database" state={data.db === "ok" ? "ok" : "error"} value={data.db === "ok" ? "connected" : "error"} />
-      <Chip label="News MCP" state={data.news_mcp === "ok" ? "ok" : "warn"} value={data.news_mcp === "ok" ? "connected" : "unreachable"} />
       <Chip label="LLM key" state={data.llm_key === "configured" ? "ok" : "error"} value={data.llm_mode ? `${data.llm_key} · ${data.llm_mode}` : data.llm_key} />
       <Chip label="Model" state="ok" value={data.model} />
     </div>

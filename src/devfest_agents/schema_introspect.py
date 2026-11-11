@@ -14,7 +14,7 @@ from psycopg.rows import dict_row
 
 from .tools.executor import json_safe
 
-SCHEMAS = ("finance", "trading", "tools")
+SCHEMAS = ("finance", "trading", "marketing", "tools")
 MAX_SAMPLE = 50
 
 

@@ -5,7 +5,6 @@
 export interface Health {
   ok: boolean;
   db: "ok" | "error";
-  news_mcp: "ok" | "error";
   llm_key: "configured" | "missing";
   /** How the backend reaches the model (never the URL itself). */
   llm_mode?: "proxy" | "direct";
@@ -14,7 +13,7 @@ export interface Health {
 }
 
 export type AgentRole = "root" | "router" | "specialist";
-export type DatasourceId = "finance" | "trading" | "internet" | (string & {});
+export type DatasourceId = "finance" | "trading" | "marketing" | (string & {});
 
 export interface GraphAgent {
   id: string;
@@ -26,7 +25,7 @@ export interface GraphAgent {
   datasource?: DatasourceId;
 }
 
-export type GraphToolType = "sql" | "factual" | "mcp";
+export type GraphToolType = "sql" | "factual" | "function";
 
 export interface GraphTool {
   name: string;
@@ -48,7 +47,7 @@ export interface Graph {
 
 // ---- Chat SSE -----------------------------------------------------------------------
 
-export type ToolKind = "agent" | "sql" | "factual" | "mcp";
+export type ToolKind = "agent" | "sql" | "factual" | "function";
 
 interface EventBase {
   ts?: number;
@@ -206,7 +205,7 @@ export function isSqlResult(r: ToolTestResponse["result"]): r is SqlTestResult {
 
 // ---- Schema -------------------------------------------------------------------------
 
-export type SchemaName = "finance" | "trading" | "tools";
+export type SchemaName = "finance" | "trading" | "marketing" | "tools";
 
 export interface SchemaSummary {
   name: SchemaName;

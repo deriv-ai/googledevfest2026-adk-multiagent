@@ -139,6 +139,10 @@ class ToolExecutor:
             compiled = compile_sql(spec.sql or "", spec.param_types)
         except SqlGuardError as exc:
             raise ToolExecutionError(str(exc)) from exc
+        return await self.execute(compiled, values)
+
+    async def execute(self, compiled: str, values: dict[str, Any]) -> QueryResult:
+        """Run compiled SQL (psycopg ``%(name)s`` placeholders) as agent_ro, read-only."""
         wrapped = f"SELECT * FROM (\n{compiled}\n) AS q LIMIT {int(self.max_rows) + 1}"
         await self.db.ensure_open()
         started = time.perf_counter()

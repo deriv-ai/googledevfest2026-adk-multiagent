@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { ChatEvent } from "@/api/types";
 import { DEFAULT_GRAPH } from "@/lib/agents";
+import { layoutRoute } from "@/lib/routeLayout";
 import { activeAgents, buildRouteState, contextFromGraph, dsNodeId, edgeId, parallelGroups, reduceRoute, initialRouteState, toolNodeId, USER_NODE } from "@/lib/routeGraph";
 
 const ctx = contextFromGraph(DEFAULT_GRAPH);
+const withMarketing = contextFromGraph({
+  ...DEFAULT_GRAPH,
+  agents: [...DEFAULT_GRAPH.agents, { id: "marketing_agent", label: "Marketing agent", role: "specialist", parent: "orchestrator", datasource: "marketing" }],
+  datasources: [...DEFAULT_GRAPH.datasources, { id: "marketing", label: "marketing schema" }],
+});
 let t = 1000;
 const at = <T extends ChatEvent>(e: T): T => ({ ...e, ts: (t += 100) });
 
@@ -95,17 +101,17 @@ describe("reduceRoute", () => {
         at({ type: "agent_start", agent: "orchestrator" }),
         at({ type: "tool_call", agent: "orchestrator", tool: "trading_agent", call_id: "a", kind: "agent" }),
         at({ type: "tool_result", agent: "orchestrator", tool: "trading_agent", call_id: "a", kind: "agent", ok: true }),
-        at({ type: "tool_call", agent: "orchestrator", tool: "news_agent", call_id: "b", kind: "agent" }),
-        at({ type: "agent_start", agent: "news_agent" }),
-        at({ type: "tool_call", agent: "news_agent", tool: "search_news", call_id: "m", kind: "mcp", args: { query: "Gold" } }),
+        at({ type: "tool_call", agent: "orchestrator", tool: "marketing_agent", call_id: "b", kind: "agent" }),
+        at({ type: "agent_start", agent: "marketing_agent" }),
+        at({ type: "tool_call", agent: "marketing_agent", tool: "campaign_performance", call_id: "m", kind: "function", args: { entity_id: "NM-SG" } }),
       ],
-      ctx,
+      withMarketing,
     );
     expect(s.steps[0]!.group).not.toBe(s.steps[1]!.group);
     expect(parallelGroups(s.steps).size).toBe(0);
     expect(s.nodes.trading_agent?.status).toBe("done");
-    expect(s.nodes[toolNodeId("news_agent", "search_news")]?.toolKind).toBe("mcp");
-    expect(s.edges[edgeId(toolNodeId("news_agent", "search_news"), dsNodeId("internet"))]?.status).toBe("active");
+    expect(s.nodes[toolNodeId("marketing_agent", "campaign_performance")]?.toolKind).toBe("function");
+    expect(s.edges[edgeId(toolNodeId("marketing_agent", "campaign_performance"), dsNodeId("marketing"))]?.status).toBe("active");
   });
 
   it("marks failed tool results and stream errors red", () => {
@@ -169,5 +175,24 @@ describe("reduceRoute", () => {
     expect(s.steps).toEqual([]);
     expect(s.answer).toBeNull();
     expect(s.conversationId).toBe("c2");
+  });
+});
+
+describe("layoutRoute", () => {
+  it("gives the marketing agent its own column with function tools and its schema", () => {
+    const graph = {
+      ...DEFAULT_GRAPH,
+      agents: [...DEFAULT_GRAPH.agents, { id: "marketing_agent", label: "Marketing agent", role: "specialist" as const, parent: "orchestrator", datasource: "marketing" }],
+      tools: [{ name: "campaign_performance", agent: "marketing_agent", tool_type: "function" as const, title: "Spend, clicks and sign-ups per campaign for a date range." }],
+      datasources: [...DEFAULT_GRAPH.datasources, { id: "marketing", label: "marketing schema" }],
+    };
+    const { nodes, edges } = layoutRoute(graph, initialRouteState());
+    const agent = nodes.find((n) => n.id === "marketing_agent");
+    const tool = nodes.find((n) => n.id === toolNodeId("marketing_agent", "campaign_performance"));
+    const ds = nodes.find((n) => n.id === dsNodeId("marketing"));
+    expect(agent?.data).toMatchObject({ label: "Marketing agent", tone: "marketing" });
+    expect(tool?.data).toMatchObject({ toolKind: "function", tone: "marketing" });
+    expect(ds?.data).toMatchObject({ label: "marketing schema", sublabel: "Postgres · marketing.*" });
+    expect(edges.some((e) => e.source === tool?.id && e.target === ds?.id)).toBe(true);
   });
 });

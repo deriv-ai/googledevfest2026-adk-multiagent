@@ -128,7 +128,7 @@ function Legend() {
     ["orchestrator", "Orchestrator"],
     ["finance", "Finance"],
     ["trading", "Trading"],
-    ["news", "News"],
+    ["marketing", "Marketing"],
   ];
   return (
     <div className="hidden shrink-0 gap-x-3 text-[11.5px] xl:flex" aria-label="Agent colours">
