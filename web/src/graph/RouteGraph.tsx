@@ -35,7 +35,7 @@ function StepBadges({ steps, tone }: { steps: number[]; tone: RouteNodeData["ton
       {steps.slice(-3).map((n) => (
         <span
           key={n}
-          className="pop-in inline-flex size-6 items-center justify-center rounded-full font-mono text-[11px] font-semibold text-white shadow-[0_2px_6px_-1px_rgb(0_0_0/0.35)]"
+          className="pop-in inline-flex size-5 items-center justify-center rounded-full font-mono text-[10px] font-semibold text-white ring-2 ring-card"
           style={{ background: toneColor(tone) }}
           title={`Step ${n}`}
         >
@@ -67,22 +67,20 @@ function StatusLine({ d }: { d: RouteNodeData }) {
 }
 
 function nodeChrome(d: RouteNodeData) {
-  const tone = toneColor(d.tone);
   const lit = d.status !== "idle";
   return {
     className: cn(
-      "relative rounded-xl border bg-card transition-[opacity,border-color,outline-color,box-shadow] duration-300 ease-out",
+      "relative rounded-xl border bg-card transition-[opacity,border-color,background-color,box-shadow] duration-300 ease-out",
       d.status === "active" && "node-active",
       d.status === "error" && "border-danger!",
       d.dim && "opacity-40",
     ),
     style: {
       ["--tone" as string]: `var(--agent-${d.tone})`,
-      // Lit nodes get a 2px edge from border + outline, so the content never shifts by a pixel.
-      borderColor: lit ? tone : undefined,
-      outline: `1px solid ${d.status === "error" ? "hsl(var(--danger))" : lit ? tone : "transparent"}`,
-      outlineOffset: 0,
-      boxShadow: d.status === "done" ? `0 4px 14px -8px ${toneColor(d.tone, 0.45)}` : d.status === "idle" ? "var(--elev-1)" : undefined,
+      // Lit nodes take a faint tint of their agent's colour and a half-strength border.
+      borderColor: lit ? toneColor(d.tone, 0.55) : undefined,
+      backgroundImage: lit ? `linear-gradient(${toneColor(d.tone, 0.07)}, ${toneColor(d.tone, 0.07)})` : undefined,
+      boxShadow: "var(--elev-1)",
     } as React.CSSProperties,
   };
 }
@@ -196,9 +194,9 @@ const FlowEdge = memo(function FlowEdge({ id, sourceX, sourceY, targetX, targetY
         path={path}
         style={{
           stroke: color,
-          strokeWidth: st === "active" ? 2.75 : st === "idle" ? 1.25 : 2,
+          strokeWidth: st === "active" ? 2 : st === "idle" ? 1.25 : 1.5,
           strokeDasharray: data?.dashed ? "4 4" : undefined,
-          opacity: data?.dim ? 0.3 : st === "done" ? 0.85 : 1,
+          opacity: data?.dim ? 0.3 : st === "done" ? 0.6 : 1,
           transition: "stroke 300ms var(--curve-out), opacity 300ms var(--curve-out), stroke-width 300ms var(--curve-out)",
         }}
       />
