@@ -21,6 +21,7 @@ import { layoutRoute, type RouteEdgeData, type RouteNodeData } from "@/lib/route
 import type { RouteState } from "@/lib/routeGraph";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { roundedPath } from "./paths";
 import { useAutoFit, useSyncedNodes } from "./useAutoFit";
 
 type RNode = Node<RouteNodeData>;
@@ -184,9 +185,20 @@ const DatasourceNode = memo(function DatasourceNode({ data }: NodeProps<RNode>) 
 
 // ---- edge ---------------------------------------------------------------------------------
 
-const FlowEdge = memo(function FlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }: EdgeProps<REdge>) {
+function routePath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, sourceHandleId }: EdgeProps<REdge>): string {
+  // A tool rail runs straight down from the agent, with one rounded corner into each tool.
+  if (sourceHandleId === "rail") return roundedPath([[sourceX, sourceY], [sourceX, targetY], [targetX, targetY]]);
+  // Nodes a few pixels off one row would get a tiny step: draw the straight line they mean.
+  if (sourcePosition === Position.Right && targetPosition === Position.Left && Math.abs(sourceY - targetY) < 6) {
+    return `M ${sourceX},${targetY} L ${targetX},${targetY}`;
+  }
   const sameSide = sourcePosition === Position.Right && targetPosition === Position.Right;
-  const [path] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 12, offset: sameSide ? 18 : 16 });
+  return getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 12, offset: sameSide ? 18 : 16 })[0];
+}
+
+const FlowEdge = memo(function FlowEdge(props: EdgeProps<REdge>) {
+  const { id, data } = props;
+  const path = routePath(props);
   const st = data?.status ?? "idle";
   const color = st === "error" ? "hsl(var(--danger))" : st === "idle" ? "hsl(var(--input))" : toneColor(data?.tone ?? "other");
   return (

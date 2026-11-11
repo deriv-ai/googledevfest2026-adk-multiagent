@@ -1,10 +1,11 @@
 import { memo, useMemo } from "react";
-import { Controls, Handle, MarkerType, Position, ReactFlow, ReactFlowProvider, type Edge, type Node, type NodeProps } from "@xyflow/react";
+import { BaseEdge, Controls, Handle, MarkerType, Position, ReactFlow, ReactFlowProvider, type Edge, type EdgeProps, type Node, type NodeProps } from "@xyflow/react";
 import { Bot, Code2, Database, LayoutPanelLeft, Megaphone, Route, Sparkles, Table2, Users, Wand2, type LucideIcon } from "lucide-react";
 import type { Graph } from "@/api/types";
 import { toneColor, type AgentTone } from "@/lib/agents";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { roundedPath } from "./paths";
 import { useAutoFit, useSyncedNodes } from "./useAutoFit";
 
 export interface ArchNodeInfo {
@@ -60,6 +61,7 @@ const ArchNode = memo(function ArchNode({ data }: NodeProps<ANode>) {
     >
       <Handle type="target" position={Position.Left} />
       <Handle type="target" id="top" position={Position.Top} />
+      <Handle type="target" id="upper" position={Position.Left} style={{ top: "25%" }} />
       <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg" style={iconStyle(tone, pending)}>
         <Icon className="size-[18px]" aria-hidden />
       </span>
@@ -99,21 +101,39 @@ export const ARCH_NODES: (ArchNodeInfo & { icon: LucideIcon; tone: AgentTone | n
   { id: "users", title: "Users", subtitle: "ask in plain English", icon: Users, tone: null, x: 0, y: 330, body: "Chat on the Chat page and watch the live route panel light up the agents and tools that answer.", link: { to: "/chat", label: "Ask a question" } },
 ];
 
-const E: [string, string, string?, { sh?: string; th?: string; dashed?: boolean; tone?: AgentTone; both?: boolean }?][] = [
+type Route = "trunk" | "lane";
+
+const E: [string, string, string?, { sh?: string; th?: string; dashed?: boolean; tone?: AgentTone; both?: boolean; route?: Route }?][] = [
   ["dev", "ui", "registers"],
   ["ui", "registry", "test + save"],
   ["registry", "factory", "hot reload"],
   ["factory", "finance_agent", "", { sh: "bottom", th: "top", dashed: true }],
-  ["factory", "trading_agent", "", { sh: "bottom", dashed: true }],
+  ["factory", "trading_agent", "", { sh: "bottom", th: "upper", dashed: true, route: "lane" }],
   ["finance_agent", "finance_ds", "SQL", { tone: "finance" }],
   ["trading_agent", "trading_ds", "SQL", { tone: "trading" }],
   ["marketing_agent", "marketing_ds", "Python", { tone: "marketing" }],
   ["users", "main_agent", "", { both: true }],
   ["main_agent", "orchestrator", "AgentTool", { tone: "orchestrator" }],
-  ["orchestrator", "finance_agent", "", { tone: "finance" }],
+  ["orchestrator", "finance_agent", "", { tone: "finance", route: "trunk" }],
   ["orchestrator", "trading_agent", "", { tone: "trading" }],
-  ["orchestrator", "marketing_agent", "", { tone: "marketing" }],
+  ["orchestrator", "marketing_agent", "", { tone: "marketing", route: "trunk" }],
 ];
+
+/**
+ * Hand-routed edges, so lines that share the space left of the agents never overlap.
+ * trunk: the orchestrator's fan-out, turning just right of the orchestrator.
+ * lane: the dashed ADK line, dropping into the gap between the two lanes, then down its own
+ * column into the agent's upper handle, clear of the trunk and the orchestrator's line.
+ */
+const ElbowEdge = memo(function ElbowEdge({ id, sourceX, sourceY, targetX, targetY, data, style, markerEnd }: EdgeProps<Edge<{ route: Route }>>) {
+  const points: [number, number][] =
+    data?.route === "lane"
+      ? [[sourceX, sourceY], [sourceX, sourceY + 40], [targetX - 14, sourceY + 40], [targetX - 14, targetY], [targetX, targetY]]
+      : [[sourceX, sourceY], [sourceX + 18, sourceY], [sourceX + 18, targetY], [targetX, targetY]];
+  return <BaseEdge id={id} path={roundedPath(points)} style={style} markerEnd={markerEnd} />;
+});
+
+const edgeTypes = { elbow: ElbowEdge };
 
 /** Workshop nodes that /api/graph doesn't list yet (all of them until it answers). */
 export function pendingNodes(graph: Graph | undefined): string[] {
@@ -152,7 +172,8 @@ function Inner({ selected, onSelect, pending }: Props) {
         target: t,
         sourceHandle: o?.sh ?? null,
         targetHandle: o?.th ?? null,
-        type: "smoothstep",
+        type: o?.route ? "elbow" : "smoothstep",
+        data: o?.route ? { route: o.route } : undefined,
         label: label || undefined,
         labelStyle: { fontSize: 11, fontWeight: 500, fill: "hsl(var(--muted-foreground))" },
         labelBgStyle: { fill: "hsl(var(--card))" },
@@ -171,7 +192,7 @@ function Inner({ selected, onSelect, pending }: Props) {
   const [nodes, onNodesChange] = useSyncedNodes<ANode | LNode>(nextNodes);
   return (
     <div ref={wrapRef} className="h-full w-full">
-    <ReactFlow nodes={nodes} onNodesChange={onNodesChange} edges={edges} nodeTypes={nodeTypes} colorMode={resolved} fitView fitViewOptions={{ padding: 0.06 }} minZoom={0.2} maxZoom={1.4} nodesConnectable={false} elementsSelectable={false} zoomOnScroll={false} panOnScroll preventScrolling={false}>
+    <ReactFlow nodes={nodes} onNodesChange={onNodesChange} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} colorMode={resolved} fitView fitViewOptions={{ padding: 0.06 }} minZoom={0.2} maxZoom={1.4} nodesConnectable={false} elementsSelectable={false} zoomOnScroll={false} panOnScroll preventScrolling={false}>
       <Controls showInteractive={false} position="bottom-right" />
     </ReactFlow>
     </div>
