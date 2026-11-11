@@ -156,7 +156,7 @@ const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
         <div className="min-w-0 flex-1">
           <div className="font-mono text-xs leading-snug font-medium [overflow-wrap:anywhere]">{breakable(data.label)}</div>
           <div className="mt-0.5 text-[11px] text-muted-foreground">
-            {data.status === "idle" ? <span className="font-mono tracking-wide uppercase">{KIND_LABEL[kind]}</span> : <StatusLine d={data} />}
+            {data.status === "idle" ? <span>{KIND_LABEL[kind]}</span> : <StatusLine d={data} />}
           </div>
         </div>
       </div>

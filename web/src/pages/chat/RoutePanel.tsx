@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Play, Radio, Square, Workflow } from "lucide-react";
+import { AlertTriangle, Loader2, Play, Square, Workflow } from "lucide-react";
 import type { Graph } from "@/api/types";
 import { RouteGraph } from "@/graph/RouteGraph";
 import { Button } from "@/components/ui";
 import { agentMeta, toneColor } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
 import { activeAgents, parallelGroups, type RouteState } from "@/lib/routeGraph";
-import { cn } from "@/lib/utils";
 import { StepTimeline } from "./StepTimeline";
 
 function useTicker(on: boolean, since: number | null) {
@@ -48,7 +47,7 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
         <div className="flex min-w-0 flex-1 items-center gap-2 text-[13px]" aria-live="polite">
           {live ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-muted py-1 pr-3 pl-2 font-medium">
-              <Radio className="size-3.5 animate-pulse text-danger" aria-hidden />
+              <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />
               Working… <span className="font-mono tabular-nums">{(elapsed / 1000).toFixed(1)}s</span>
               {working.length ? (
                 <span className="hidden truncate font-normal text-muted-foreground sm:inline">
@@ -109,11 +108,11 @@ export function RoutePanel({ graph, state, live, liveSince, replaying, canReplay
         {state.steps.length ? (
           <StepTimeline steps={state.steps} />
         ) : (
-          <p className={cn("px-2 py-4 text-sm text-muted-foreground", state.status === "running" && "animate-pulse")}>
+          <p className="px-2 py-4 text-sm text-muted-foreground">
             {state.status === "running"
               ? "The main agent is reading the question…"
               : state.status === "done"
-                ? "The main agent answered directly — no delegation needed."
+                ? "The main agent answered this one itself, without calling a specialist."
                 : "Each delegation and tool call appears here in order, with its arguments, row count and timing."}
           </p>
         )}

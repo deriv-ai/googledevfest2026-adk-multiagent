@@ -46,7 +46,7 @@ function StepRow({ step, parallel, first, last }: { step: RouteStep; parallel: n
                   {step.tool}
                 </span>
               )}
-              {parallel !== null ? <span className="rounded-full bg-subtle px-1.5 py-px font-mono text-[10px] font-medium tracking-wide text-muted-foreground uppercase">parallel ×{parallel}</span> : null}
+              {parallel !== null ? <span className="rounded-full bg-subtle px-2 py-px text-[11px] font-medium text-muted-foreground">parallel ×{parallel}</span> : null}
             </div>
             {step.args && Object.keys(step.args).length ? (
               <div className={cn("mt-0.5 truncate text-xs text-muted-foreground", !isAgent && "font-mono text-xs")}>
@@ -73,13 +73,13 @@ function StepRow({ step, parallel, first, last }: { step: RouteStep; parallel: n
           <div className="space-y-2 px-2 pt-1 pb-3 pl-11">
             {step.args && Object.keys(step.args).length ? (
               <div>
-                <div className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Arguments</div>
+                <div className="mb-1 text-xs font-medium text-muted-foreground">Arguments</div>
                 <JsonView value={step.args} className="max-h-56 bg-card p-3 text-xs" />
               </div>
             ) : null}
             {step.preview !== undefined && step.preview !== null ? (
               <div>
-                <div className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Result preview</div>
+                <div className="mb-1 text-xs font-medium text-muted-foreground">Result preview</div>
                 {typeof step.preview === "string" ? (
                   <pre className="max-h-56 overflow-auto rounded-lg bg-card p-3 text-xs whitespace-pre-wrap">{step.preview}</pre>
                 ) : (

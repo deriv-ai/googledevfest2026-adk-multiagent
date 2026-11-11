@@ -26,7 +26,7 @@ export default function OverviewPage() {
         <div className="min-w-0">
           <h1 className="text-2xl leading-tight font-semibold tracking-tight">Nimbus Markets assistant</h1>
           <p className="mt-2 max-w-[68ch] text-[15px] text-muted-foreground">
-            A main agent, an orchestrator and specialist agents built with Google ADK. Finance and trading tools live in a database table, so you can add one from the browser and the agents use it on the next question. The marketing agent is yours to build in the workshop.
+            A main agent, an orchestrator and specialist agents built with Google ADK. Finance and trading tools live in a database table, so you can add one from the browser and the agents use it on the next question. The marketing agent is yours to build in the workshop. All of the data is synthetic.
           </p>
         </div>
         <HealthChips />

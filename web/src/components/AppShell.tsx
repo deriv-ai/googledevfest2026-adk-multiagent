@@ -143,9 +143,6 @@ export function AppShell() {
         <main className={cn("min-h-0 flex-1", fullBleed ? "overflow-hidden" : "overflow-y-auto")}>
           <Outlet />
         </main>
-        <footer className="shrink-0 border-t border-border px-4 py-1.5 text-center text-[11px] text-muted-foreground">
-          All data is synthetic and generated for demonstration purposes. Nimbus Markets is a fictional company.
-        </footer>
       </div>
     </div>
   );

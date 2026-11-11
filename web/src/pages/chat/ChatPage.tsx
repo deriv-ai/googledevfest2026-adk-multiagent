@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, MessageSquarePlus, RotateCcw, Square, Waypoints } from "lucide-react";
+import { ArrowUp, MessageSquarePlus, Square, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { endpoints, streamChat } from "@/api/client";
 import { useChatExamples, useGraph } from "@/api/hooks";
@@ -147,10 +147,7 @@ export default function ChatPage() {
 function ChatHeader({ onNew, disabled }: { onNew: () => void; disabled: boolean }) {
   return (
     <div className="flex min-h-16 items-center justify-between gap-3 border-b border-border px-5 py-2.5">
-      <div>
-        <h1 className="text-base font-semibold tracking-tight">Ask Nimbus</h1>
-        <p className="text-xs text-muted-foreground">Main agent → orchestrator → specialist agents</p>
-      </div>
+      <h1 className="text-base font-semibold tracking-tight">Ask Nimbus</h1>
       <Button size="sm" variant="outline" onClick={onNew} disabled={disabled}>
         <MessageSquarePlus className="size-4" aria-hidden /> New chat
       </Button>
@@ -374,9 +371,6 @@ function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSe
           </Button>
         )}
       </form>
-      <p className="mx-auto mt-2 flex max-w-3xl items-center gap-1.5 text-[11px] text-muted-foreground">
-        <RotateCcw className="size-3" aria-hidden /> Enter to send · Shift+Enter for a new line · click an answer to see its route
-      </p>
     </div>
   );
 }
