@@ -36,10 +36,15 @@ async def run_exercise(number, monkeypatch, module, capsys):
     return c.failed, capsys.readouterr().out
 
 
+def unfinished_build(services, model):
+    raise NotImplementedError("marketing_agent.build() is exercise 2")
+
+
 async def test_the_start_state_fails_exercises_1_and_2_with_hints(fake_services, monkeypatch, capsys):
-    failed, out = await run_exercise(1, monkeypatch, marketing_agent, capsys)
+    stub = fake_module(description="", build=unfinished_build)
+    failed, out = await run_exercise(1, monkeypatch, stub, capsys)
     assert failed == 1 and "at least two tools (found 0)" in out
-    failed, out = await run_exercise(2, monkeypatch, marketing_agent, capsys)
+    failed, out = await run_exercise(2, monkeypatch, stub, capsys)
     assert failed == 2 and "still raises NotImplementedError" in out
 
 
