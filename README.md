@@ -103,8 +103,8 @@ When you save a Python file, the app reloads by itself. You never need to restar
 | The chat stops answering after you save a file | You have a Python error. Run `make logs`, fix the error, save again. |
 | The data looks wrong | Run `make reset`. |
 
-To use a LiteLLM proxy instead of a Gemini key, set `LITELLM_GEMINI_API_KEY` and `OPENAI_BASE_URL`
-in `.env`. The comments in `.env.example` explain both options.
+To use a LiteLLM proxy instead of a Gemini key (for example the key your facilitators give you),
+set `LLM_API_KEY` and `LLM_BASE_URL` in `.env`. The comments in `.env.example` explain both options.
 
 ---
 

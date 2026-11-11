@@ -152,3 +152,18 @@ async def test_orchestrator_instruction_has_live_catalogue(fake_services):
     assert "`channel_summary`: Spend per ad channel for a date range." in cat
     await fake_services.repo.create(ToolSpec.model_validate(KPI_FACTUAL))
     assert "`kpi_definitions`: KPI definitions (curated answer)" in await build_catalogue(specialists)
+
+
+def test_attach_keeps_the_agents_own_callbacks():
+    from google.adk.agents import LlmAgent
+
+    from devfest_agents import tracing
+
+    def mine(tool, args, tool_context):
+        return None
+
+    agent = LlmAgent(name="a", model="gemini/x", before_tool_callback=mine)
+    tracing.attach(agent)
+    tracing.attach(agent)  # building twice must not stack our callbacks either
+    assert agent.before_tool_callback == [tracing.before_tool, mine]
+    assert agent.after_agent_callback[0] is tracing.after_agent

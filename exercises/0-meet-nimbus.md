@@ -40,7 +40,8 @@ make check-0
 
 This checks that your LLM key is set and the marketing data is loaded.
 
-Curious where you stand? Run `make eval`. Expect a low score for now. That's the point.
+Curious where you stand? Run `make eval`. It takes about 3 minutes, and the score will be low.
+That's the point: it's your starting line.
 
 ## Next
 

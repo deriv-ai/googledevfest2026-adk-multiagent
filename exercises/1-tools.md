@@ -107,6 +107,9 @@ make check-1
 It finds your tools, checks the docstrings and type hints, asks ADK to turn each one into a tool,
 and runs each against the real data.
 
+Nothing changes in the app yet. Your tools have no agent to use them until exercise 2, and nobody
+calls that agent until exercise 3. The check is how you know you're on track.
+
 ## Read more
 
 - [Function tools](https://google.github.io/adk-docs/tools/function-tools/) in the ADK docs

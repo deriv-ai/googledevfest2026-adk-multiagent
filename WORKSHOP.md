@@ -16,6 +16,18 @@ src/devfest_agents/agents/marketing_agent.py
 Exercises 3 and 4 add a few lines to two more files. They tell you which ones when you get there.
 You never need to touch anything else, although you're free to.
 
+**How your changes show up.** You never restart anything:
+
+1. Save a file. The app notices and restarts itself in about 2 seconds.
+2. Ask a question in the app's **Chat** page. The **Agent Route** panel shows which agents and
+   tools answered, live. Refresh the **Overview** page to see your agent join the diagram.
+3. Run `make check-1` (or 0, 2, 3, 4) to check one exercise, or `make eval` to score everything.
+
+Until your agent is plugged in (exercise 3), the app can't show it yet. That's what the checks
+are for.
+
+If the chat stops answering after a save, you probably have a Python error. Run `make logs`.
+
 ## The story so far
 
 Nimbus Markets is an online broker. Clients trade currencies, crypto, gold and stock indices
@@ -101,13 +113,22 @@ cd devfest_adk_multiagent
 cp .env.example .env
 ```
 
-Put your key in `.env` (after `GEMINI_API_KEY=`), then start everything:
+Put your key in `.env`:
+
+- a Gemini key from AI Studio goes after `GEMINI_API_KEY=`;
+- if your facilitators gave you a key and a URL instead, add `LLM_API_KEY=<key>` and
+  `LLM_BASE_URL=<url>`.
+
+Then start everything:
 
 ```bash
 make up
 ```
 
 The first start takes a few minutes. When it's done, open http://localhost:8080.
+
+If `make up` says port 5432 is already in use, another database is running on your laptop. In
+`.env`, change `POSTGRES_PORT=5432` to `POSTGRES_PORT=5433` and run `make up` again.
 
 ## The exercises
 
@@ -118,12 +139,12 @@ The first start takes a few minutes. When it's done, open http://localhost:8080.
 | 2 | [Hire the marketing agent](exercises/2-agent.md) | An agent that uses them | 7 min |
 | 3 | [Join the team](exercises/3-orchestrator.md) | The orchestrator sends marketing questions to your agent | 8 min |
 | 4 | [Teamwork](exercises/4-teamwork.md) | Questions that need two or three agents get the right ones | 8 min |
-| 5 | [Prove it](exercises/5-evals.md) | A score, and the competition | the rest |
+| 5 | [Prove it](exercises/5-evals.md) | A score, and then the competition, where you can change anything | the rest |
 
 Every exercise ends with a check you can run, like `make check-1`. It tells you what works and
 what doesn't yet.
 
 You can also score your agents at any point with `make eval`, even before you've written a line.
-The score starts low. Watching it climb is half the fun.
+It takes about 3 minutes. The score starts low. Watching it climb is half the fun.
 
 Start with **[exercise 0](exercises/0-meet-nimbus.md)**.

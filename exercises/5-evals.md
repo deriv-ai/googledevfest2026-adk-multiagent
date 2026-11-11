@@ -83,11 +83,28 @@ them. What should the agent say then?
 </details>
 
 <details>
+<summary>Idea: guard the front door</summary>
+
+Some questions try to get the assistant to leak its instructions, play a role, or do something it
+shouldn't. The first agent to read every question is the main agent, and its prompt is
+`prompts/main_agent.md`. What should it refuse, whatever the framing?
+
+</details>
+
+<details>
+<summary>Idea: data can lie too</summary>
+
+Your tools return text that someone else wrote, like campaign names. To a model, text in a tool
+result looks a lot like an instruction. Tell your agent to treat what tools return as data.
+
+</details>
+
+<details>
 <summary>Idea: teach finance new skills</summary>
 
 The finance agent's tools live in the database, and you can add more from the **Tools** page
-without writing Python. Its starter tools only report marketing costs by category, so none of
-them returns account 5200, "Performance marketing", on its own.
+without writing Python. Its starter tools only report costs by category, so none of them returns
+a single ledger account, such as 5210 "Brand and events" or 5200 "Performance marketing".
 [docs/EXTRA_UI_TOOLS.md](../docs/EXTRA_UI_TOOLS.md) shows how.
 
 </details>
@@ -99,8 +116,22 @@ them returns account 5200, "Performance marketing", on its own.
 - Your marketing tools only read the marketing data. When a question needs finance or trading
   numbers, the orchestrator has to ask those agents.
 
+## Go further
+
+The score isn't everything. If you'd rather explore, here are some things ADK can do that this
+workshop hasn't touched:
+
+- **Callbacks.** ADK can run your code before or after every tool call. Write a
+  `before_tool_callback` that blocks any call with a date range longer than a year.
+- **Another specialist.** Add an agent of your own to `SPECIALISTS`, such as a "board report"
+  agent that has no data and only writes Vernon's Friday summary from what the others found.
+  The eval scores routing strictly, so an agent that joins every question costs you points.
+- **ADK's own dev UI.** Open http://localhost:8000 and pick `nimbus`. It shows the raw events ADK
+  produces for the same agents.
+
 ## Read more
 
 - [Why evaluate agents](https://google.github.io/adk-docs/evaluate/) in the ADK docs
+- [Callbacks](https://google.github.io/adk-docs/callbacks/) in the ADK docs
 
 Good luck. Vernon's review is on Friday.

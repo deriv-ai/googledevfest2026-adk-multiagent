@@ -82,6 +82,9 @@ def build(services: Any, model: Any) -> LlmAgent:
 make check-2
 ```
 
+It builds your agent the way the app will, and checks its name, description, instruction and
+tools.
+
 ## Read more
 
 - [LLM agents](https://google.github.io/adk-docs/agents/llm-agents/) in the ADK docs

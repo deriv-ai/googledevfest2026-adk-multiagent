@@ -253,11 +253,20 @@ class DelegationGuard:
 
 
 def attach(agent, *, guard: DelegationGuard | None = None) -> None:
-    """Add tracing (and optionally the delegation guard) to an LlmAgent."""
-    agent.before_agent_callback = [before_agent]
-    agent.after_agent_callback = [after_agent]
+    """Add tracing (and optionally the delegation guard) to an LlmAgent.
+
+    Callbacks the agent already has are kept and run after ours.
+    """
+    agent.before_agent_callback = _first(agent.before_agent_callback, before_agent)
+    agent.after_agent_callback = _first(agent.after_agent_callback, after_agent)
     # Order matters: trace first so a blocked call still shows as a tool_call;
     # ADK still runs after_tool callbacks on the guard's dict, closing it.
-    agent.before_tool_callback = [before_tool] + ([guard] if guard else [])
-    agent.after_tool_callback = [after_tool]
-    agent.on_tool_error_callback = [on_tool_error]
+    agent.before_tool_callback = _first(agent.before_tool_callback, before_tool, *([guard] if guard else []))
+    agent.after_tool_callback = _first(agent.after_tool_callback, after_tool)
+    agent.on_tool_error_callback = _first(agent.on_tool_error_callback, on_tool_error)
+
+
+def _first(existing, *ours) -> list:
+    """Our callbacks, then the agent's own (ADK allows one callable, a list, or None)."""
+    existing = [] if existing is None else existing if isinstance(existing, list) else [existing]
+    return [*ours, *(callback for callback in existing if callback not in ours)]
