@@ -167,7 +167,7 @@ function Examples({ onPick, compact }: { onPick: (p: string) => void; compact?: 
     );
   if (isError || !data?.length) return null;
   return (
-    <div className={cn(compact ? "flex gap-2 overflow-x-auto pr-6 pb-1 [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)]" : "grid grid-cols-1 gap-2.5 sm:grid-cols-2")}>
+    <div className={cn(compact ? "flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" : "grid grid-cols-1 gap-2.5 sm:grid-cols-2")}>
       {data.map((ex) => (
         <button
           key={ex.prompt}
@@ -263,7 +263,7 @@ function TranscriptView({
         {messages.map((m) =>
           m.role === "user" ? (
             <li key={m.id} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-subtle px-4 py-2.5 text-[15px] whitespace-pre-wrap text-foreground">{m.text}</div>
+              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[15px] whitespace-pre-wrap text-primary-foreground">{m.text}</div>
             </li>
           ) : (
             <li key={m.id}>

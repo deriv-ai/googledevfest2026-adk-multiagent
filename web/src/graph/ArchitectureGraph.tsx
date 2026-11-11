@@ -75,7 +75,7 @@ const ArchNode = memo(function ArchNode({ data }: NodeProps<ANode>) {
 
 const LaneNode = memo(function LaneNode({ data }: NodeProps<LNode>) {
   return (
-    <div className="rounded-2xl border border-border bg-muted/30" style={{ width: data.width, height: data.height }}>
+    <div className="rounded-2xl border border-dashed border-input/60 bg-muted/25" style={{ width: data.width, height: data.height }}>
       <span className="absolute top-2.5 left-4 text-xs font-medium text-muted-foreground">{data.label}</span>
     </div>
   );
