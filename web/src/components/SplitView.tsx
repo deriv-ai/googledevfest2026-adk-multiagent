@@ -27,9 +27,14 @@ function load(key: string): Pane {
  * Two panes side by side on large screens, stacked below that. The right pane can be resized by
  * dragging the divider (or arrow keys on it) and collapsed into a slim strip; both are remembered.
  */
+export interface RightPane {
+  open: boolean;
+  toggle: () => void;
+}
+
 export function SplitView({ storageKey, left, right, rightLabel }: {
   storageKey: string;
-  left: ReactNode;
+  left: (pane: RightPane) => ReactNode;
   right: (collapse: () => void) => ReactNode;
   rightLabel: string;
 }) {
@@ -64,7 +69,9 @@ export function SplitView({ storageKey, left, right, rightLabel }: {
 
   return (
     <div ref={containerRef} className={cn("flex h-full flex-col overflow-y-auto lg:flex-row lg:overflow-hidden", dragging && "select-none")}>
-      <div className="flex min-h-[70dvh] min-w-0 flex-1 flex-col lg:min-h-0">{left}</div>
+      <div className="flex min-h-[70dvh] min-w-0 flex-1 flex-col lg:min-h-0">
+        {left({ open: !pane.collapsed, toggle: () => setCollapsed(!pane.collapsed) })}
+      </div>
 
       {pane.collapsed ? (
         <button

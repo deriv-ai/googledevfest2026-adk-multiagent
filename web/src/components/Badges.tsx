@@ -1,13 +1,13 @@
-import { Bot, Database, FileText, Megaphone, Route, Sparkles, SquareFunction, type AppIcon } from "@/components/icons";
+import { Bank, Bot, ChartLineUp, Database, FileText, Megaphone, Orchestrate, Sparkles, SquareFunction, type AppIcon } from "@/components/icons";
 import type { ToolKind } from "@/api/types";
 import { agentMeta, toneColor, type AgentTone } from "@/lib/agents";
 import { cn } from "@/lib/utils";
 
 export const TONE_ICON: Record<AgentTone, AppIcon> = {
   main: Sparkles,
-  orchestrator: Route,
-  finance: Bot,
-  trading: Bot,
+  orchestrator: Orchestrate,
+  finance: Bank,
+  trading: ChartLineUp,
   marketing: Megaphone,
   other: Bot,
 };

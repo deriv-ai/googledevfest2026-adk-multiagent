@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, MessageSquarePlus, Square, Waypoints } from "@/components/icons";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowUp, MessageSquarePlus, Square, Waypoints, Workflow } from "@/components/icons";
 import { endpoints, streamChat } from "@/api/client";
 import { useChatExamples, useGraph } from "@/api/hooks";
 import type { ChatEvent } from "@/api/types";
 import { LlmKeyCallout } from "@/components/LlmKeyCallout";
 import { Markdown } from "@/components/Markdown";
-import { SplitView } from "@/components/SplitView";
+import { SplitView, type RightPane } from "@/components/SplitView";
 import { Button, PRESS, Skeleton } from "@/components/ui";
 import { agentMeta, DEFAULT_GRAPH, toneColor } from "@/lib/agents";
 import { formatMs } from "@/lib/format";
@@ -70,6 +71,8 @@ export default function ChatPage() {
   );
 
   const stop = () => abortRef.current?.abort();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const newChat = async () => {
     abortRef.current?.abort();
@@ -83,6 +86,14 @@ export default function ChatPage() {
       /* the old session simply expires server-side */
     }
   };
+
+  // The sidebar's New chat button lands here with a fresh `newChat` marker in the route state.
+  const newChatMarker = (location.state as { newChat?: number } | null)?.newChat;
+  useEffect(() => {
+    if (!newChatMarker) return;
+    void newChat();
+    navigate(location.pathname, { replace: true, state: null });
+  }, [newChatMarker]);
 
   // ---- route shown on the right -------------------------------------------------------------
   const selected = transcript.messages.find((m) => m.id === selectedId && m.role === "assistant") ?? null;
@@ -118,22 +129,43 @@ export default function ChatPage() {
     <SplitView
       storageKey="nimbus.routePane"
       rightLabel="Agent route"
-      left={
+      left={(route) => (
         <section className="flex min-h-0 flex-1 flex-col" aria-label="Conversation">
-        <ChatHeader onNew={newChat} disabled={!transcript.messages.length && !streamingId} />
-        <TranscriptView
-          messages={transcript.messages}
-          selectedId={selectedId}
-          streamingId={streamingId}
-          onSelect={(id) => {
-            setSelectedId(id);
-            setReplay(null);
-          }}
-          onExample={send}
-        />
-        <Composer onSend={send} onStop={stop} streaming={!!streamingId} showExamples={transcript.messages.length > 0} onExample={send} />
+          <ChatHeader
+            title={transcript.messages.find((m) => m.role === "user")?.text ?? "New chat"}
+            onNew={newChat}
+            canStartNew={transcript.messages.length > 0 || !!streamingId}
+            route={route}
+          />
+          {transcript.messages.length ? (
+            <>
+              <TranscriptView
+                messages={transcript.messages}
+                selectedId={selectedId}
+                streamingId={streamingId}
+                onSelect={(id) => {
+                  setSelectedId(id);
+                  setReplay(null);
+                }}
+              />
+              <div className="px-5 pt-2 pb-5">
+                <Composer onSend={send} onStop={stop} streaming={!!streamingId} />
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-5 pb-[12vh]">
+              <LlmKeyCallout className="w-full max-w-3xl" />
+              <h2 className="text-center text-[28px] font-semibold tracking-tight">What would you like to know?</h2>
+              <div className="w-full">
+                <Composer onSend={send} onStop={stop} streaming={!!streamingId} />
+              </div>
+              <div className="w-full max-w-3xl">
+                <Examples onPick={send} />
+              </div>
+            </div>
+          )}
         </section>
-      }
+      )}
       right={(collapse) => (
         <RoutePanel
           graph={graph}
@@ -152,30 +184,34 @@ export default function ChatPage() {
   );
 }
 
-function ChatHeader({ onNew, disabled }: { onNew: () => void; disabled: boolean }) {
+function ChatHeader({ title, onNew, canStartNew, route }: { title: string; onNew: () => void; canStartNew: boolean; route: RightPane }) {
   return (
-    <div className="flex min-h-16 items-center justify-between gap-3 border-b border-border px-5 py-2.5">
-      <h1 className="text-base font-semibold tracking-tight">Ask Nimbus</h1>
-      <Button size="sm" variant="outline" onClick={onNew} disabled={disabled}>
-        <MessageSquarePlus className="size-4" aria-hidden /> New chat
+    <header className="flex h-14 shrink-0 items-center gap-2 px-4">
+      <h1 className="min-w-0 flex-1 truncate text-[15px] font-medium">{title}</h1>
+      {/* The sidebar has New chat on larger screens. */}
+      <Button size="icon" variant="ghost" onClick={onNew} disabled={!canStartNew} className="md:hidden" aria-label="New chat" title="New chat">
+        <MessageSquarePlus className="size-[18px]" aria-hidden />
       </Button>
-    </div>
+      <Button size="sm" variant="ghost" onClick={route.toggle} aria-pressed={route.open} className={cn("hidden lg:inline-flex", route.open && "bg-muted")}>
+        <Workflow className="size-4" aria-hidden /> Agent route
+      </Button>
+    </header>
   );
 }
 
-function Examples({ onPick, compact }: { onPick: (p: string) => void; compact?: boolean }) {
+function Examples({ onPick }: { onPick: (p: string) => void }) {
   const { data, isLoading, isError } = useChatExamples();
   if (isLoading)
     return (
-      <div className={cn(compact ? "flex gap-2" : "grid grid-cols-1 gap-2.5 sm:grid-cols-2")}>
+      <div className="flex flex-wrap justify-center gap-2">
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className={compact ? "h-8 w-40 rounded-full" : "h-[72px] w-full rounded-xl"} />
+          <Skeleton key={i} className="h-9 w-40 rounded-full" />
         ))}
       </div>
     );
   if (isError || !data?.length) return null;
   return (
-    <div className={cn(compact ? "flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" : "grid grid-cols-1 gap-2.5 sm:grid-cols-2")}>
+    <div className="flex flex-wrap justify-center gap-2">
       {data.map((ex) => (
         <button
           key={ex.prompt}
@@ -183,14 +219,11 @@ function Examples({ onPick, compact }: { onPick: (p: string) => void; compact?: 
           onClick={() => onPick(ex.prompt)}
           title={ex.prompt}
           className={cn(
-            "group shrink-0 text-left transition-[border-color,background-color,color,scale] duration-160 ease-out",
-            compact
-              ? cn("rounded-full bg-muted px-3 py-1.5 focus-visible:-outline-offset-2 text-[13px] text-muted-foreground hover:bg-subtle hover:text-foreground", PRESS)
-              : "w-full rounded-xl border border-border bg-card px-4 py-3 shadow-xs hover:border-input hover:bg-muted/40 active:scale-[0.98]",
+            "rounded-full border border-border px-3.5 py-2 text-[13px] text-muted-foreground transition-[background-color,color,scale] duration-160 ease-out hover:bg-muted hover:text-foreground",
+            PRESS,
           )}
         >
-          <span className={cn("font-medium", compact ? "" : "block text-xs text-muted-foreground")}>{ex.label}</span>
-          {compact ? null : <span className="mt-1 block text-sm leading-snug">{ex.prompt}</span>}
+          {ex.label}
         </button>
       ))}
     </div>
@@ -230,39 +263,17 @@ function TranscriptView({
   selectedId,
   streamingId,
   onSelect,
-  onExample,
 }: {
   messages: ChatMessage[];
   selectedId: string | null;
   streamingId: string | null;
   onSelect: (id: string) => void;
-  onExample: (p: string) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const last = messages[messages.length - 1];
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages.length, last?.text, last?.status]);
-
-  if (!messages.length) {
-    return (
-      <div className="flex flex-1 overflow-y-auto px-6 py-10">
-        <div className="m-auto flex w-full max-w-3xl flex-col items-center gap-6">
-        <LlmKeyCallout className="w-full max-w-2xl" />
-        <div className="text-center">
-          <Waypoints className="mx-auto mb-3 size-8 text-agent-main" aria-hidden />
-          <h2 className="text-lg font-semibold tracking-tight">Ask about Nimbus Markets</h2>
-          <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
-            Finance, trading or, once you've built its agent, marketing. Watch the route panel to see which agents and tools answer, and which run in parallel.
-          </p>
-        </div>
-        <div className="w-full">
-          <Examples onPick={onExample} />
-        </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 overflow-y-auto px-5 py-5">
@@ -318,7 +329,7 @@ function TranscriptView({
   );
 }
 
-function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSend: (t: string) => void; onStop: () => void; streaming: boolean; showExamples: boolean; onExample: (p: string) => void }) {
+function Composer({ onSend, onStop, streaming }: { onSend: (t: string) => void; onStop: () => void; streaming: boolean }) {
   const [text, setText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -333,14 +344,9 @@ function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSe
     setText("");
   };
   return (
-    <div className="border-t border-border px-5 pt-3 pb-4">
-      {showExamples && !streaming ? (
-        <div className="mx-auto mb-2.5 max-w-3xl">
-          <Examples onPick={onExample} compact />
-        </div>
-      ) : null}
+    <div>
       <form
-        className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-input bg-card p-2 pl-4 shadow-xs transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15"
+        className="mx-auto flex max-w-3xl items-end gap-2 rounded-[28px] border border-input bg-card p-2.5 pl-5 shadow-md transition-[border-color,box-shadow] duration-150 ease-out focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/15"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -361,15 +367,15 @@ function Composer({ onSend, onStop, streaming, showExamples, onExample }: { onSe
               submit();
             }
           }}
-          placeholder="Ask about revenue, trades or campaigns…"
+          placeholder="Ask Nimbus anything…"
           className="max-h-[180px] min-h-[40px] flex-1 resize-none bg-transparent py-2 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground/80"
         />
         {streaming ? (
-          <Button type="button" variant="outline" size="icon" onClick={onStop} aria-label="Stop" title="Stop">
+          <Button type="button" variant="outline" size="icon" onClick={onStop} aria-label="Stop" title="Stop" className="rounded-full">
             <Square className="size-4" />
           </Button>
         ) : (
-          <Button type="submit" variant="primary" size="icon" disabled={!text.trim()} aria-label="Send" title="Send (Enter)">
+          <Button type="submit" variant="primary" size="icon" disabled={!text.trim()} aria-label="Send" title="Send (Enter)" className="rounded-full">
             <ArrowUp className="size-[18px]" />
           </Button>
         )}

@@ -3,15 +3,18 @@
  * Swapping a glyph is a one-line change here.
  */
 export {
+  Bank,
   ArrowClockwise as RefreshCw,
   ArrowElbowDownRight as CornerDownRight,
   ArrowLeft,
   ArrowLineRight as PanelRightClose,
   ArrowRight,
   ArrowSquareOut as ExternalLink,
+  ArrowsSplit as Orchestrate,
   ArrowUp,
   CaretDown as ChevronDown,
   CaretRight as ChevronRight,
+  ChartLineUp,
   ChatsCircle as MessagesSquare,
   Check,
   CheckCircle as CheckCircle2,

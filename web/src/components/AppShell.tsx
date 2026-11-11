@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Database, LayoutGrid, MessagesSquare, PanelLeftClose, PanelLeftOpen, Wrench } from "@/components/icons";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Database, LayoutGrid, MessageSquarePlus, MessagesSquare, PanelLeftClose, PanelLeftOpen, Wrench } from "@/components/icons";
 import { ThemeToggle } from "./ThemeToggle";
 import { PRESS } from "./ui";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ const NAV = [
   { to: "/schema", label: "Data schema", Icon: Database, end: false },
 ];
 
-const COLLAPSE_KEY = "nimbus-nav-collapsed";
+const COLLAPSE_KEY = "nimbus.sidebarCollapsed";
 
 export function BrandMark({ className }: { className?: string }) {
   return (
@@ -29,8 +29,7 @@ export function BrandMark({ className }: { className?: string }) {
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      const v = localStorage.getItem(COLLAPSE_KEY);
-      return v === null ? window.innerWidth < 1360 : v === "1";
+      return localStorage.getItem(COLLAPSE_KEY) === "1";
     } catch {
       return false;
     }
@@ -43,56 +42,51 @@ export function AppShell() {
     }
   }, [collapsed]);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const fullBleed = pathname.startsWith("/chat");
+  const startNewChat = () => navigate("/chat", { state: { newChat: Date.now() } });
 
   return (
     <div className="flex h-dvh flex-col md:flex-row">
       {/* Sidebar (md+) */}
-      <aside className={cn("hidden shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-200 ease-out motion-reduce:transition-none md:flex", collapsed ? "w-[68px]" : "w-60")}>
-        <div className={cn("flex h-16 items-center gap-2.5 px-4", collapsed && "justify-center px-0")}>
-          <BrandMark className="size-7 shrink-0" />
-          {!collapsed && (
-            <div className="min-w-0 leading-tight">
-              <div className="text-sm font-semibold tracking-tight">Nimbus Agents</div>
-              <div className="text-xs text-muted-foreground">ADK multi-agent demo</div>
+      <aside className={cn("hidden shrink-0 flex-col bg-sidebar transition-[width] duration-200 ease-out motion-reduce:transition-none md:flex", collapsed ? "w-[60px]" : "w-[260px]")}>
+        <div className={cn("flex h-14 items-center gap-2 px-3", collapsed ? "justify-center" : "justify-between")}>
+          {collapsed ? null : (
+            <div className="flex min-w-0 items-center gap-2.5 px-1">
+              <BrandMark className="size-7 shrink-0" />
+              <span className="truncate text-[15px] font-semibold tracking-tight">Nimbus Agents</span>
             </div>
           )}
+          <button
+            type="button"
+            onClick={() => setCollapsed((c) => !c)}
+            className={cn("inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,scale] duration-160 ease-out hover:bg-muted hover:text-foreground", PRESS)}
+            aria-label={collapsed ? "Open sidebar" : "Close sidebar"}
+            title={collapsed ? "Open sidebar" : "Close sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />}
+          </button>
         </div>
-        <nav className="mt-1 flex flex-1 flex-col gap-0.5 px-3" aria-label="Main">
+        <nav className="flex flex-1 flex-col gap-0.5 px-2 pt-1" aria-label="Main">
+          <button type="button" onClick={startNewChat} title={collapsed ? "New chat" : undefined} className={cn(navItem(false), collapsed && "justify-center px-0")}>
+            <MessageSquarePlus className="size-[18px] shrink-0" aria-hidden />
+            {collapsed ? <span className="sr-only">New chat</span> : "New chat"}
+          </button>
+          <div className="my-2 h-px bg-border" aria-hidden />
           {NAV.map(({ to, label, Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               title={collapsed ? label : undefined}
-              className={({ isActive }) =>
-                cn(
-                  "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium transition-[background-color,color,box-shadow,scale] duration-160 ease-out",
-                  PRESS,
-                  collapsed && "justify-center px-0",
-                  isActive ? "bg-card text-foreground shadow-xs dark:bg-muted" : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-                )
-              }
+              className={({ isActive }) => cn(navItem(isActive), collapsed && "justify-center px-0")}
             >
-              <Icon className="size-4 shrink-0" aria-hidden />
+              <Icon className="size-[18px] shrink-0" aria-hidden />
               {collapsed ? <span className="sr-only">{label}</span> : label}
             </NavLink>
           ))}
         </nav>
-        <div className={cn("flex flex-col gap-1.5 p-3", collapsed && "items-center")}>
-          <div className={cn("flex items-center justify-between gap-2", collapsed && "flex-col")}>
-            {collapsed ? <ThemeToggle compact /> : <ThemeToggle />}
-            <button
-              type="button"
-              onClick={() => setCollapsed((c) => !c)}
-              className={cn("inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-[background-color,color,scale] duration-160 ease-out hover:bg-muted hover:text-foreground", PRESS)}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-            </button>
-          </div>
-        </div>
+        <div className={cn("p-3", collapsed && "flex justify-center")}>{collapsed ? <ThemeToggle compact /> : <ThemeToggle />}</div>
       </aside>
 
       {/* Top bar (small screens) */}
@@ -131,5 +125,13 @@ export function AppShell() {
         </main>
       </div>
     </div>
+  );
+}
+
+function navItem(active: boolean) {
+  return cn(
+    "flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-left text-[14px] transition-[background-color,color,scale] duration-160 ease-out",
+    PRESS,
+    active ? "bg-muted font-medium text-foreground" : "text-foreground/80 hover:bg-muted/70 hover:text-foreground",
   );
 }
