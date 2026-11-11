@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight, CornerDownRight, Loader2, AlertCircle, Check } from "lucide-react";
+import { ArrowRight, ChevronRight, CornerDownRight, Loader2, AlertCircle, Check } from "@/components/icons";
 import { KIND_ICON } from "@/components/Badges";
 import { JsonView } from "@/components/JsonView";
 import { agentMeta, toneColor } from "@/lib/agents";

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { EditorView } from "@codemirror/view";
-import { AlertTriangle, ArrowLeft, CheckCircle2, CircleDashed, Database, FileText, FlaskConical, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, CircleDashed, Database, FileText, FlaskConical, Save } from "@/components/icons";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { useSaveTool, useSchema, useTestTool, useTool } from "@/api/hooks";

@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { Background, BackgroundVariant, Controls, Handle, MarkerType, Position, ReactFlow, ReactFlowProvider, type Edge, type Node, type NodeProps } from "@xyflow/react";
-import { KeyRound, Link2 } from "lucide-react";
+import { KeyRound, Link2 } from "@/components/icons";
 import type { SchemaDetail, SchemaTable } from "@/api/types";
 import { formatCount } from "@/lib/format";
 import { useTheme } from "@/lib/theme";

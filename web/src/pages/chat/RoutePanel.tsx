@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Loader2, Play, Square, Workflow } from "lucide-react";
+import { AlertTriangle, Loader2, Play, Square, Workflow } from "@/components/icons";
 import type { Graph } from "@/api/types";
 import { RouteGraph } from "@/graph/RouteGraph";
 import { Button } from "@/components/ui";

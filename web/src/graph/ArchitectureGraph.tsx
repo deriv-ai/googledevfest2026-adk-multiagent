@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { BaseEdge, Controls, Handle, MarkerType, Position, ReactFlow, ReactFlowProvider, type Edge, type EdgeProps, type Node, type NodeProps } from "@xyflow/react";
-import { Bot, Code2, Database, LayoutPanelLeft, Megaphone, Route, Sparkles, Table2, Users, Wand2, type LucideIcon } from "lucide-react";
+import { Bot, Code2, Database, LayoutPanelLeft, Megaphone, Route, Sparkles, Table2, Users, Wand2, type AppIcon } from "@/components/icons";
 import type { Graph } from "@/api/types";
 import { toneColor, type AgentTone } from "@/lib/agents";
 import { useTheme } from "@/lib/theme";
@@ -18,7 +18,7 @@ export interface ArchNodeInfo {
 
 interface ArchData extends Record<string, unknown> {
   info: ArchNodeInfo;
-  icon: LucideIcon;
+  icon: AppIcon;
   tone: AgentTone | null;
   selected: boolean;
   pending: boolean;
@@ -85,7 +85,7 @@ const LaneNode = memo(function LaneNode({ data }: NodeProps<LNode>) {
 
 const nodeTypes = { arch: ArchNode, lane: LaneNode };
 
-export const ARCH_NODES: (ArchNodeInfo & { icon: LucideIcon; tone: AgentTone | null; x: number; y: number; workshop?: boolean })[] = [
+export const ARCH_NODES: (ArchNodeInfo & { icon: AppIcon; tone: AgentTone | null; x: number; y: number; workshop?: boolean })[] = [
   { id: "dev", title: "Developer", subtitle: "you, at the workshop", icon: Code2, tone: null, x: 0, y: 40, body: "Writes a tool as data: a parameterised SQL query or a curated factual answer. No Python, no redeploy." },
   { id: "ui", title: "Tools registration UI", subtitle: "this app · /tools", icon: LayoutPanelLeft, tone: null, x: 270, y: 40, body: "Form with a live params editor, schema browser and test run. Shows the exact function declaration the LLM will see before you save.", link: { to: "/tools/new", label: "Register a tool" } },
   { id: "registry", title: "tools.tools", subtitle: "registry table (Postgres)", icon: Table2, tone: null, x: 540, y: 40, body: "One row per tool: name, agent, type, description, SQL or answer, typed params. updated_at drives hot reload.", link: { to: "/schema/tools", label: "See the registry schema" } },

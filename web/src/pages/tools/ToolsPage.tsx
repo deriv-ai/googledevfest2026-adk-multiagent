@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertCircle, Plus, Search, Wrench } from "lucide-react";
+import { AlertCircle, Plus, Search, Wrench } from "@/components/icons";
 import { toast } from "sonner";
 import { useSetToolEnabled, useTools } from "@/api/hooks";
 import type { Tool, ToolAgent } from "@/api/types";

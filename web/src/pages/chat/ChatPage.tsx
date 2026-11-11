@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, MessageSquarePlus, Square, Waypoints } from "lucide-react";
+import { ArrowUp, MessageSquarePlus, Square, Waypoints } from "@/components/icons";
 import { toast } from "sonner";
 import { endpoints, streamChat } from "@/api/client";
 import { useChatExamples, useGraph } from "@/api/hooks";

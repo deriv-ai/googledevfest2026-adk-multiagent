@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Database, MessagesSquare, MousePointerClick, Plus } from "lucide-react";
+import { ArrowRight, Database, MessagesSquare, MousePointerClick, Plus } from "@/components/icons";
 import { useGraph } from "@/api/hooks";
 import { HealthChips, LlmKeyCallout } from "@/components/HealthChips";
 import { Panel } from "@/components/ui";

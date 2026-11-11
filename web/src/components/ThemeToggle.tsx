@@ -1,4 +1,4 @@
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "@/components/icons";
 import { useTheme, type ThemePref } from "@/lib/theme";
 import { PRESS } from "./ui";
 import { cn } from "@/lib/utils";

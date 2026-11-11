@@ -1,4 +1,4 @@
-import { KeyRound } from "lucide-react";
+import { KeyRound } from "@/components/icons";
 import { useHealth } from "@/api/hooks";
 import { cn } from "@/lib/utils";
 

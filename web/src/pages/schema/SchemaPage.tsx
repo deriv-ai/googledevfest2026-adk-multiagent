@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronDown, KeyRound, Link2, Rows3, Table2 } from "lucide-react";
+import { ChevronDown, KeyRound, Link2, Rows3, Table2 } from "@/components/icons";
 import { useSample, useSchema } from "@/api/hooks";
 import type { SchemaName, SchemaTable } from "@/api/types";
 import { CopyButton } from "@/components/CopyButton";

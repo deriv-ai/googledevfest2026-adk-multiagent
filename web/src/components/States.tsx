@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "@/components/icons";
 import { Button } from "./ui";
 import { cn } from "@/lib/utils";
 

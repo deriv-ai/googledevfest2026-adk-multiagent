@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Database, LayoutGrid, MessagesSquare, PanelLeftClose, PanelLeftOpen, Wrench } from "lucide-react";
+import { Database, LayoutGrid, MessagesSquare, PanelLeftClose, PanelLeftOpen, Wrench } from "@/components/icons";
 import { useHealth } from "@/api/hooks";
 import { ThemeToggle } from "./ThemeToggle";
 import { PRESS } from "./ui";

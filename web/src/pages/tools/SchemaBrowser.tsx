@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, ExternalLink, KeyRound, Link2, Table2 } from "lucide-react";
+import { ChevronRight, ExternalLink, KeyRound, Link2, Table2 } from "@/components/icons";
 import { useSchema } from "@/api/hooks";
 import type { SchemaName, SchemaTable } from "@/api/types";
 import { ErrorState } from "@/components/States";

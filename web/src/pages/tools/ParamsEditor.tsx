@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2 } from "@/components/icons";
 import { PARAM_TYPES, type ParamType, type ParamValue } from "@/api/types";
 import { coerceParamValue, type ParamRow } from "@/lib/placeholders";
 import { Button, Input, Select } from "@/components/ui";

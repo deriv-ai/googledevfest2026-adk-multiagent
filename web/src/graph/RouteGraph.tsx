@@ -12,7 +12,7 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react";
-import { AlertCircle, Check, Database, User } from "lucide-react";
+import { AlertCircle, Check, Database, User } from "@/components/icons";
 import type { Graph } from "@/api/types";
 import { KIND_ICON, KIND_LABEL, TONE_ICON } from "@/components/Badges";
 import { toneColor } from "@/lib/agents";

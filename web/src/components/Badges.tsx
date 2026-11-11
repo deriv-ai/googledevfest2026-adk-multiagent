@@ -1,9 +1,9 @@
-import { Bot, Database, FileText, Megaphone, Route, Sparkles, SquareFunction, type LucideIcon } from "lucide-react";
+import { Bot, Database, FileText, Megaphone, Route, Sparkles, SquareFunction, type AppIcon } from "@/components/icons";
 import type { ToolKind } from "@/api/types";
 import { agentMeta, toneColor, type AgentTone } from "@/lib/agents";
 import { cn } from "@/lib/utils";
 
-export const TONE_ICON: Record<AgentTone, LucideIcon> = {
+export const TONE_ICON: Record<AgentTone, AppIcon> = {
   main: Sparkles,
   orchestrator: Route,
   finance: Bot,
@@ -12,7 +12,7 @@ export const TONE_ICON: Record<AgentTone, LucideIcon> = {
   other: Bot,
 };
 
-export const KIND_ICON: Record<ToolKind, LucideIcon> = {
+export const KIND_ICON: Record<ToolKind, AppIcon> = {
   sql: Database,
   factual: FileText,
   function: SquareFunction,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "@/components/icons";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { useDeleteTool, useSetToolEnabled, useTool } from "@/api/hooks";
