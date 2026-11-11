@@ -26,7 +26,7 @@ ENV_MSG := add your LITELLM_GEMINI_API_KEY (or GEMINI_API_KEY) to .env, then re-
 .DEFAULT_GOAL := help
 .PHONY: help check-env up down logs ps reset build \
         podman-up podman-down podman-logs podman-ps podman-reset podman-build \
-        test eval data seed-tools dev update-pkg \
+        test eval eval-final check data seed-tools dev update-pkg \
         trivy-scan trivy-config trivy-image trivy-patch trivy-verify trivy-audit
 
 help: ## Show this help
@@ -47,7 +47,7 @@ check-env: ## Make sure .env exists and has an LLM key (creates it from .env.exa
 	@key_set() { grep -E "^[[:space:]]*(export[[:space:]]+)?$$1[[:space:]]*=" .env | tail -n 1 \
 		| sed -E 's/^[^=]*=[[:space:]]*//; s/^#.*$$//; s/[[:space:]]+#.*$$//; s/^"(.*)"[[:space:]]*$$/\1/; s/^'"'"'(.*)'"'"'[[:space:]]*$$/\1/; s/[[:space:]]*$$//' \
 		| grep -q .; }; \
-	if key_set LITELLM_GEMINI_API_KEY || key_set GEMINI_API_KEY; then \
+	if key_set LITELLM_GEMINI_API_KEY || key_set LLM_API_KEY || key_set GEMINI_API_KEY; then \
 		echo "check-env: LLM key configured."; \
 	else \
 		echo "$(ENV_MSG)"; \
@@ -101,9 +101,19 @@ test: ## Python tests + web typecheck
 	$(PYTEST)
 	cd web && npm run typecheck
 
-eval: ## Score your agents on evals/practice.yaml (one question: Q=<id>; podman: ENGINE=podman)
+eval: ## Score your agents on the practice questions (one question: Q=<id>)
 	$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json
 	@echo "Full report: evals/report.json"
+
+eval-final: ## Score your agents on the hidden competition questions (KEY=<passphrase>)
+	$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --key "$(KEY)" > evals/report.json
+	@echo "Full report: evals/report.json"
+
+check: ## Check a workshop exercise: make check-0, make check-1 ... make check-4
+	@echo "Run make check-N, where N is the exercise number (0 to 4)."
+
+check-%:
+	$(EXEC) nimbus-app python -m devfest_agents.check $*
 
 data: ## Regenerate db/seed/*.csv (dev only; then `make reset` / `make podman-reset` to load them)
 	$(PYTHON) scripts/generate_synthetic_data.py

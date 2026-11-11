@@ -8,7 +8,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # src/devfest_agents/config.py -> repo root is two parents above the package.
@@ -18,12 +18,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
 
-    # LLM: LITELLM_GEMINI_API_KEY takes precedence over GEMINI_API_KEY. When
-    # OPENAI_BASE_URL is set we talk to an OpenAI-compatible LiteLLM proxy
-    # ("proxy" mode); otherwise straight to Gemini ("direct" mode).
-    litellm_gemini_api_key: SecretStr | None = None
+    # LLM: LITELLM_GEMINI_API_KEY (or LLM_API_KEY) takes precedence over GEMINI_API_KEY.
+    # When OPENAI_BASE_URL (or LLM_BASE_URL) is set we talk to an OpenAI-compatible
+    # LiteLLM proxy ("proxy" mode); otherwise straight to Gemini ("direct" mode).
+    litellm_gemini_api_key: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("litellm_gemini_api_key", "llm_api_key"))
     gemini_api_key: SecretStr | None = None
-    openai_base_url: SecretStr | None = None
+    openai_base_url: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("openai_base_url", "llm_base_url"))
     agent_model: str | None = None
     router_model: str | None = None
     # Optional: "low" | "medium" | "high" passed to LiteLLM as reasoning_effort

@@ -1,11 +1,11 @@
 # Extra: teach finance and trading new skills from the UI
 
-> **The main workshop is [GUIDE.md](../GUIDE.md)**, where you build the marketing agent. This page is
-> an optional side exercise for when you finish early, or want better finance and trading tools for
-> the competition.
+> **The main workshop is [WORKSHOP.md](../WORKSHOP.md)**, where you build the marketing agent. This
+> page is an optional side exercise for when you finish early, or want better finance and trading
+> tools for the competition in [exercise 5](../exercises/5-evals.md).
 
-**Time:** about 45 minutes. **You need:** the stack running (`make up` or `make podman-up`, see the
-README) and a browser at http://localhost:8080.
+**Time:** about 45 minutes. **You need:** the stack running (`make up`, see
+[WORKSHOP.md](../WORKSHOP.md)) and a browser at http://localhost:8080.
 
 The finance and trading agents get their tools from a registry in Postgres, and the UI has an editor
 for it. The marketing agent is different: its tools are Python functions, so this page doesn't apply

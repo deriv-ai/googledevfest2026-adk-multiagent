@@ -1,14 +1,14 @@
 # Build a marketing agent with Google ADK
 
-Nimbus Markets is a made-up online broker. All of its data is fake.
-
-Nimbus has an AI assistant built with [Google ADK](https://google.github.io/adk-docs/). It answers
-questions about **finance** and **trading**. It cannot answer questions about **marketing**.
+Nimbus Markets is an online broker. It has an AI assistant built with
+[Google ADK](https://google.github.io/adk-docs/) that answers questions about **finance** and
+**trading**. It cannot answer questions about **marketing**, and Vernon, who runs marketing,
+needs answers by Friday.
 
 In this workshop you build the marketing agent and plug it into the assistant. Then you score your
-agent on a set of questions, and compete for the best score.
+agent on a set of hard questions, and compete for the best score.
 
-**The step-by-step workshop is in [GUIDE.md](GUIDE.md).** This page only gets the app running.
+**The workshop is in [WORKSHOP.md](WORKSHOP.md).** This page only gets the app running.
 
 ---
 
@@ -16,7 +16,7 @@ agent on a set of questions, and compete for the best score.
 
 You need:
 
-- Docker (with Compose), or Podman (with `podman-compose`)
+- Docker (with Compose)
 - `make` and `git`
 - a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
 
@@ -37,21 +37,17 @@ cp .env.example .env
 
 **3. Add your key.** Open `.env` and paste your key after `GEMINI_API_KEY=`.
 
-**4. Start the app.** Use the command for your tool:
+**4. Start the app.**
 
 ```bash
 make up
-```
-
-```bash
-make podman-up
 ```
 
 The first start takes a few minutes. It builds the app and loads the data.
 
 **5. Open http://localhost:8080.** You should see the Overview page.
 
-Now go to **[GUIDE.md](GUIDE.md)**.
+Now go to **[WORKSHOP.md](WORKSHOP.md)**.
 
 ---
 
@@ -88,11 +84,13 @@ When you save a Python file, the app reloads by itself. You never need to restar
 
 | Command | What it does |
 |---|---|
-| `make up` | Start everything (Podman: `make podman-up`) |
-| `make logs` | Show the logs. Use it when something breaks. (Podman: `make podman-logs`) |
-| `make eval` | Score your agents on the practice questions (Podman: `make eval ENGINE=podman`) |
-| `make reset` | Wipe the database and load the data again (Podman: `make podman-reset`) |
-| `make down` | Stop everything (Podman: `make podman-down`) |
+| `make up` | Start everything |
+| `make check-1` | Check exercise 1 (or 0, 2, 3, 4) |
+| `make eval` | Score your agents on the practice questions |
+| `make eval-final KEY=...` | Score your agents on the hidden competition questions |
+| `make logs` | Show the logs. Use it when something breaks. |
+| `make reset` | Wipe the database and load the data again |
+| `make down` | Stop everything |
 
 ---
 
@@ -112,11 +110,11 @@ in `.env`. The comments in `.env.example` explain both options.
 
 ## More docs
 
-- [GUIDE.md](GUIDE.md): the workshop, step by step. **Start here.**
+- [WORKSHOP.md](WORKSHOP.md): the workshop. **Start here.**
 - [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md): how the orchestrator picks agents.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): containers, data model, tools and safety.
 - [docs/CONTRACT.md](docs/CONTRACT.md): API, settings, database schema and eval format.
-- [docs/WORKSHOP.md](docs/WORKSHOP.md): extra exercise, add finance and trading tools from the UI.
+- [docs/EXTRA_UI_TOOLS.md](docs/EXTRA_UI_TOOLS.md): extra exercise, add finance and trading tools from the UI.
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): talk track for the presenters.
 
 ---
@@ -126,13 +124,14 @@ in `.env`. The comments in `.env.example` explain both options.
 **Repo layout**
 
 ```
-GUIDE.md        the workshop guide
+WORKSHOP.md     the workshop: story, architecture, exercise list
+exercises/      one file per exercise
 src/            the agents, tools, API and eval runner (Python)
 web/            the app's UI (React)
-db/             database setup and the fake data (CSV)
-evals/          practice questions for `make eval`
+db/             database setup and the synthetic data (CSV)
+evals/          practice questions, and the encrypted competition set
 seed/           the starter finance and trading tools
-scripts/        the fake-data generator
+scripts/        the synthetic-data generator
 tests/          the test suite
 docs/           detailed docs
 ```
@@ -142,13 +141,23 @@ docs/           detailed docs
 ```bash
 make test       # Python tests + UI type check
 make dev        # database in a container; prints how to run the API and UI locally
-make data       # regenerate the fake data, then run `make reset` to load it
+make data       # regenerate the synthetic data, then run `make reset` to load it
 make help       # list every command
 ```
 
 **Security scanning** needs [trivy](https://trivy.dev). `make trivy-scan` fails on fixable
 HIGH/CRITICAL issues. `make trivy-audit` patches, tests and scans in one go. Run `make help` for
 the rest.
+
+**The hidden competition set** is `evals/final.enc`. The readable `evals/final.yaml` is
+gitignored and stays with the facilitators. After editing it, encrypt it again:
+
+```bash
+uv run python -m devfest_agents.evals evals/final.yaml --encrypt --key "<passphrase>"
+```
+
+**All data is synthetic.** `scripts/generate_synthetic_data.py` generates every client, trade,
+ledger line and campaign.
 
 **Note:** `cryptography` is held below version 47 in `pyproject.toml`. Newer versions crash with
 "Illegal instruction" inside Podman on Apple Silicon Macs.

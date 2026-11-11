@@ -2,7 +2,7 @@
 
 The reference for how the pieces of this demo talk to each other: services and
 ports, environment variables, the database schema, the specialist interface, the tool
-spec format, Python tools, the HTTP API, the chat SSE events and the evals. Read it if
+spec format, Python tools, the HTTP API, the chat SSE events, the workshop checks and the evals. Read it if
 you want to build your own tools or agents, write another frontend, or swap a component out.
 
 All data is 100% synthetic (fictional company "Nimbus Markets").
@@ -16,7 +16,8 @@ All ports are published on `127.0.0.1` only (`BIND_ADDRESS` in `.env`); there is
 | `app` | 8080 | FastAPI: `/api/*` + built SPA from `STATIC_DIR`. uvicorn `--reload --reload-dir /app/src` with `WATCHFILES_FORCE_POLLING=true`. Mounts `./src` → `/app/src:ro` and `./evals` → `/app/evals:ro`. |
 | `adk-web` | 8000 | `adk web --host 0.0.0.0 --port 8000 --reload_agents /app/src/devfest_agents/adk_apps` (same image as app). Mounts `./src` → `/app/src:ro`. Discovered via `src/devfest_agents/adk_apps/nimbus/__init__.py` (`from . import agent`) + `agent.py` exporting `root_agent`. |
 
-Compose container names: `nimbus-db`, `nimbus-app`, `nimbus-adk-web` (`make seed-tools` and `make eval` exec into `nimbus-app`).
+Compose container names: `nimbus-db`, `nimbus-app`, `nimbus-adk-web` (`make seed-tools`, `make check-N`, `make eval` and
+`make eval-final` exec into `nimbus-app`).
 
 ## Environment variables (read by `config.py`, provided via `.env` + compose)
 | var | default | meaning |
@@ -48,7 +49,7 @@ finance+trading+marketing only, no access to `tools`). Every table and column ge
   check in (`revenue`,`expense`,`asset`,`liability`,`equity`), category text)
   - revenue categories include: `Trading commission`, `Spread revenue`, `Subscription fees`, `Interest income`
   - expense categories include: `Staff costs`, `Marketing`, `Technology`, `Office & admin`, `Payment processing`, `Professional fees`
-- `finance.fx_rates` (rate_date date, currency char(3), usd_rate numeric(18,8)) PK (rate_date, currency) — 1 unit of currency = usd_rate USD
+- `finance.fx_rates` (rate_date date, currency char(3), usd_rate numeric(18,8)) PK (rate_date, currency); 1 unit of currency = usd_rate USD
 - `finance.gl_entries` (entry_id bigint PK, entry_date date, entity_id → entities, account_code → accounts,
   amount_local numeric(18,2), currency char(3), amount_usd numeric(18,2), description text)
   - **sign convention: revenue positive, expense positive (amounts are magnitudes); account_type tells you which**
@@ -71,8 +72,8 @@ Reconciliation property: for every month and entity, `SUM(trades.commission_usd)
   - one channel for one entity for one quarter, named like `NM-UK Q3 2026 - search ads`; from June 2026 NM-SG runs
     `Nimbus Go launch - <channel>` (filter with `name LIKE 'Nimbus Go%'`)
 - `marketing.campaign_spend` (spend_id bigint PK, campaign_id → campaigns, spend_date date, spend_usd numeric(18,2) > 0,
-  impressions bigint, clicks bigint) — one row per ad invoice; bucket by `spend_date`
-- `marketing.signups` (client_id text PK → trading.clients, campaign_id → campaigns, signup_date date) — new clients
+  impressions bigint, clicks bigint): one row per ad invoice; bucket by `spend_date`
+- `marketing.signups` (client_id text PK → trading.clients, campaign_id → campaigns, signup_date date): new clients
   credited to a campaign; about half of all new clients. `signup_date` = `trading.clients.signup_date`
 
 Reconciliation property: every GL line on account `5200` (Performance marketing) is one `campaign_spend` row with
@@ -114,7 +115,8 @@ Each specialist module defines:
 | `build(services, model)` | → `LlmAgent` | |
 
 `agents/__init__.py`: `SPECIALISTS = [finance_agent, trading_agent]` at the start of the workshop; participants
-add `marketing_agent`. `build_root_agent` builds and traces every entry, and `graph_agents()` builds the
+add `marketing_agent`. `marketing_agent.py` starts as a stub: `DESCRIPTION = ""` and `build()` raises
+`NotImplementedError` until exercise 2. `build_root_agent` builds and traces every entry, and `graph_agents()` builds the
 `/api/graph` agents and datasources from it.
 
 ## Tool spec (YAML seed + API JSON share this shape)
@@ -149,7 +151,7 @@ tools:
 ```
 - Placeholders are `:name` (`::casts` are not placeholders). Declared params must match placeholders exactly.
 - SQL: single SELECT/WITH, may only reference the tool's own agent schema (`finance.` or `trading.`), fully schema-qualified table names.
-- Optional params with no default are passed as SQL NULL — write `(:entity_id IS NULL OR g.entity_id = :entity_id)`. Backend binds with explicit casts based on param type so NULL typing works.
+- Optional params with no default are passed as SQL NULL: write `(:entity_id IS NULL OR g.entity_id = :entity_id)`. Backend binds with explicit casts based on param type so NULL typing works.
 
 Starter tools (the 6 seeded on first start): `finance_monthly_pnl`, `finance_revenue_breakdown`,
 `finance_budget_vs_actual`, `trading_activity_summary`, `trading_top_instruments`, `trading_client_segment_performance`.
@@ -157,7 +159,20 @@ Starter tools (the 6 seeded on first start): `finance_monthly_pnl`, `finance_rev
 ## Python function tools (`src/devfest_agents/tools/sql_query.py`)
 Plain async functions passed in `LlmAgent(tools=[...])`. ADK wraps each in a `FunctionTool`: name, typed signature
 and docstring become the declaration the LLM sees (the first docstring line is also its title in the catalogue and graph).
-They query the DB with:
+
+The marketing data team's queries live in `src/devfest_agents/agents/marketing_queries.py`. Participants wrap them as
+tools in `marketing_agent.py` and don't write SQL. Dates are `YYYY-MM-DD` strings, both ends inclusive; entity ids
+are `NM-UK`, `NM-SG`, `NM-AE`, `NM-INTL`; each returns what `run_sql` returns.
+```python
+async def fetch_campaign_performance(start_date: str, end_date: str, entity_id: str | None = None) -> dict
+async def fetch_channel_summary(start_date: str, end_date: str, entity_id: str | None = None) -> dict
+async def fetch_monthly_spend(start_date: str, end_date: str, entity_id: str | None = None,
+                              channel: str | None = None) -> dict
+async def fetch_entity_summary(start_date: str, end_date: str) -> dict
+async def fetch_campaigns(entity_id: str | None = None, name_contains: str | None = None) -> dict
+```
+
+The queries call:
 ```python
 await run_sql(schema: str, sql: str, **params) -> {"row_count": int, "truncated": bool, "rows": [dict, ...]} | {"error": "..."}
 ```
@@ -235,22 +250,63 @@ Parallel fan-out = several `tool_call`s before their `tool_result`s.
 
 Errors: non-2xx JSON `{"detail": "..."}`.
 
-## Evals (`src/devfest_agents/evals.py`, `evals/practice.yaml`)
-`make eval` runs `python -m devfest_agents.evals /app/evals/practice.yaml [--only ID]` inside `nimbus-app` and writes
-`evals/report.json` (progress on stderr). Options: `Q=<id>` for one question, `ENGINE=podman` for podman.
+## Workshop checks (`src/devfest_agents/check.py`)
+`make check-N` (N = 0..4) runs `python -m devfest_agents.check N` inside `nimbus-app`. It prints a ✓/✗ checklist for
+exercise N, with a hint under every ✗, and exits non-zero if anything failed.
+
+| N | checks |
+|---|---|
+| 0 | LLM key set; marketing data loaded |
+| 1 | `marketing_agent.py` has at least two `async def` tools; each has a docstring and type hints on every parameter; ADK can build a declaration for each; each returns rows for Q3 2026 |
+| 2 | `DESCRIPTION` filled in; `build()` returns an `LlmAgent` named `marketing_agent` that uses `DESCRIPTION`, has an instruction and at least two tools |
+| 3 | `marketing_agent` in `SPECIALISTS`; the orchestrator can call it; `prompts/orchestrator.md` mentions it; one live practice question routes to it |
+| 4 | three live practice questions (`spend-per-new-client`, `sg-marketing-booked`, `new-clients-september`) route correctly |
+
+## Evals (`src/devfest_agents/evals.py`, `evals/practice.yaml`, `evals/final.enc`)
+```
+python -m devfest_agents.evals evals/practice.yaml [--only ID] [--parallel N] > report.json
+python -m devfest_agents.evals evals/final.enc --key PASSPHRASE > report.json
+python -m devfest_agents.evals evals/final.yaml --encrypt --key PASSPHRASE     # writes evals/final.enc
+```
+- `make eval` runs the practice set (18 questions, every kind) and writes `evals/report.json`. `make eval Q=<id>` runs
+  one question.
+- `make eval-final KEY=<passphrase>` runs the hidden competition set.
+- Questions run in parallel, 4 at a time by default (`--parallel`). Each runs as a fresh conversation.
+- The results table goes to stderr: ✓/✗ for route and answer per question, a note of what was missing (or which agents
+  were called, on a wrong route), a score per kind and the total. The JSON report goes to stdout.
 
 Question format:
 ```yaml
-- id: sg-spend-reconciles
+- id: sg-spend-reconciles                    # unique; used by Q=<id>
+  kind: multi-domain                         # lookup | analysis | multi-domain | routing | trap | adversarial
   question: Does NM-SG's ad campaign spend in September 2026 match the Performance marketing expense booked in the ledger for that month?
-  agents: [marketing_agent, finance_agent]   # exactly the specialists the orchestrator should call
-  numbers: [13025.12]                        # each must appear in the answer, within 1%
+  agents: [marketing_agent, finance_agent]   # exactly the specialists the orchestrator should call; [] = none
+  numbers: [13025.12]                        # optional; each must appear in the answer, within 1%
   words: []                                  # optional; each must appear, case-insensitive
+  absent: []                                 # optional; none of these phrases may appear, case-insensitive
+  judge: ""                                  # optional; one-line pass rule for an LLM judge
 ```
-Each question runs as a fresh conversation and scores 2 points: **route** (the set of agents the orchestrator called
-equals `agents`) and **answer** (every number and word found; numbers like `$117,844.95`, `1.2M`, `58k` are parsed).
-Report: `{"score", "max_score", "results": [{id, question, expected_agents, called_agents, route_point, answer_point,
-missing, answer, error, elapsed_ms}]}`. A leaderboard with its own question set is coming later.
+Each question scores 2 points:
+- **route**: the set of agents the orchestrator called equals `agents`. Extra agents lose the point too.
+- **answer**: every deterministic check passes, then the judge (if any) passes. Numbers like `$117,844.95`, `1.2M`,
+  `58k` are parsed; a number matches within 1% of the expected value (relative, with a floor of 0.005 for tiny values).
+  The judge runs only after the deterministic checks pass. It uses the router model and the participant's LLM key at
+  temperature 0, and replies PASS or FAIL with a reason. A judge error costs the answer point, not the run.
+
+Report: `{"score", "max_score", "results": [{id, kind, question, expected_agents, called_agents, route_point,
+answer_point, missing, answer, error, elapsed_ms}]}`.
+
+**The hidden set.** `evals/final.enc` is Fernet-encrypted with a key made from the passphrase (SHA-256, base64url).
+For an `.enc` set the table shows only ids, kinds and ticks, and each report result keeps only `id, kind, route_point,
+answer_point, called_agents, error`: no question text, answers or misses. Facilitators reveal the passphrase on a
+slide when the competition starts, and participants report their score by hand. The plaintext `evals/final.yaml` is
+gitignored and never committed; after editing it, re-encrypt with
+`python -m devfest_agents.evals evals/final.yaml --encrypt --key <passphrase>`.
+
+**Setup errors** stop the run with one ✗ line and exit code 1, instead of a stack trace: no LLM key; `marketing_agent`
+in `SPECIALISTS` while its `build()` still raises `NotImplementedError`; the agents fail to build (e.g. a syntax
+error); a missing question file, missing or wrong passphrase, or unknown `--only` id. If `marketing_agent` is not
+wired in yet, the run still happens, with a note that marketing questions will fail.
 
 ## SPA build
 - `web/` is a Vite + React 18 + TS + Tailwind 4 app. `npm ci && npm run build` → `web/dist/`.
@@ -260,4 +316,4 @@ missing, answer, error, elapsed_ms}]}`. A leaderboard with its own question set 
 ## LLM notes
 - Any LiteLLM model string works (`gemini/...` direct, `openai/...` through an OpenAI-compatible proxy). Default: `gemini-3.8-flash`.
 - Gemini 3.x spends **reasoning tokens** out of the completion budget: don't set a small `max_tokens` (a tiny cap returns empty answers). `LLM_REASONING_EFFORT=low` (the default) keeps cross-agent answers around 20-35 s.
-- `.env` values may be quoted (`KEY="value"`); both compose implementations strip the quotes. `.env` is gitignored and excluded from images; `.env.example` holds placeholders only.
+- `.env` values may be quoted (`KEY="value"`); Docker Compose strips the quotes. `.env` is gitignored and excluded from images; `.env.example` holds placeholders only.

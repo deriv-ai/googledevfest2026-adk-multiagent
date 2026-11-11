@@ -5,7 +5,7 @@ description = "Google ADK multi-agent workshop: an orchestrator over finance, tr
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "google-adk>=1.0.0",
+    "google-adk[mcp]>=1.0.0",  # litellm imports mcp on every completion call
     "litellm>=1.70",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",

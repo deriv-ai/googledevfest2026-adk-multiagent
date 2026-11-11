@@ -13,7 +13,7 @@ flowchart LR
     O -. "marketing_agent(request)<br/>(added in the workshop)" .-> K[marketing_agent]
     F --> FT[[registry tools<br/>finance_*]]
     T --> TT[[registry tools<br/>trading_*]]
-    K -.-> KT[[Python tools<br/>run_sql on marketing]]
+    K -.-> KT[[Python tools<br/>wrapping marketing_queries]]
 ```
 
 ## Three tiers
@@ -23,7 +23,7 @@ flowchart LR
 | `main_agent` (root) | `AgentTool(orchestrator)` | Persona. Answers greetings and meta questions itself ("what can you do?"). Every question about Nimbus data or the business goes to the orchestrator, even when it is not sure a specialist covers it. It writes the final user-facing answer. |
 | `orchestrator` | one `AgentTool` per entry in `SPECIALISTS` | Decides **which** specialists are needed, **what** to ask each, and **in which order**. Then it merges and attributes their findings. |
 | `finance_agent` / `trading_agent` | `SqlRegistryToolset("finance")` / `SqlRegistryToolset("trading")` | Answer with tool results only, from their own schema. |
-| `marketing_agent` (you add it) | async Python functions that call `run_sql("marketing", ...)` | Campaign spend, impressions, clicks, sign-ups and cost per sign-up, from the `marketing` schema. |
+| `marketing_agent` (you add it) | async Python functions that wrap the data team's queries in `marketing_queries.py`, which call `run_sql("marketing", ...)` | Campaign spend, impressions, clicks, sign-ups and cost per sign-up, from the `marketing` schema. |
 
 The orchestrator only knows the specialists in `SPECIALISTS` (`src/devfest_agents/agents/__init__.py`).
 Until `marketing_agent` is in that list, a campaign question either goes to finance (which only sees
@@ -38,17 +38,20 @@ marketing costs as booked in the ledger) or gets a "no specialist covers this" a
 2. **The instruction** (`prompts/orchestrator.md`). This is a callable that is re-evaluated
    **every turn**, so it is never stale. It contains:
    - **today's date**, so "last month" and "Q3" resolve correctly;
-   - **routing rules**:
+   - **one line per specialist**:
      - finance = the general ledger: revenue, expenses (including marketing costs as booked), P&L,
        budgets, entities, FX;
      - trading = clients and segments, new client sign-ups, trades, instruments, prices, commission
        earned per trade;
      - marketing = ad campaigns: spend per campaign or channel, impressions, clicks, sign-ups per
-       campaign, cost per sign-up;
-     - plus tie-breakers: *commission booked as revenue is finance, commission earned per
-       trade/instrument/client is trading*; *spend per campaign or channel is marketing, marketing
-       costs as booked in the ledger and marketing budgets are finance*; *sign-ups credited to a
-       campaign are marketing, all new clients are trading*;
+       campaign, cost per sign-up. The starter prompt has no marketing line: participants add it in
+       [exercise 3](../exercises/3-orchestrator.md);
+   - **routing rules** with tie-breakers. The starter prompt has one: *commission booked as revenue is
+     finance, commission earned per trade/instrument/client is trading*. In
+     [exercise 4](../exercises/4-teamwork.md) participants add the marketing ones, for example *spend
+     per campaign or channel is marketing, marketing costs as booked in the ledger and marketing
+     budgets are finance*; *sign-ups credited to a campaign are marketing, all new clients are
+     trading*;
    - **a live capability catalogue**: one line per tool the model can actually call, built by
      `build_catalogue` from each specialist agent's real tools (`list_tools` and `tool_title` in
      `agents/common.py`). Registry tools are listed with their `title`, Python tools with the first
@@ -114,10 +117,20 @@ should agree (booked vs earned commission, campaign spend vs GL 5200) and states
 
 ## Measuring routing
 
-`make eval` scores routing directly. For each practice question it compares the set of specialists
-the orchestrator called with the expected set: calling an extra agent loses the route point just like
-missing one. Routing traps such as *"NM-SG's Marketing expense booked in the ledger"* (finance only,
-not marketing) test the tie-breakers above. See the Evals section of [CONTRACT.md](CONTRACT.md).
+`make check-3` and `make check-4` ask a few live questions and report only where they went. `make
+eval` scores routing on every practice question: it compares the set of specialists the orchestrator
+called with the expected set, so calling an extra agent loses the route point just like missing one.
+
+Some question kinds target routing on purpose:
+
+- **routing**: questions that sound like marketing but aren't, such as *"NM-SG's total Marketing
+  expense booked in the ledger"* (finance only) or *"new clients, whether or not a campaign brought
+  them in"* (trading only). They test the tie-breakers above.
+- **multi-domain**: questions that need two specialists, in parallel or in sequence.
+- **adversarial**: for example a prompt-injection attempt, where the expected set is empty: no
+  specialist should be called at all.
+
+See the Evals section of [CONTRACT.md](CONTRACT.md) for the question format.
 
 ## Models
 

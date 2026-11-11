@@ -2,9 +2,9 @@
 
 This repo re-implements a production-style pattern, **agents whose tools live in a database
 registry**, as a small, self-contained Google ADK app. On top of it sits a three-tier multi-agent
-hierarchy. In the workshop you add one more specialist, a marketing agent with hand-written Python
-tools (see [GUIDE.md](../GUIDE.md)). Everything runs in three containers. All business data is
-synthetic.
+hierarchy. In the workshop you add one more specialist, a marketing agent whose Python tools wrap
+queries the data team already wrote (see [WORKSHOP.md](../WORKSHOP.md)). Everything runs in three
+containers. All business data is synthetic.
 
 ## Containers
 
@@ -39,7 +39,7 @@ the app also retries its DB connection on its own.
 
 **Live reload.** Because `./src` is mounted over the copy in the image, a Python edit on your laptop
 reaches both containers straight away. The app's uvicorn restarts on change
-(`WATCHFILES_FORCE_POLLING=true`, because file events don't always cross the Docker/Podman VM
+(`WATCHFILES_FORCE_POLLING=true`, because file events don't always cross the Docker VM
 boundary), and `adk web --reload_agents` reloads the agents. You only rebuild the image when
 dependencies or the SPA change.
 
@@ -137,7 +137,9 @@ Overview diagram and in the route panel without any frontend change.
 
 The finance and trading agents are built by `build_registry_specialist` (`agents/specialists.py`):
 an `LlmAgent` whose only tool is a `SqlRegistryToolset` for its schema. The marketing agent uses
-Python function tools instead.
+Python function tools instead. `marketing_agent.py` starts as a stub with `Exercise 1` and
+`Exercise 2` comments: `DESCRIPTION` is empty and `build()` raises `NotImplementedError` until a
+participant finishes it.
 
 ## The tool registry
 
@@ -177,8 +179,21 @@ The registry and the UI tool editor cover **finance and trading only** (`tools.a
 ## Python function tools and `run_sql`
 
 The marketing agent's tools are plain async Python functions. ADK wraps each one in a `FunctionTool`:
-the function name, the typed signature and the docstring become the declaration the LLM sees. They read
-the database through `run_sql` (`src/devfest_agents/tools/sql_query.py`):
+the function name, the typed signature and the docstring become the declaration the LLM sees.
+
+Participants don't write SQL. In the story, the data team has already written and tested five queries
+in `src/devfest_agents/agents/marketing_queries.py`:
+
+| Function | Returns |
+|---|---|
+| `fetch_campaign_performance(start_date, end_date, entity_id=None)` | one row per campaign: spend, impressions, clicks, sign-ups, cost per sign-up |
+| `fetch_channel_summary(start_date, end_date, entity_id=None)` | one row per ad channel, with click-through rate |
+| `fetch_monthly_spend(start_date, end_date, entity_id=None, channel=None)` | one row per month |
+| `fetch_entity_summary(start_date, end_date)` | one row per entity that ran campaigns |
+| `fetch_campaigns(entity_id=None, name_contains=None)` | the campaign list with start and end dates |
+
+They have developer comments, not docstrings, so a model can't use them well as they are. The
+participant's job is to wrap them as tools written for the model:
 
 ```python
 async def channel_summary(start_date: str, end_date: str, entity_id: str | None = None) -> dict:
@@ -189,9 +204,10 @@ async def channel_summary(start_date: str, end_date: str, entity_id: str | None 
         end_date: Last day (inclusive), YYYY-MM-DD.
         entity_id: Only campaigns of this entity: NM-UK, NM-SG, NM-AE or NM-INTL. Omit for all.
     """
-    return await run_sql("marketing", SQL, start_date=start_date, end_date=end_date, entity_id=entity_id)
+    return await queries.fetch_channel_summary(start_date, end_date, entity_id)
 ```
 
+Each query reads the database through `run_sql` (`src/devfest_agents/tools/sql_query.py`).
 `run_sql(schema, sql, **params)` gives Python tools the same safety as registry tools:
 
 - `:name` placeholders, bound from the keyword arguments. A missing value is reported, not guessed.
@@ -222,22 +238,49 @@ The SPA animates the route graph from these events. A parallel fan-out shows up 
 `tool_call`s before their results. Tracing is attached to every agent in `SPECIALISTS`, so a new
 specialist shows up in the route with no extra work.
 
+## Workshop checks
+
+`make check-N` (N = 0 to 4) runs `src/devfest_agents/check.py` inside the `app` container. It prints
+a checklist for one exercise, with ✓ or ✗ per item and a hint for every ✗:
+
+| Check | What it looks at |
+|---|---|
+| `check-0` | the LLM key is set and the marketing data is loaded |
+| `check-1` | `marketing_agent.py` has at least two tools, each with a docstring and type hints; ADK can turn each into a tool; each returns data for Q3 2026 |
+| `check-2` | `DESCRIPTION` is filled in; `build()` returns an `LlmAgent` named `marketing_agent` with an instruction and its tools |
+| `check-3` | `marketing_agent` is in `SPECIALISTS`, the orchestrator can call it, `orchestrator.md` mentions it, and one live question routes to it |
+| `check-4` | three live practice questions route to the right agents |
+
+The live checks use the eval scorer, so they need the LLM key.
+
 ## Evals
 
 `make eval` runs `src/devfest_agents/evals.py` inside the `app` container over
-`evals/practice.yaml` and writes `evals/report.json`. Each question runs as a fresh conversation and
-is worth 2 points:
+`evals/practice.yaml` (18 questions). Questions run in parallel, 4 at a time by default. A results
+table goes to stderr and the JSON report to `evals/report.json`. Each question runs as a fresh
+conversation and is worth 2 points:
 
-- **route**: the orchestrator called exactly the agents listed for the question;
-- **answer**: the final answer contains every expected number (within 1%) and every expected word.
+- **route**: the orchestrator called exactly the agents listed for the question (none, for some);
+- **answer**: every check on the question passes: expected numbers (within 1%), expected words,
+  phrases that must not appear, and for some questions a one-line rule checked by an LLM judge.
 
 The scorer reads the same trace events as the route panel, so routing is judged on what the
-orchestrator actually called. A leaderboard on a separate question set is coming later.
+orchestrator actually called.
+
+Setup problems stop the run with one plain message instead of a stack trace: no LLM key, a
+`marketing_agent` in `SPECIALISTS` whose `build()` still raises `NotImplementedError`, or agents that
+fail to build. If `marketing_agent` isn't wired in yet, the run goes ahead with a note that marketing
+questions will fail, so participants can score from the very start.
+
+`make eval-final KEY=<passphrase>` runs the hidden competition set, `evals/final.enc`. It is
+encrypted, and the facilitators reveal the passphrase when the competition starts. For this set the
+table and report show only ids, kinds and points. The plaintext `evals/final.yaml` is gitignored and
+never committed. See the Evals section of [CONTRACT.md](CONTRACT.md) for the formats.
 
 ## Safety summary
 
 - The LLM never writes SQL at question time. It can only call registered, reviewed and tested queries
-  or hand-written Python tools, with validated arguments.
+  or Python tools that wrap the data team's fixed queries, with validated arguments.
 - Defence in depth: the SQL guard (single SELECT, own schema only), the read-only `agent_ro` role
   with no access to the registry, read-only transactions, a 5 s statement timeout and a row cap. These
   apply to registry tools and to `run_sql` alike.
