@@ -41,21 +41,23 @@ back, when to use the tool, and what each argument looks like.
 
 ## Your task
 
-Write **two tools** for the marketing agent:
+Open **`src/devfest_agents/agents/marketing_agent.py`** and find the comment `# Exercise 1`.
+Write **two tools** there:
 
 1. one that shows how each **campaign** did over a date range;
 2. one that shows how each **ad channel** did over a date range.
 
-Each tool calls one of the data team's queries and returns its result. Put real effort into the
-docstrings. Later, a model that has never seen this code will pick between your tools using only
-what you write there.
+Each tool calls one of the data team's queries and returns its result. The data team's file is
+already imported as `queries`.
+
+Put real effort into the docstrings. Later, a model that has never seen this code will pick
+between your tools using only what you write there.
 
 <details>
-<summary>Hint: where do the tools go?</summary>
+<summary>Hint: which queries?</summary>
 
-In `src/devfest_agents/agents/marketing_agent.py`, under the comment `# Exercise 1`. The data
-team's module is already imported as `queries`, so you can call
-`queries.fetch_campaign_performance(...)` and `queries.fetch_channel_summary(...)`.
+`queries.fetch_campaign_performance(...)` and `queries.fetch_channel_summary(...)`. Their
+signatures are in `src/devfest_agents/agents/marketing_queries.py`.
 
 </details>
 

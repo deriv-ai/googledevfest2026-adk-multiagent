@@ -31,9 +31,12 @@ concierge = LlmAgent(
 
 ## Your task
 
-1. Add your agent to the team, so the orchestrator gets it as a tool.
-2. Tell the orchestrator what marketing covers. Its instruction lists every specialist. Add a line
-   for yours.
+Two small edits, in two files you haven't opened yet:
+
+1. **`src/devfest_agents/agents/__init__.py`**: add your agent to `SPECIALISTS`, the team list.
+   Every agent in that list becomes a tool for the orchestrator.
+2. **`src/devfest_agents/agents/prompts/orchestrator.md`**: this is the orchestrator's
+   instruction. It lists every specialist under `## Specialists`. Add a line for yours.
 
 Then ask in the chat:
 
@@ -43,21 +46,19 @@ The route panel should show the orchestrator calling `marketing_agent`, and your
 work.
 
 <details>
-<summary>Hint: where is the team list?</summary>
+<summary>Hint: how does the team list work?</summary>
 
-`SPECIALISTS` in `src/devfest_agents/agents/__init__.py`. Import your module next to the others
-and add it to the list. `build_root_agent()` builds every module in the list and wraps each one in
-an `AgentTool` for the orchestrator.
+Import your module next to the others at the top of `__init__.py`, then add it to the list.
+`build_root_agent()` builds every module in the list and wraps each one in an `AgentTool`.
 
 </details>
 
 <details>
-<summary>Hint: where is the orchestrator's instruction?</summary>
+<summary>Hint: what should the line say?</summary>
 
-`src/devfest_agents/agents/prompts/orchestrator.md`, under `## Specialists`. Write a line in the
-same style as the finance and trading ones. Below it, the orchestrator also gets a live list of
-every specialist's tools, built from the first line of each docstring. Your tools appear there
-on their own.
+Write it in the same style as the finance and trading lines. Below that list, the orchestrator
+also gets a live list of every specialist's tools, built from the first line of each docstring.
+Your tools appear there on their own.
 
 </details>
 

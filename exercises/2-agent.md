@@ -33,7 +33,7 @@ librarian = LlmAgent(
 
 ## Your task
 
-Finish the marketing agent:
+In the same file, **`src/devfest_agents/agents/marketing_agent.py`**, finish the marketing agent:
 
 1. Write its `DESCRIPTION`. Remember who reads it: the orchestrator, deciding whether a question
    belongs to marketing.

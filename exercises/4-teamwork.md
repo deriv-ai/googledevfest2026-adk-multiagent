@@ -39,8 +39,9 @@ asked in parallel.
 
 ## Your task
 
-Teach the orchestrator where marketing ends and finance and trading begin. Add tie-break rules
-to its instruction.
+Teach the orchestrator where marketing ends and finance and trading begin. Open
+**`src/devfest_agents/agents/prompts/orchestrator.md`** again and add tie-break rules under
+`## Routing rules`. Rule 1 already has one for finance and trading. Put yours next to it.
 
 Then try these in the chat, and watch the route panel:
 
@@ -50,14 +51,6 @@ Then try these in the chat, and watch the route panel:
 | What was NM-SG's total Marketing expense booked in the ledger in September 2026? | finance only |
 | How many new clients signed up in September 2026, whether or not a campaign brought them in? | trading only |
 | Which entity's campaigns brought in the most sign-ups in Q3 2026, and how much commission did that entity's clients generate? | marketing, then trading |
-
-<details>
-<summary>Hint: where do the rules go?</summary>
-
-`src/devfest_agents/agents/prompts/orchestrator.md`, under `## Routing rules`. Rule 1 already has
-a tie-break for finance and trading. Put yours next to it.
-
-</details>
 
 <details>
 <summary>Hint: show me rules that work</summary>

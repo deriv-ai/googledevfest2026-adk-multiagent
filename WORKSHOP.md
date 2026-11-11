@@ -1,5 +1,21 @@
 # The marketing agent workshop
 
+## Start here
+
+1. **Set up** the app: [Before you start](#before-you-start), about 5 minutes.
+2. **Read the story** below, 2 minutes. It explains what you're building and why.
+3. **Do the exercises in order**, starting with [exercise 0](exercises/0-meet-nimbus.md). Each one
+   ends with a check and a link to the next.
+
+**Where your work goes.** Almost all of your code goes in one file:
+
+```
+src/devfest_agents/agents/marketing_agent.py
+```
+
+Exercises 3 and 4 add a few lines to two more files. They tell you which ones when you get there.
+You never need to touch anything else, although you're free to.
+
 ## The story so far
 
 Nimbus Markets is an online broker. Clients trade currencies, crypto, gold and stock indices
