@@ -69,7 +69,7 @@ Then try these in the chat, and watch the route panel:
 make check-4
 ```
 
-It asks three of the questions above and checks who answered.
+It asks three of the questions above and checks who answered. It takes about a minute.
 
 ## Read more
 

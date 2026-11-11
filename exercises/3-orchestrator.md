@@ -43,7 +43,7 @@ Then ask in the chat:
 > How much did our ad campaigns spend in Q3 2026?
 
 The route panel should show the orchestrator calling `marketing_agent`, and your tool doing the
-work.
+work. Give it 20 seconds or so: three agents think in turn.
 
 <details>
 <summary>Hint: how does the team list work?</summary>
@@ -88,7 +88,7 @@ In `prompts/orchestrator.md`, under `## Specialists`:
 make check-3
 ```
 
-This one asks the agents a real question, so it takes a few seconds. Refresh the Overview page
+This one asks the agents a real question, so it takes about 30 seconds. Refresh the Overview page
 too. Your agent is no longer dashed.
 
 ## Read more

@@ -57,7 +57,8 @@ check-env: ## Make sure .env exists and has an LLM key (creates it from .env.exa
 # --- docker compose (ENGINE=docker) ---------------------------------------------
 up: check-env ## Build + start everything (docker compose)
 	$(COMPOSE) up -d --build
-	@echo "Chat UI: http://localhost:8080   ADK dev UI: http://localhost:8000   Postgres: localhost:5432"
+	@echo "Chat UI: http://localhost:8080   ADK dev UI: http://localhost:8000"
+	@echo "Next: open WORKSHOP.md and start with exercise 0."
 
 down: ## Stop everything (keeps the database volume)
 	$(COMPOSE) down
@@ -78,7 +79,8 @@ reset: ## Wipe the database volume and start again (reloads the synthetic CSVs)
 # --- podman-compose ---------------------------------------------------------------
 podman-up: check-env ## Build + start everything (podman-compose)
 	$(PODMAN_COMPOSE) up -d --build
-	@echo "Chat UI: http://localhost:8080   ADK dev UI: http://localhost:8000   Postgres: localhost:5432"
+	@echo "Chat UI: http://localhost:8080   ADK dev UI: http://localhost:8000"
+	@echo "Next: open WORKSHOP.md and start with exercise 0."
 
 podman-down: ## Stop everything (podman; keeps the database volume)
 	$(PODMAN_COMPOSE) down
@@ -102,18 +104,19 @@ test: ## Python tests + web typecheck
 	cd web && npm run typecheck
 
 eval: ## Score your agents on the practice questions (one question: Q=<id>)
-	$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json
-	@echo "Full report: evals/report.json"
+	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json \
+		&& echo "Full report: evals/report.json" || true
 
 eval-final: ## Score your agents on the hidden competition questions (KEY=<passphrase>)
-	$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --key "$(KEY)" > evals/report.json
-	@echo "Full report: evals/report.json"
+	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --key "$(KEY)" > evals/report.json \
+		&& echo "Full report: evals/report.json" || true
 
 check: ## Check a workshop exercise: make check-0, make check-1 ... make check-4
 	@echo "Run make check-N, where N is the exercise number (0 to 4)."
 
+# `|| true`: a check with things to fix is normal progress, not a make error.
 check-%:
-	$(EXEC) nimbus-app python -m devfest_agents.check $*
+	@$(EXEC) nimbus-app python -m devfest_agents.check $* || true
 
 data: ## Regenerate db/seed/*.csv (dev only; then `make reset` / `make podman-reset` to load them)
 	$(PYTHON) scripts/generate_synthetic_data.py

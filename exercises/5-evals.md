@@ -18,7 +18,7 @@ Run the practice set:
 make eval
 ```
 
-You get one row per question:
+It takes about 3 minutes. Then you get one row per question:
 
 ```
 question                         kind          route  answer  note

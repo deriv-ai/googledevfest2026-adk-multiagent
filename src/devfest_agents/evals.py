@@ -106,7 +106,7 @@ async def grade(question: dict[str, Any], events: list[dict[str, Any]], judge: J
     return {
         "id": question["id"],
         "kind": question.get("kind", ""),
-        "question": question["question"],
+        "question": question["question"].strip(),
         "expected_agents": sorted(question["agents"]),
         "called_agents": called,
         "route_point": int(called == sorted(question["agents"])),
