@@ -40,7 +40,7 @@ def client(fake_services):
 def test_health(client):
     body = client.get("/api/health").json()
     assert body == {"ok": True, "db": "ok", "llm_key": "configured", "llm_mode": "direct",
-                    "model": "gemini/gemini-3.8-flash", "router_model": "gemini/gemini-3.8-flash"}
+                    "model": "gemini/gemini-3.7-flash", "router_model": "gemini/gemini-3.7-flash"}
     assert "test-key-not-real" not in json.dumps(body)
 
 

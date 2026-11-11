@@ -25,7 +25,7 @@ Compose container names: `nimbus-db`, `nimbus-app`, `nimbus-adk-web` (`make seed
 | `LITELLM_GEMINI_API_KEY` | – | LLM key. **Takes precedence.** Used with `OPENAI_BASE_URL` (LiteLLM proxy mode) or alone as a Gemini key |
 | `GEMINI_API_KEY` | – | Fallback LLM key (Google AI Studio, direct mode). One of the two keys must be set |
 | `OPENAI_BASE_URL` | – | Optional OpenAI-compatible LiteLLM proxy base (e.g. `https://proxy.example.com/v1`). When set → proxy mode: pass `api_base`+`api_key` to `LiteLlm`, model strings use the `openai/` prefix |
-| `AGENT_MODEL` | proxy mode: `openai/gemini-3.8-flash`; direct mode: `gemini/gemini-3.8-flash` | specialists' model (LiteLLM model string) |
+| `AGENT_MODEL` | proxy mode: `openai/gemini-3.7-flash`; direct mode: `gemini/gemini-3.7-flash` | specialists' model (LiteLLM model string) |
 | `ROUTER_MODEL` | = AGENT_MODEL | main_agent + orchestrator model |
 | `DATABASE_URL` | role `app` on `db:5432/nimbus` (see compose.yaml) | rw on `tools` schema, read on finance/trading/marketing for schema browsing |
 | `AGENT_DATABASE_URL` | role `agent_ro` on `db:5432/nimbus` (see compose.yaml) | SELECT-only on finance + trading + marketing |
@@ -314,6 +314,6 @@ wired in yet, the run still happens, with a note that marketing questions will f
 - The app image copies `web/dist` → `/app/static`; FastAPI serves `/assets/*` and falls back to `index.html` for any non-`/api` path.
 
 ## LLM notes
-- Any LiteLLM model string works (`gemini/...` direct, `openai/...` through an OpenAI-compatible proxy). Default: `gemini-3.8-flash`.
+- Any LiteLLM model string works (`gemini/...` direct, `openai/...` through an OpenAI-compatible proxy). Default: `gemini-3.7-flash`.
 - Gemini 3.x spends **reasoning tokens** out of the completion budget: don't set a small `max_tokens` (a tiny cap returns empty answers). `LLM_REASONING_EFFORT=low` (the default) keeps cross-agent answers around 20-35 s.
 - `.env` values may be quoted (`KEY="value"`); Docker Compose strips the quotes. `.env` is gitignored and excluded from images; `.env.example` holds placeholders only.

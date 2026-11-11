@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     def effective_agent_model(self) -> str:
         if self.agent_model:
             return self.agent_model
-        return "openai/gemini-3.8-flash" if self.llm_mode == "proxy" else "gemini/gemini-3.8-flash"
+        return "openai/gemini-3.7-flash" if self.llm_mode == "proxy" else "gemini/gemini-3.7-flash"
 
     @property
     def effective_router_model(self) -> str:
