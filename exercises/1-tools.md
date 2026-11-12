@@ -1,6 +1,6 @@
 # Exercise 1: Give the data a voice
 
-[Back to the workshop](../WORKSHOP.md) · [Previous: Meet Nimbus](0-meet-nimbus.md)
+[Back to the workshop](../README.md) · [Previous: Meet Nimbus](0-meet-nimbus.md)
 
 ## The problem
 
@@ -41,7 +41,7 @@ back, when to use the tool, and what each argument looks like.
 
 ## Your task
 
-Open **`src/devfest_agents/agents/marketing_agent.py`** and find the comment `# Exercise 1`.
+Open **`my_agent/marketing_agent.py`** and find the comment `# Exercise 1`.
 Write **two tools** there:
 
 1. one that shows how each **campaign** did over a date range;
@@ -57,7 +57,7 @@ between your tools using only what you write there.
 <summary>Hint: which queries?</summary>
 
 `queries.fetch_campaign_performance(...)` and `queries.fetch_channel_summary(...)`. Their
-signatures are in `src/devfest_agents/agents/marketing_queries.py`.
+signatures are in `my_agent/marketing_queries.py`.
 
 </details>
 

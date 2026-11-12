@@ -1,26 +1,54 @@
-# Build a marketing agent with Google ADK
+# The marketing agent workshop
 
 Nimbus Markets is an online broker. It has an AI assistant built with
 [Google ADK](https://google.github.io/adk-docs/) that answers questions about **finance** and
-**trading**. It cannot answer questions about **marketing**, and Vernon, who runs marketing,
-needs answers by Friday.
+**trading**. It can't answer questions about **marketing**, and Vernon, who runs marketing, needs
+answers by Friday.
 
-In this workshop you build the marketing agent and plug it into the assistant. Then you score your
-agent on a set of hard questions, and compete for the best score.
+In this workshop you build the marketing agent and plug it into the assistant. Then you score
+your agent on a set of hard questions, and compete for the best score.
 
-**The workshop is in [WORKSHOP.md](WORKSHOP.md).** This page only gets the app running.
+## Start here
 
----
+1. **Set up** the app: [Set up](#set-up), about 5 minutes.
+2. **Read the story**: [The story so far](#the-story-so-far), 2 minutes. It explains what you're
+   building and why.
+3. **Do the exercises in order**, starting with [exercise 0](exercises/0-meet-nimbus.md). Each one
+   ends with a check and a link to the next.
 
-## Setup
+## Where your work goes
 
-You need:
+Everything you write goes in one folder, `my_agent/`:
 
-- Docker (with Compose)
-- `make` and `git`
-- a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
+```
+my_agent/
+  marketing_agent.py      your tools and your agent           exercises 1 and 2
+  marketing_queries.py    the data team's queries; your tools call these
+  team.py                 the agents the orchestrator can call    exercise 3
+  prompts/
+    marketing_agent.md    how your agent behaves              exercise 2
+    orchestrator.md       how questions get routed            exercises 3 and 4
+    main_agent.md         the assistant's persona             exercise 5
+```
 
-Then run these steps.
+The rest of the app is in `platform/`. You never need to open it, although you're free to.
+
+**How your changes show up.** You never restart anything:
+
+1. Save a file. The app notices and restarts itself in about 2 seconds.
+2. Ask a question in the app's **Chat** page. The **Agent route** panel shows which agents and
+   tools answered, live. Refresh the **Overview** page to see your agent join the diagram.
+3. Run `make check-1` (or 0, 2, 3, 4) to check one exercise, or `make eval` to score everything.
+
+Until your agent is plugged in (exercise 3), the app can't show it yet. That's what the checks
+are for. If the chat stops answering after a save, you probably have a Python error. Run
+`make logs`.
+
+## Set up
+
+You need Docker or Podman, `make`, `git`, and an LLM key. A free Gemini key from
+[Google AI Studio](https://aistudio.google.com/apikey) works, or use the key your facilitators
+give you.
 
 **1. Get the code.** Fork this repo on GitHub, then clone your fork:
 
@@ -35,7 +63,11 @@ cd devfest_adk_multiagent
 cp .env.example .env
 ```
 
-**3. Add your key.** Open `.env` and paste your key after `GEMINI_API_KEY=`.
+**3. Add your key** to `.env`:
+
+- a Gemini key from AI Studio goes after `GEMINI_API_KEY=`;
+- if your facilitators gave you a key and a URL instead, add `LLM_API_KEY=<key>` and
+  `LLM_BASE_URL=<url>`.
 
 **4. Start the app.**
 
@@ -43,56 +75,116 @@ cp .env.example .env
 make up
 ```
 
-The first start takes a few minutes. It builds the app and loads the data.
+The first start takes a few minutes. It builds the app and loads the data. `make up` uses Docker
+if you have it, and Podman otherwise.
 
 **5. Open http://localhost:8080.** You should see the Overview page.
 
-Now go to **[WORKSHOP.md](WORKSHOP.md)**.
+## The story so far
 
----
+Nimbus Markets is an online broker. Clients trade currencies, crypto, gold and stock indices
+through four companies: Nimbus Markets UK in London, Nimbus Markets SG in Singapore, Nimbus
+Markets AE in Dubai, and Nimbus Markets International for everyone else. Inside the company they
+go by short codes: NM-UK, NM-SG, NM-AE and NM-INTL.
 
-## What is running
+A few months ago the AI team shipped an assistant, built with Google ADK. You type a question in
+plain English and it answers from the company's own data. Finance uses it every morning for P&L
+and budgets. The trading desk uses it for volumes and commission. It is the most popular tool in
+the building.
 
-| Address | What it is |
-|---|---|
-| http://localhost:8080 | The app: chat, live agent route, tools, data schema |
-| http://localhost:8000 | ADK's own developer UI, showing the same agents |
-| `localhost:5432` | The Postgres database (user `postgres`, password `postgres`, database `nimbus`) |
+Then there's Vernon.
 
-Everything runs on your machine only.
+Vernon runs marketing. In June, the Singapore team launched **Nimbus Go**, a new mobile app, and
+backed it with a wave of ad campaigns across search, social, video, app stores and affiliates.
+The campaigns spent fast. Last week the CFO noticed that Singapore's marketing costs were running
+far over budget, and booked a review for Friday. The question on the agenda is short: *was Nimbus
+Go worth the money?*
 
----
+Vernon opened the assistant and asked. The assistant said, politely, that no part of it knows
+anything about marketing. Vernon asked again with different words. Same answer.
 
-## How the system works
+The data team has already done their part. They wrote and tested five queries over the marketing
+data and left them in `my_agent/marketing_queries.py`, with a note: *"These return the right
+numbers. We don't do agents. Over to you."*
 
+That's where you come in. You've just joined the AI team, and your first job is to give the
+assistant a marketing agent. When you're done, Vernon should be able to ask about campaigns in
+plain English. The assistant should also answer the questions that matter on Friday: how many
+clients Nimbus Go brought in, what each one cost, how much commission Singapore's clients bring
+in, and how far over budget Singapore really is. Those need marketing, trading and finance data
+together.
+
+Then the competition starts. The AI team has a set of hard questions waiting. Some are lookups,
+some need real analysis, some cross three teams, and a few are traps. The best agent wins.
+
+## How the assistant works
+
+Today the assistant has a main agent, an orchestrator and two specialists. You add the third.
+
+```mermaid
+flowchart LR
+    V([Vernon]) --> MAIN[main agent<br/>talks to people]
+    MAIN --> ORCH{orchestrator<br/>picks the specialists}
+    ORCH --> FIN[finance agent]
+    ORCH --> TRD[trading agent]
+    ORCH -.-> MKT[marketing agent<br/>you build this]
+    FIN --> FDB[(finance data)]
+    TRD --> TDB[(trading data)]
+    MKT -.-> MDB[(marketing data)]
+
+    classDef new stroke-dasharray: 5 5
+    class MKT,MDB new
 ```
-You ──> main_agent ──> orchestrator ──> finance_agent    reads the finance tables
-                                    ├─> trading_agent    reads the trading tables
-                                    └─> marketing_agent  reads the marketing tables  <- you build this
+
+The main agent talks to people. The orchestrator reads each question, decides which specialists
+it needs, asks them, and merges what they say. Each specialist knows one part of the business and
+reads only its own data.
+
+The interesting questions need more than one specialist:
+
+```mermaid
+flowchart LR
+    Q["Was Nimbus Go worth it?"] --> ORCH{orchestrator}
+    ORCH -->|what did it spend,<br/>who signed up?| MKT[marketing agent]
+    ORCH -->|what do Singapore's<br/>clients earn us?| TRD[trading agent]
+    ORCH -->|how far over budget?| FIN[finance agent]
+    MKT --> A[one answer for Vernon]
+    TRD --> A
+    FIN --> A
 ```
 
-- **main_agent** talks to you. It passes every business question to the orchestrator.
-- **orchestrator** picks which agents a question needs. It calls them and merges their answers.
-- **finance_agent** and **trading_agent** already exist.
-- **marketing_agent** is what you add in the workshop.
+## The exercises
 
-When you save a Python file, the app reloads by itself. You never need to restart it.
+| | Exercise | You'll end up with | About |
+|---|---|---|---|
+| 0 | [Meet Nimbus](exercises/0-meet-nimbus.md) | The app running, and Vernon's problem in front of you | 5 min |
+| 1 | [Give the data a voice](exercises/1-tools.md) | Two tools Gemini can call | 10 min |
+| 2 | [Hire the marketing agent](exercises/2-agent.md) | An agent that uses them | 7 min |
+| 3 | [Join the team](exercises/3-orchestrator.md) | The orchestrator sends marketing questions to your agent | 8 min |
+| 4 | [Teamwork](exercises/4-teamwork.md) | Questions that need two or three agents get the right ones | 8 min |
+| 5 | [Prove it](exercises/5-evals.md) | A score, and then the competition, where you can change anything | the rest |
+| + | [Extra: tools from the UI](exercises/extra-ui-tools.md) | New finance and trading tools, added without code | if you finish early |
 
----
+Every exercise ends with a check you can run, like `make check-1`. It tells you what works and
+what doesn't yet.
 
-## Useful commands
+You can also score your agents at any point with `make eval`, even before you've written a line.
+It takes about 3 minutes. The score starts low. Watching it climb is half the fun.
+
+## Commands
 
 | Command | What it does |
 |---|---|
-| `make up` | Start everything |
+| `make up` | Start the app |
 | `make check-1` | Check exercise 1 (or 0, 2, 3, 4) |
 | `make eval` | Score your agents on the practice questions |
-| `make eval-final KEY=...` | Score your agents on the hidden competition questions |
-| `make logs` | Show the logs. Use it when something breaks. |
-| `make reset` | Wipe the database and load the data again |
-| `make down` | Stop everything |
+| `make eval-final KEY=...` | Score your agents on the competition questions |
+| `make logs` | Show the app's logs. Use it when something breaks. |
+| `make reset` | Reload the database from scratch |
+| `make down` | Stop the app |
 
----
+The app is at http://localhost:8080. ADK's own developer UI, showing the same agents, is at
+http://localhost:8000.
 
 ## If something goes wrong
 
@@ -103,61 +195,8 @@ When you save a Python file, the app reloads by itself. You never need to restar
 | The chat stops answering after you save a file | You have a Python error. Run `make logs`, fix the error, save again. |
 | The data looks wrong | Run `make reset`. |
 
-To use a LiteLLM proxy instead of a Gemini key (for example the key your facilitators give you),
-set `LLM_API_KEY` and `LLM_BASE_URL` in `.env`. The comments in `.env.example` explain both options.
+## Going deeper
 
----
-
-## More docs
-
-- [WORKSHOP.md](WORKSHOP.md): the workshop. **Start here.**
-- [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md): how the orchestrator picks agents.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): containers, data model, tools and safety.
-- [docs/CONTRACT.md](docs/CONTRACT.md): API, settings, database schema and eval format.
-- [docs/EXTRA_UI_TOOLS.md](docs/EXTRA_UI_TOOLS.md): extra exercise, add finance and trading tools from the UI.
-- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): talk track for the presenters.
-
----
-
-## For maintainers
-
-**Repo layout**
-
-```
-WORKSHOP.md     the workshop: story, architecture, exercise list
-exercises/      one file per exercise
-src/            the agents, tools, API and eval runner (Python)
-web/            the app's UI (React)
-db/             database setup and the synthetic data (CSV)
-evals/          practice questions, and the encrypted competition set
-seed/           the starter finance and trading tools
-scripts/        the synthetic-data generator
-tests/          the test suite
-docs/           detailed docs
-```
-
-**Other commands**
-
-```bash
-make test       # Python tests + UI type check
-make dev        # database in a container; prints how to run the API and UI locally
-make data       # regenerate the synthetic data, then run `make reset` to load it
-make help       # list every command
-```
-
-**Security scanning** needs [trivy](https://trivy.dev). `make trivy-scan` fails on fixable
-HIGH/CRITICAL issues. `make trivy-audit` patches, tests and scans in one go. Run `make help` for
-the rest.
-
-**The hidden competition set** is `evals/final.enc`. The readable `evals/final.yaml` is
-gitignored and stays with the facilitators. After editing it, encrypt it again:
-
-```bash
-uv run python -m devfest_agents.evals evals/final.yaml --encrypt --key "<passphrase>"
-```
-
-**All data is synthetic.** `scripts/generate_synthetic_data.py` generates every client, trade,
-ledger line and campaign.
-
-**Note:** `cryptography` is held below version 47 in `pyproject.toml`. Newer versions crash with
-"Illegal instruction" inside Podman on Apple Silicon Macs.
+- [How the orchestrator picks agents](platform/docs/ORCHESTRATION.md)
+- [How the app is built](platform/docs/ARCHITECTURE.md): containers, data model, tools and safety
+- [Maintaining the app](platform/README.md): tests, data, and the full reference docs

@@ -1,6 +1,6 @@
 # Exercise 4: Teamwork
 
-[Back to the workshop](../WORKSHOP.md) · [Previous: Join the team](3-orchestrator.md)
+[Back to the workshop](../README.md) · [Previous: Join the team](3-orchestrator.md)
 
 ## The problem
 
@@ -40,7 +40,7 @@ asked in parallel.
 ## Your task
 
 Teach the orchestrator where marketing ends and finance and trading begin. Open
-**`src/devfest_agents/agents/prompts/orchestrator.md`** again and add tie-break rules under
+**`my_agent/prompts/orchestrator.md`** again and add tie-break rules under
 `## Routing rules`. Rule 1 already has one for finance and trading. Put yours next to it.
 
 Then try these in the chat, and watch the route panel:

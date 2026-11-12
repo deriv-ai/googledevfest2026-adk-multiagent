@@ -17,7 +17,7 @@ htmlcov/
 
 # --- node / SPA ---------------------------------------------------------------
 node_modules/
-web/dist/
+platform/web/dist/
 *.tsbuildinfo
 npm-debug.log*
 

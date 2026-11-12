@@ -1,6 +1,6 @@
 # Exercise 2: Hire the marketing agent
 
-[Back to the workshop](../WORKSHOP.md) · [Previous: Give the data a voice](1-tools.md)
+[Back to the workshop](../README.md) · [Previous: Give the data a voice](1-tools.md)
 
 ## The problem
 
@@ -33,7 +33,7 @@ librarian = LlmAgent(
 
 ## Your task
 
-In the same file, **`src/devfest_agents/agents/marketing_agent.py`**, finish the marketing agent:
+In the same file, **`my_agent/marketing_agent.py`**, finish the marketing agent:
 
 1. Write its `DESCRIPTION`. Remember who reads it: the orchestrator, deciding whether a question
    belongs to marketing.
@@ -45,7 +45,7 @@ you'll get to tune it in the competition.
 <details>
 <summary>Hint: where does the instruction come from?</summary>
 
-`static_instruction(NAME)` loads `src/devfest_agents/agents/prompts/marketing_agent.md` and fills
+`static_instruction(NAME)` loads `my_agent/prompts/marketing_agent.md` and fills
 in today's date. It's already imported in `marketing_agent.py`.
 
 </details>
@@ -53,8 +53,8 @@ in today's date. It's already imported in `marketing_agent.py`.
 <details>
 <summary>Hint: how do the other specialists do it?</summary>
 
-Look at `finance_agent.py` and `trading_agent.py` next to your file. Their tools come from the
-database instead of Python, but their `DESCRIPTION`s show the style. `GENERATION` sets a low
+Look at `finance_agent.py` and `trading_agent.py` in `platform/src/devfest_agents/agents/`. Their
+tools come from the database instead of Python, but their `DESCRIPTION`s show the style. `GENERATION` sets a low
 temperature, so answers stay consistent from run to run.
 
 </details>

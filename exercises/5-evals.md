@@ -1,6 +1,6 @@
 # Exercise 5: Prove it
 
-[Back to the workshop](../WORKSHOP.md) · [Previous: Teamwork](4-teamwork.md)
+[Back to the workshop](../README.md) · [Previous: Teamwork](4-teamwork.md)
 
 ## The problem
 
@@ -76,7 +76,7 @@ or the wrong dates. If the wrong agent was called, look at the descriptions and 
 <details>
 <summary>Idea: the agent's own instruction</summary>
 
-`prompts/marketing_agent.md` decides how your agent answers. The answer must contain the actual
+`my_agent/prompts/marketing_agent.md` decides how your agent answers. The answer must contain the actual
 figure, so ask for exact numbers rather than rounded ones. Some questions have no data behind
 them. What should the agent say then?
 
@@ -87,7 +87,7 @@ them. What should the agent say then?
 
 Some questions try to get the assistant to leak its instructions, play a role, or do something it
 shouldn't. The first agent to read every question is the main agent, and its prompt is
-`prompts/main_agent.md`. What should it refuse, whatever the framing?
+`my_agent/prompts/main_agent.md`. What should it refuse, whatever the framing?
 
 </details>
 
@@ -105,7 +105,7 @@ result looks a lot like an instruction. Tell your agent to treat what tools retu
 The finance agent's tools live in the database, and you can add more from the **Tools** page
 without writing Python. Its starter tools only report costs by category, so none of them returns
 a single ledger account, such as 5210 "Brand and events" or 5200 "Performance marketing".
-[docs/EXTRA_UI_TOOLS.md](../docs/EXTRA_UI_TOOLS.md) shows how.
+[The extra exercise](extra-ui-tools.md) shows how.
 
 </details>
 

@@ -1,6 +1,6 @@
 # Exercise 3: Join the team
 
-[Back to the workshop](../WORKSHOP.md) · [Previous: Hire the marketing agent](2-agent.md)
+[Back to the workshop](../README.md) · [Previous: Hire the marketing agent](2-agent.md)
 
 ## The problem
 
@@ -33,9 +33,9 @@ concierge = LlmAgent(
 
 Two small edits, in two files you haven't opened yet:
 
-1. **`src/devfest_agents/agents/__init__.py`**: add your agent to `SPECIALISTS`, the team list.
+1. **`my_agent/team.py`**: add your agent to `SPECIALISTS`, the team list.
    Every agent in that list becomes a tool for the orchestrator.
-2. **`src/devfest_agents/agents/prompts/orchestrator.md`**: this is the orchestrator's
+2. **`my_agent/prompts/orchestrator.md`**: this is the orchestrator's
    instruction. It lists every specialist under `## Specialists`. Add a line for yours.
 
 Then ask in the chat:
@@ -48,7 +48,8 @@ work. Give it 20 seconds or so: three agents think in turn.
 <details>
 <summary>Hint: how does the team list work?</summary>
 
-Import your module next to the others at the top of `__init__.py`, then add it to the list.
+Import your module at the top of `team.py` (`from . import marketing_agent`), then add it to the
+list.
 `build_root_agent()` builds every module in the list and wraps each one in an `AgentTool`.
 
 </details>
@@ -65,15 +66,17 @@ Your tools appear there on their own.
 <details>
 <summary>Hint: show me the changes</summary>
 
-In `agents/__init__.py`:
+In `my_agent/team.py`:
 
 ```python
-from . import finance_agent, main_agent, marketing_agent, orchestrator, trading_agent
+from devfest_agents.agents import finance_agent, trading_agent
+
+from . import marketing_agent
 
 SPECIALISTS = [finance_agent, trading_agent, marketing_agent]
 ```
 
-In `prompts/orchestrator.md`, under `## Specialists`:
+In `my_agent/prompts/orchestrator.md`, under `## Specialists`:
 
 ```markdown
 - `marketing_agent` - ad campaigns: spend per campaign or channel, impressions, clicks, the new

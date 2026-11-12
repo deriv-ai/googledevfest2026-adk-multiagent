@@ -1,6 +1,6 @@
 # Exercise 0: Meet Nimbus
 
-[Back to the workshop](../WORKSHOP.md)
+[Back to the workshop](../README.md)
 
 ## The problem
 
@@ -29,7 +29,7 @@ Open http://localhost:8080.
    campaigns, what each campaign spent, and the new clients each campaign brought in. Click a
    table to see its columns and a few rows.
 
-5. Finally, open `src/devfest_agents/agents/marketing_queries.py`. This is the data team's
+5. Finally, open `my_agent/marketing_queries.py`. This is the data team's
    handover. Skim it. You won't change it, and you don't need to understand the SQL.
 
 ## Check it
