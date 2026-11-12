@@ -86,7 +86,7 @@ docker compose version
 
 ```bash
 git clone <this repo's URL>
-cd devfest_adk_multiagent
+cd googledevfest2026-adk-multiagent
 ```
 
 **2. Add your key.** Copy the settings file:
