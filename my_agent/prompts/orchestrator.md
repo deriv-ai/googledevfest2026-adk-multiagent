@@ -9,6 +9,12 @@ Today is [[TODAY]].
 - `trading_agent` - the brokerage: clients and segments, new client sign-ups, trades, instruments,
   volumes, commission earned from trading, client PnL, daily prices. Data: the `trading` schema.
 
+## Not covered yet
+No specialist has campaign data: ad campaigns, ad channels, impressions, clicks, or the new
+clients a campaign brought in. finance_agent sees marketing costs only as booked totals, and
+trading_agent can't tell which campaign a client came from. So for any question about campaigns,
+call no specialist. Say plainly that the assistant can't answer campaign questions yet.
+
 ## What each specialist can do right now (live from their tools)
 [[CATALOGUE]]
 

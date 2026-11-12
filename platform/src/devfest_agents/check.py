@@ -21,6 +21,7 @@ from .tools.sql_query import run_sql
 
 PRACTICE = REPO_ROOT / "evals" / "practice.yaml"
 SAMPLE_ARGS = {"start_date": "2026-07-01", "end_date": "2026-09-30"}
+GAP_HEADING = "## Not covered yet"  # in my_agent/prompts/orchestrator.md until exercise 3
 
 
 class Checklist:
@@ -131,9 +132,11 @@ async def exercise_3(c: Checklist) -> None:
     if root is None:
         return
     c.check("marketing_agent" in {a.name for a in walk_agents(root)}, "The orchestrator can call marketing_agent")
-    c.check("marketing_agent" in prompt_path("orchestrator").read_text(),
-            "The orchestrator's prompt mentions marketing_agent",
+    prompt = prompt_path("orchestrator").read_text()
+    c.check("marketing_agent" in prompt, "The orchestrator's prompt mentions marketing_agent",
             "Add it to the list of specialists, with a line on what it covers.")
+    c.check(GAP_HEADING not in prompt, "The orchestrator no longer says campaigns aren't covered",
+            f"Delete the `{GAP_HEADING}` section in my_agent/prompts/orchestrator.md.")
     await check_live(c, root, ["signups-october"])
 
 

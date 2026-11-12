@@ -20,3 +20,9 @@ def test_the_team_list_comes_from_my_agent(monkeypatch):
 
     monkeypatch.undo()  # conftest swaps in a test team
     assert agents.SPECIALISTS is team.SPECIALISTS
+
+
+def test_the_starting_orchestrator_names_the_campaign_gap():
+    from devfest_agents.check import GAP_HEADING
+
+    assert GAP_HEADING in prompt_path("orchestrator").read_text()

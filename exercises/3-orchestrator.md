@@ -31,12 +31,13 @@ concierge = LlmAgent(
 
 ## Your task
 
-Two small edits, in two files you haven't opened yet:
+Two small edits, in two files:
 
 1. **`my_agent/team.py`**: add your agent to `SPECIALISTS`, the team list.
    Every agent in that list becomes a tool for the orchestrator.
 2. **`my_agent/prompts/orchestrator.md`**: this is the orchestrator's
-   instruction. It lists every specialist under `## Specialists`. Add a line for yours.
+   instruction. It lists every specialist under `## Specialists`. Add a line for yours. Then
+   delete the `## Not covered yet` section you saw in exercise 0: campaigns are covered now.
 
 Then ask in the chat:
 
@@ -82,6 +83,8 @@ In `my_agent/prompts/orchestrator.md`, under `## Specialists`:
 - `marketing_agent` - ad campaigns: spend per campaign or channel, impressions, clicks, the new
   clients each campaign brought in, cost per sign-up. Data: the `marketing` schema.
 ```
+
+And delete the whole `## Not covered yet` section, heading included.
 
 </details>
 

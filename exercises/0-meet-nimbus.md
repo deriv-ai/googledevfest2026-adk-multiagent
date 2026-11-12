@@ -23,7 +23,11 @@ Open http://localhost:8080.
 
    > How did the Nimbus Go campaigns do?
 
-   The orchestrator has nobody to send it to, so the assistant says it can't help.
+   The orchestrator has nobody to send it to, so the assistant says it can't help. That's no
+   accident. Open `my_agent/prompts/orchestrator.md`, the orchestrator's instruction, and find
+   `## Not covered yet`. Finance knows what marketing cost and trading knows who signed up, but
+   neither can tell one campaign from another. Without that section, the orchestrator would
+   stitch their half-answers together and sound sure of itself. You'll delete it in exercise 3.
 
 4. **Data Schema → marketing** shows the data your agent will use. There are three tables:
    campaigns, what each campaign spent, and the new clients each campaign brought in. Click a
