@@ -111,6 +111,8 @@ async def grade(question: dict[str, Any], events: list[dict[str, Any]], judge: J
         "answer_point": int(bool(answer) and not misses),
         "missing": misses,
         "answer": answer,
+        "tools": [f"{e['agent']} -> {e['tool']}({json.dumps(e.get('args', {}), ensure_ascii=False)})"
+                  for e in events if e["type"] == "tool_call"],
         "error": last.get("message") if last["type"] == "error" else None,
         "elapsed_ms": last.get("elapsed_ms"),
     }

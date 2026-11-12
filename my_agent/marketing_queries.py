@@ -110,6 +110,13 @@ LEFT JOIN signups su ON su.entity_id = sp.entity_id
 ORDER BY sp.spend_usd DESC
 """
 
+DATA_COVERAGE = """
+SELECT (SELECT MIN(s.spend_date) FROM marketing.campaign_spend s) AS first_spend_date,
+       (SELECT MAX(s.spend_date) FROM marketing.campaign_spend s) AS last_spend_date,
+       (SELECT MIN(g.signup_date) FROM marketing.signups g) AS first_signup_date,
+       (SELECT MAX(g.signup_date) FROM marketing.signups g) AS last_signup_date
+"""
+
 CAMPAIGNS = """
 SELECT c.campaign_id, c.name, c.entity_id, c.channel, c.start_date, c.end_date
 FROM marketing.campaigns c
@@ -144,5 +151,10 @@ async def fetch_entity_summary(start_date: str, end_date: str) -> dict:
 
 
 async def fetch_campaigns(entity_id: str | None = None, name_contains: str | None = None) -> dict:
-    # the campaign list with first and last spend dates; name_contains="Nimbus Go" finds the launch campaigns
+    # the campaign list with planned start and end dates; name_contains="Nimbus Go" finds the launch campaigns
     return await run_sql("marketing", CAMPAIGNS, entity_id=entity_id, name_contains=name_contains)
+
+
+async def fetch_data_coverage() -> dict:
+    # the first and last days with recorded spend and sign-ups; before and after them there is no data
+    return await run_sql("marketing", DATA_COVERAGE)

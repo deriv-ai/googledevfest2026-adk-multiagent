@@ -5,7 +5,7 @@ import pytest
 from my_agent import marketing_queries
 from devfest_agents.tools.sql_guard import check_sql
 
-QUERIES = ["CAMPAIGN_PERFORMANCE", "CHANNEL_SUMMARY", "MONTHLY_SPEND", "ENTITY_SUMMARY", "CAMPAIGNS"]
+QUERIES = ["CAMPAIGN_PERFORMANCE", "CHANNEL_SUMMARY", "MONTHLY_SPEND", "ENTITY_SUMMARY", "CAMPAIGNS", "DATA_COVERAGE"]
 
 
 @pytest.mark.parametrize("name", QUERIES)

@@ -1,20 +1,21 @@
 """Check one workshop exercise: python -m devfest_agents.check <0-4>
 
 Prints a checklist with a tick or a cross per item, and a hint for every cross.
-Exercises 3 and 4 also ask the agents real questions, so they need the LLM key.
+Exercises 2, 3 and 4 also ask real questions, so they need the LLM key.
 """
 
 from __future__ import annotations
 
 import asyncio
 import inspect
+import json
 import sys
 from typing import Any
 
 import yaml
 
 from .config import REPO_ROOT
-from .evals import NO, OK, ask, grade
+from .evals import NO, OK, ask, grade, missed_checks
 from .runtime import AgentRuntime
 from .services import get_services
 from .tools.sql_query import run_sql
@@ -22,6 +23,20 @@ from .tools.sql_query import run_sql
 PRACTICE = REPO_ROOT / "evals" / "practice.yaml"
 SAMPLE_ARGS = {"start_date": "2026-07-01", "end_date": "2026-09-30"}
 GAP_HEADING = "## Not covered yet"  # in my_agent/prompts/orchestrator.md until exercise 3
+
+# Exercise 1: the two data-team queries participants wrap themselves.
+YOUR_QUERIES = {"fetch_campaign_performance": "one row per campaign",
+                "fetch_channel_summary": "one row per ad channel"}
+
+# Exercise 2: one question for the marketing agent on its own. Not in either eval set.
+SMOKE_QUESTION = {"id": "check-2", "question": "How many new clients did our ad campaigns bring in during August 2026?",
+                  "agents": [], "numbers": [19]}
+
+# Exercise 4: the two kinds of teamwork, and a tie-break. The sequential question's second
+# request has to use what the first answer found: the entity with the most sign-ups.
+PARALLEL = ("spend-per-new-client", "marketing_agent", "trading_agent")
+SEQUENTIAL = ("top-signup-entity-commission", "marketing_agent", "trading_agent", ("NM-INTL", "International"))
+TIE_BREAK = "sg-marketing-booked"
 
 
 class Checklist:
@@ -52,6 +67,12 @@ def tool_functions(module) -> list[Any]:
             if inspect.iscoroutinefunction(f) and f.__module__ == module.__name__ and not name.startswith("_")]
 
 
+def your_tools(module) -> list[Any]:
+    """The tools the participant wrote: every tool except the ready-made ones."""
+    ready = getattr(module, "READY_MADE_TOOLS", [])
+    return [f for f in tool_functions(module) if f not in ready]
+
+
 # ---------------------------------------------------------------------------
 async def exercise_0(c: Checklist) -> None:
     c.check(get_services().settings.llm_key_configured, "An LLM key is set",
@@ -64,10 +85,11 @@ async def exercise_0(c: Checklist) -> None:
 async def exercise_1(c: Checklist) -> None:
     from google.adk.tools import FunctionTool
 
-    tools = tool_functions(marketing_module())
-    if not c.check(len(tools) >= 2, f"marketing_agent.py has at least two tools (found {len(tools)})",
-                   "A tool is an `async def` function in my_agent/marketing_agent.py that calls a data-team query."):
-        return
+    tools = your_tools(marketing_module())
+    for query, shape in YOUR_QUERIES.items():
+        c.check(any(f"queries.{query}(" in inspect.getsource(t) for t in tools),
+                f"A tool of yours calls queries.{query} ({shape})",
+                f"Write an `async def` tool in my_agent/marketing_agent.py that returns `await queries.{query}(...)`.")
     for tool in tools:
         name, doc = tool.__name__, inspect.getdoc(tool) or ""
         c.check(len(doc) >= 40, f"{name} has a docstring",
@@ -102,7 +124,7 @@ async def exercise_2(c: Checklist) -> None:
 
     module = marketing_module()
     c.check(len(module.DESCRIPTION.strip()) >= 30, "DESCRIPTION says what the agent is good at",
-            "The orchestrator reads only this to decide when to call your agent.")
+            "It's the pitch the orchestrator reads when it decides who should answer a question.")
     try:
         agent = module.build(get_services(), "gemini/not-called")
     except NotImplementedError:
@@ -118,7 +140,36 @@ async def exercise_2(c: Checklist) -> None:
     c.check(agent.description == module.DESCRIPTION and bool(agent.description), "The agent uses DESCRIPTION")
     c.check(bool(agent.instruction), "The agent has an instruction",
             "Tell it how to behave. my_agent/prompts/marketing_agent.md is ready for you.")
-    c.check(len(agent.tools) >= 2, f"The agent has its tools ({len(agent.tools)})", "Pass your tool functions in tools=[...].")
+    wanted = your_tools(module) + list(getattr(module, "READY_MADE_TOOLS", []))
+    missing = [f.__name__ for f in wanted if f not in agent.tools]
+    c.check(not missing, f"The agent has all {len(wanted)} tools",
+            f"Missing: {', '.join(missing)}. Pass your tools and *READY_MADE_TOOLS in tools=[...].")
+    if not c.failed:
+        await smoke_test(c, module)
+
+
+async def smoke_test(c: Checklist, module) -> None:
+    """Ask the marketing agent one question on its own, with no orchestrator in between."""
+    from . import tracing
+    from .agents.model import agent_model
+
+    settings = get_services().settings
+    if not settings.llm_key_configured:
+        c.fail("Your agent answers a question", "Add an LLM key to .env first.")
+        return
+    agent = module.build(get_services(), agent_model(settings))
+    tracing.attach(agent)
+    print(f"  Asking your agent on its own: \"{SMOKE_QUESTION['question']}\"")
+    events = await ask(AgentRuntime(agent, settings=settings), SMOKE_QUESTION)
+    calls = [f"{e['tool']}({', '.join(f'{k}={v!r}' for k, v in e.get('args', {}).items())})"
+             for e in events if e["type"] == "tool_call"]
+    if not c.check(bool(calls), f"It picked a tool: {'; '.join(calls[:3])}" if calls else "It picked a tool",
+                   "It answered without calling a tool. Make the docstrings say what each tool returns."):
+        return
+    answer = events[-1].get("text", "") if events[-1]["type"] == "answer" else ""
+    c.check(bool(answer) and not missed_checks(SMOKE_QUESTION, answer), "It found the right answer (19 new clients)",
+            events[-1].get("message") or f"It said: {answer[:200]}")
+    print("  That tested your agent on its own. The chat can't reach it until exercise 3.")
 
 
 async def exercise_3(c: Checklist) -> None:
@@ -137,13 +188,78 @@ async def exercise_3(c: Checklist) -> None:
             "Add it to the list of specialists, with a line on what it covers.")
     c.check(GAP_HEADING not in prompt, "The orchestrator no longer says campaigns aren't covered",
             f"Delete the `{GAP_HEADING}` section in my_agent/prompts/orchestrator.md.")
+    print("  One more question, different from the one you asked in the chat, for extra coverage:")
     await check_live(c, root, ["signups-october"])
 
 
 async def exercise_4(c: Checklist) -> None:
     root = build_tree(c)
-    if root is not None:
-        await check_live(c, root, ["spend-per-new-client", "sg-marketing-booked", "new-clients-september"])
+    if root is None:
+        return
+    if not get_services().settings.llm_key_configured:
+        c.fail("Live questions", "Add an LLM key to .env first.")
+        return
+    questions = practice_questions()
+    ids = [PARALLEL[0], SEQUENTIAL[0], TIE_BREAK]
+    runtime = AgentRuntime(root)
+    print("  Asking three questions (about a minute)...")
+    events_by_id = dict(zip(ids, await asyncio.gather(*(ask(runtime, questions[i]) for i in ids))))
+    results = {i: await grade(questions[i], events_by_id[i]) for i in ids}
+
+    question_id, first, second = PARALLEL
+    if check_result(c, results[question_id], "in parallel"):
+        c.check(ran_in_parallel(events_by_id[question_id], first, second),
+                f"{first} and {second} were asked in the same step",
+                "They don't depend on each other, so the orchestrator should ask both at once.")
+
+    question_id, first, second, handoff = SEQUENTIAL
+    if check_result(c, results[question_id], "one after the other"):
+        request = first_call(events_by_id[question_id], second)
+        c.check(ran_in_order(events_by_id[question_id], first, second)
+                and any(word in json.dumps(request) for word in handoff),
+                f"{second} was asked only after {first} answered, about the entity {first} found",
+                "The second question depends on the first answer. Ask one, read it, then ask the other.")
+
+    check_result(c, results[TIE_BREAK], "")
+
+
+def check_result(c: Checklist, r: dict[str, Any], how: str) -> bool:
+    """Route and answer of one live question. True when both are right."""
+    agents = " and ".join(r["expected_agents"]) + (f", {how}" if how else "")
+    routed = c.check(r["route_point"] == 1, f"'{r['question']}' goes to {agents}",
+                     r["error"] or f"It went to {', '.join(r['called_agents']) or 'no agent'}. "
+                                   "Sharpen the routing rules.")
+    answered = c.check(r["answer_point"] == 1, "...and the answer is right",
+                       r["error"] or "; ".join(r["missing"]))
+    return routed and answered
+
+
+def orchestrator_steps(events: list[dict[str, Any]], agent: str, kind: str) -> list[int]:
+    return [i for i, e in enumerate(events) if e["type"] == kind and e.get("agent") == "orchestrator"
+            and e.get("tool") == agent]
+
+
+def ran_in_parallel(events: list[dict[str, Any]], a: str, b: str) -> bool:
+    """Both calls went out before either answer came back: one step, not two."""
+    calls = orchestrator_steps(events, a, "tool_call")[:1] + orchestrator_steps(events, b, "tool_call")[:1]
+    results = orchestrator_steps(events, a, "tool_result") + orchestrator_steps(events, b, "tool_result")
+    return len(calls) == 2 and bool(results) and max(calls) < min(results)
+
+
+def ran_in_order(events: list[dict[str, Any]], first: str, second: str) -> bool:
+    """The second agent was first asked after the first agent had answered."""
+    first_results = orchestrator_steps(events, first, "tool_result")
+    second_calls = orchestrator_steps(events, second, "tool_call")
+    return bool(first_results and second_calls) and first_results[0] < second_calls[0]
+
+
+def first_call(events: list[dict[str, Any]], agent: str) -> dict[str, Any]:
+    calls = orchestrator_steps(events, agent, "tool_call")
+    return events[calls[0]].get("args", {}) if calls else {}
+
+
+def practice_questions() -> dict[str, dict[str, Any]]:
+    return {q["id"]: q for q in yaml.safe_load(PRACTICE.read_text())}
 
 
 def build_tree(c: Checklist):
@@ -160,9 +276,8 @@ async def check_live(c: Checklist, root, ids: list[str]) -> None:
     if not get_services().settings.llm_key_configured:
         c.fail("Live questions", "Add an LLM key to .env first.")
         return
-    questions = {q["id"]: q for q in yaml.safe_load(PRACTICE.read_text())}
+    questions = practice_questions()
     runtime = AgentRuntime(root)
-    print("  Asking the agents (this takes a little while)...")
     all_events = await asyncio.gather(*(ask(runtime, questions[i]) for i in ids))
     for question_id, events in zip(ids, all_events):
         r = await grade(questions[question_id], events)

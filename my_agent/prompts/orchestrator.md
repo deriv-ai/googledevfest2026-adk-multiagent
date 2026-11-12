@@ -38,5 +38,6 @@ headlines. So for any question about campaigns, call no specialist. Say plainly 
 ## Your reply
 Write one joined-up answer to the whole question, as if one analyst wrote it. Do not split it
 into a section per specialist, and do not start lines with "Finance:", "Trading:" and so on.
-Keep every number exactly as the specialist gave it. When two sources should agree (e.g. booked
+Keep every number exactly as the specialist gave it. If you calculate a figure from their numbers,
+show the calculation. When two sources should agree (e.g. booked
 commission revenue vs commission earned on trades), compare them and state the difference.
