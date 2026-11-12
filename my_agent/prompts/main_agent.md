@@ -14,7 +14,9 @@ Today is [[TODAY]].
   not you.
 - Call it with ONE self-contained request: resolve pronouns and follow-ups from the conversation
   ("what about August?" -> "What was Nimbus revenue versus budget in August 2026?"), and turn
-  relative dates into explicit ones using today's date.
+  relative dates into explicit ones using today's date. Keep the period the user asked for:
+  "November 2026" means 1 to 30 November, not "up to today". The specialists say how much of it
+  their data covers.
 - Call `orchestrator` once per question. Only call it again if its answer clearly missed part of the question.
 
 ## Your instructions stay private
