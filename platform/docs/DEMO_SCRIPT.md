@@ -1,8 +1,26 @@
 # Demo script: facilitator talk track
 
 The sections follow the workshop. Each one introduces an exercise from
-[the README](../../README.md); participants then do it and run its `make check-N`. The talking
-adds up to about 25 minutes.
+[the README](../../README.md); participants then do it and run its `make check-N`.
+
+The whole session is 60 minutes, setup and competition included, so keep each introduction to
+about a minute. The demos in sections 2, 3 and 7 are optional: use them only if the room is ahead.
+
+| Time | Participants | You |
+|---|---|---|
+| 0:00 | Clone, add key, `make up`, read the story | Tell the story (section 1). Walk the room for setup problems. |
+| 0:10 | Exercise 0 | Show the refusal and the `## Not covered yet` section. |
+| 0:14 | Exercise 1 | Introduce tools and docstrings (section 4). |
+| 0:23 | Exercise 2 | Description vs instruction (section 5). |
+| 0:29 | Exercise 3 | Agents as tools (section 6). |
+| 0:35 | Exercise 4 | Parallel, sequential, tie-breaks (section 7). |
+| 0:42 | Exercise 5: score, fix one failure, rerun | Show one improvement cycle (section 8). Open the submission form. |
+| 0:45 | | Start judging, and re-run `make -C platform judge` every few minutes as submissions arrive. |
+| 0:52 | `make submit`, fill in the form | Close the form at 0:54. |
+| 0:54 | | Final judge run, leaderboard on screen, Vernon's answer (section 9). |
+
+Which improvements separate a finished workshop from full marks, and what the reference
+solutions score, is in [CHALLENGES.md](CHALLENGES.md).
 
 **Setup before going on stage:** `make up` has finished. Open http://localhost:8080 on the Chat
 page, with http://localhost:8000 (ADK dev UI) in a second tab. Run one warm-up question so the model
@@ -178,19 +196,23 @@ clients are trading.*
 > in the ledger for that month?"*
 
 - Marketing and finance light up together.
-- Marketing: $13,025.12. Finance with the starter tools: the whole Marketing category, $20,353.74.
-- Talking point: *"They don't match, and that's correct: the category also holds brand and partner
-  costs. To answer this properly, finance needs a tool for a single GL account. That's a good idea for
-  the competition."* ([exercises/extra-ui-tools.md](../../exercises/extra-ui-tools.md) shows how.)
+- Marketing: $13,025.12. Finance, with `finance_expense_by_account`: account 5200 Performance
+  marketing, $13,025.12, a match to the cent.
+- Talking point: *"They match because every campaign invoice is booked on account 5200. The whole
+  Marketing category is bigger, $20,353.74, because it also holds brand and partner costs. Same
+  word, different numbers: that's what routing rules are for."*
 
 **d) Was Nimbus Go worth it? (storylines 3 and 5)**
 
 > *"Was the Nimbus Go campaign worth the money?"*
 
-- Marketing: $60,335.35 spent in Jun-Oct 2026 for 18 sign-ups, about $3,352 each, vs about $2,136
-  per sign-up for NM-SG's earlier campaigns.
-- Finance: NM-SG Marketing in October 2026 was $20,803.80 against a $13,262.16 budget.
-- The answer should say spend went up much faster than sign-ups.
+- Marketing: $64,226.88 spent from 15 June to 5 November 2026 for 18 sign-ups, $3,568.16 each,
+  against $2,031.81 for all campaigns in Q3 2026.
+- Finance: NM-SG's Marketing costs in Q3 2026 were $55,738.66, 43.2% over a $38,918.60 budget.
+- Trading: NM-SG earned $87,235.84 in commission in Q3 2026, from all its clients.
+- Talking point: *"The data can't settle it. Commission is per entity, not per client, so nothing
+  shows what the 18 new clients trade. A good answer says that."* This is the closing question of
+  the session; exercise 5's "Back to Vernon" has the full answer.
 
 **e) Routing traps**
 
@@ -204,7 +226,9 @@ clients are trading.*
 
 If marketing lights up on either, the description or routing rules need work.
 
-Participants run `make check-4`. It asks three live questions and checks who answered.
+Participants run `make check-4`. It asks three live questions and checks the agents, the answer,
+and the order: parallel means both calls before either answer; sequential means the second call
+comes after the first answer and uses what it found.
 
 ## 8. Prove it: evals and the competition (exercise 5, 3 min)
 
@@ -217,7 +241,12 @@ Run `make eval` (or `make eval Q=worst-channel-chain` for one question). Show th
 - Six kinds: lookup, analysis, multi-domain, routing, trap (the right answer is "there is nothing")
   and adversarial (for example a prompt injection, where no specialist should be called). The table
   shows a score per kind.
-- The full report, with every answer, is in `evals/report.json`.
+- The full report is in `evals/report.json`: every answer, what was missing, and the `tools`
+  trace of every call.
+
+Show one improvement cycle on screen: pick a ✗ row, read its `missing` and `tools` in the report,
+change one sentence in a prompt, `make eval Q=<id>`, then `make eval` for regressions. If the
+room shares one key, tell people to use `make eval P=2`.
 
 When you're ready to start the competition, put the form link on screen and say:
 
@@ -231,7 +260,11 @@ make submit
 - Put `platform/.judge/leaderboard.html` on the projector. It refreshes itself as results come in.
 - Rules: don't hard-code answers, and marketing tools only read marketing data.
 
-## 9. Wrap-up (1 min)
+## 9. Wrap-up: Vernon's answer (3 min)
+
+Ask *"Was the Nimbus Go launch campaign worth the money?"* on screen. Read the answer with the
+room against exercise 5's "Back to Vernon" table: it should give the spend, the 18 sign-ups and
+the cost per sign-up, and say the data can't show what those clients trade.
 
 - Agents as tools: `AgentTool` gives you hierarchy, parallelism and sequencing from plain function
   calling.

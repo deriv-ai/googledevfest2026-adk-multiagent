@@ -40,8 +40,10 @@ HIGH/CRITICAL issues. `make trivy-audit` patches, tests and scans in one go.
 - [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md): how the orchestrator picks agents.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): containers, data model, tools and safety.
 - [docs/CONTRACT.md](docs/CONTRACT.md): API, settings, database schema and eval format.
-- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): talk track for the presenters. It contains answers,
-  so don't point participants at it.
+- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): the 60-minute plan and talk track for the presenters.
+  It contains answers, so don't point participants at it.
+- [docs/CHALLENGES.md](docs/CHALLENGES.md): what separates finishing the exercises from full marks,
+  and what the reference solutions (branches `solution-guided` and `solution-improved`) score.
 
 ## Notes
 
@@ -57,6 +59,12 @@ gitignored, so it only exists on the facilitators' machines.
    ```
 
 3. Open `platform/.judge/leaderboard.html` on the projector. It refreshes every 15 seconds.
+
+**Fit judging into the hour.** Each submission takes about 2 minutes to score (22 questions, 8
+at a time). With 30 participants and 2 at a time, that's 30 minutes, which is too long for the
+6 minutes after the deadline. So start at 0:45, as soon as the first submissions arrive, and
+re-run the command every few minutes. Raise `--at-once` to 4 or 6 if your key's rate limit
+allows it.
 
 Re-run the same command with a fresh export at any time: commits already scored are skipped.
 Pass options through `JUDGE_ARGS`, for example `JUDGE_ARGS="--at-once 4"` to score four

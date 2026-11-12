@@ -15,7 +15,7 @@ EXEC ?= $(ENGINE) exec
 ENV_MSG := add your LLM key to .env (see .env.example), then run make up again
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env up down logs reset eval submit check
+.PHONY: help check-env check-engine up down logs reset eval submit check
 
 help: ## Show this help
 	@echo "The marketing agent workshop. Start with README.md."
@@ -41,7 +41,18 @@ check-env:
 		exit 1; \
 	fi
 
-up: check-env ## Build and start the app
+check-engine:
+	@if ! command -v $(ENGINE) >/dev/null 2>&1; then \
+		echo "Neither Docker nor Podman is installed. Install Docker Desktop (or Podman), then run make up again."; \
+		exit 1; \
+	fi
+	@if ! $(ENGINE) info >/dev/null 2>&1; then \
+		echo "$(ENGINE) is installed but not running."; \
+		echo "Start Docker Desktop, or run: podman machine start. Then run make up again."; \
+		exit 1; \
+	fi
+
+up: check-env check-engine ## Build and start the app
 	$(COMPOSE) up -d --build $(UP_FLAGS)
 	@echo ""
 	@echo "Ready: http://localhost:8080. Next: exercise 0 in exercises/0-meet-nimbus.md."

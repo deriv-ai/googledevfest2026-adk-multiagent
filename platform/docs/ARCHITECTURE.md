@@ -196,7 +196,7 @@ The registry and the UI tool editor cover **finance and trading only** (`tools.a
 The marketing agent's tools are plain async Python functions. ADK wraps each one in a `FunctionTool`:
 the function name, the typed signature and the docstring become the declaration the LLM sees.
 
-Participants don't write SQL. In the story, the data team has already written and tested five queries
+Participants don't write SQL. In the story, the data team has already written and tested six queries
 in `my_agent/marketing_queries.py`:
 
 | Function | Returns |
@@ -205,10 +205,14 @@ in `my_agent/marketing_queries.py`:
 | `fetch_channel_summary(start_date, end_date, entity_id=None)` | one row per ad channel, with click-through rate |
 | `fetch_monthly_spend(start_date, end_date, entity_id=None, channel=None)` | one row per month |
 | `fetch_entity_summary(start_date, end_date)` | one row per entity that ran campaigns |
-| `fetch_campaigns(entity_id=None, name_contains=None)` | the campaign list with start and end dates |
+| `fetch_campaigns(entity_id=None, name_contains=None)` | the campaign list with planned start and end dates |
+| `fetch_data_coverage()` | the first and last days with recorded spend and sign-ups |
 
-They have developer comments, not docstrings, so a model can't use them well as they are. The
-participant's job is to wrap them as tools written for the model:
+They have developer comments, not docstrings, so a model can't use them well as they are.
+Participants wrap the first two as tools written for the model (exercise 1). The starter already
+wraps three more (`monthly_spend`, `entity_summary`, `campaign_list`, in `READY_MADE_TOOLS`), so
+the hour isn't spent typing. `fetch_data_coverage` is left for the competition: see
+[CHALLENGES.md](CHALLENGES.md).
 
 ```python
 async def channel_summary(start_date: str, end_date: str, entity_id: str | None = None) -> dict:
@@ -261,10 +265,10 @@ a checklist for one exercise, with ✓ or ✗ per item and a hint for every ✗:
 | Check | What it looks at |
 |---|---|
 | `check-0` | the LLM key is set and the marketing data is loaded |
-| `check-1` | `my_agent/marketing_agent.py` has at least two tools, each with a docstring and type hints; ADK can turn each into a tool; each returns data for Q3 2026 |
-| `check-2` | `DESCRIPTION` is filled in; `build()` returns an `LlmAgent` named `marketing_agent` with an instruction and its tools |
+| `check-1` | the participant wrote a tool calling `fetch_campaign_performance` and one calling `fetch_channel_summary` (ready-made tools don't count); each has a docstring and type hints; ADK can turn each into a tool; each returns data for Q3 2026 |
+| `check-2` | `DESCRIPTION` is filled in; `build()` returns an `LlmAgent` named `marketing_agent` with an instruction and all its tools; then a smoke test asks the agent alone one question and shows the tool it picked |
 | `check-3` | `marketing_agent` is in `SPECIALISTS`, the orchestrator can call it, `orchestrator.md` mentions it, and one live question routes to it |
-| `check-4` | three live practice questions route to the right agents |
+| `check-4` | a parallel, a sequential and a tie-break question: right agents, right answer, and the call order (parallel: both calls before either result; sequential: the second call after the first result, using what it found) |
 
 The live checks use the eval scorer, so they need the LLM key.
 

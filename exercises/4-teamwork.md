@@ -1,6 +1,6 @@
 # Exercise 4: Teamwork
 
-[Back to the workshop](../README.md) · [Previous: Join the team](3-orchestrator.md)
+[Back to the workshop](../README.md) · [Previous: Join the team](3-orchestrator.md) · About 7 minutes
 
 ## The problem
 
@@ -28,6 +28,10 @@ The orchestrator makes two kinds of calls:
 
 Each specialist gets a rewritten, self-contained question with explicit dates. Specialists never
 see the chat, so "last quarter" has to become "1 July to 30 September 2026".
+
+Combining answers often means a calculation, such as spend divided by new clients. That's fine:
+the agents may calculate, as long as every input comes from a tool and the answer shows the sum,
+like `$117,844.95 / 113 new clients = $1,042.88`. The prompts you were given already say so.
 
 When two specialists overlap, a **tie-break rule** in the orchestrator's instruction tells it who
 owns what:
@@ -72,7 +76,14 @@ Then try these in the chat, and watch the route panel:
 make check-4
 ```
 
-It asks three of the questions above and checks who answered. It takes about a minute.
+It asks three of the questions above, about a minute in all. For each one it checks that the
+right specialists were called and that the answer is right. It also checks *how* they were called:
+
+- **Parallel**: both specialists were asked in the same step, before either answered.
+- **Sequential**: the second specialist was asked only after the first answered, about what the
+  first one found (here, the month).
+
+Calling the right agents in the wrong order doesn't pass.
 
 ## Read more
 

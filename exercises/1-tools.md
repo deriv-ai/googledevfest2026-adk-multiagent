@@ -1,6 +1,6 @@
 # Exercise 1: Give the data a voice
 
-[Back to the workshop](../README.md) · [Previous: Meet Nimbus](0-meet-nimbus.md)
+[Back to the workshop](../README.md) · [Previous: Meet Nimbus](0-meet-nimbus.md) · About 9 minutes
 
 ## The problem
 
@@ -50,8 +50,11 @@ Write **two tools** there:
 Each tool calls one of the data team's queries and returns its result. The data team's file is
 already imported as `queries`.
 
+Further down the file are three **ready-made tools** that wrap the data team's other queries, so
+you don't have to type them all. Read one first: yours follow the same pattern.
+
 Put real effort into the docstrings. Later, a model that has never seen this code will pick
-between your tools using only what you write there.
+between all five tools using only what's written there.
 
 <details>
 <summary>Hint: which queries?</summary>
@@ -104,8 +107,8 @@ The channel tool follows the same pattern with `queries.fetch_channel_summary`.
 make check-1
 ```
 
-It finds your tools, checks the docstrings and type hints, asks ADK to turn each one into a tool,
-and runs each against the real data.
+It finds the two tools you wrote, checks their docstrings and type hints, asks ADK to turn each
+one into a tool, and runs each against the real data.
 
 Nothing changes in the app yet. Your tools have no agent to use them until exercise 2, and nobody
 calls that agent until exercise 3. The check is how you know you're on track.

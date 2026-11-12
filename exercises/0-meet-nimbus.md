@@ -1,6 +1,6 @@
 # Exercise 0: Meet Nimbus
 
-[Back to the workshop](../README.md)
+[Back to the workshop](../README.md) · About 4 minutes
 
 ## The problem
 
@@ -12,29 +12,23 @@ Open http://localhost:8080.
 
 1. **Overview** shows the agents. The marketing agent is drawn with a dashed line, because it
    doesn't exist yet.
-2. **Chat** is where Vernon asks questions. Try a finance one first, so you've seen it work:
 
-   > What was our operating profit in each month of Q3 2026?
-
-   Watch the **Agent Route** panel on the right. The question goes from the main agent to the
-   orchestrator, then to the finance agent, then to a tool that queries the database.
-
-3. Now ask what Vernon asked:
+2. On the **Chat** page, ask what Vernon asked:
 
    > How did the Nimbus Go campaigns do?
 
-   The orchestrator has nobody to send it to, so the assistant says it can't help. That's no
-   accident. Open `my_agent/prompts/orchestrator.md`, the orchestrator's instruction, and find
-   `## Not covered yet`. Finance knows what marketing cost and trading knows who signed up, but
-   neither can tell one campaign from another. Without that section, the orchestrator would
-   stitch their half-answers together and sound sure of itself. You'll delete it in exercise 3.
+   Watch the **Agent route** panel. The main agent passes the question to the orchestrator, and
+   the orchestrator sends it to nobody. The assistant says it can't answer campaign questions.
 
-4. **Data Schema → marketing** shows the data your agent will use. There are three tables:
-   campaigns, what each campaign spent, and the new clients each campaign brought in. Click a
-   table to see its columns and a few rows.
+   That refusal is deliberate. Open `my_agent/prompts/orchestrator.md`, the orchestrator's
+   instruction, and find `## Not covered yet`. Finance knows what marketing cost in total, and
+   trading knows who signed up, but neither can tell one campaign from another. Without that
+   section, the orchestrator would stitch their partial answers together and present them as if
+   they answered the question. You'll delete it in exercise 3, once a real marketing agent exists.
 
-5. Finally, open `my_agent/marketing_queries.py`. This is the data team's
-   handover. Skim it. You won't change it, and you don't need to understand the SQL.
+3. Open `my_agent/marketing_queries.py`, the data team's handover. Skim the `fetch_...` functions
+   at the bottom: their names, their parameters, and the comment under each one. That's all your
+   tools need. You won't change this file, and you can skip the SQL.
 
 ## Check it
 
@@ -42,12 +36,9 @@ Open http://localhost:8080.
 make check-0
 ```
 
-This checks that your LLM key is set and the marketing data is loaded.
-
-Curious where you stand? Run `make eval`. It takes about 3 minutes, and the score will be low.
-That's the point: it's your starting line.
+It checks that your LLM key is set and the marketing data is loaded.
 
 ## Next
 
 The data team's queries return the right numbers, but Gemini can't use them yet. In
-**[exercise 1](1-tools.md)** you turn them into tools.
+**[exercise 1](1-tools.md)** you turn two of them into tools.

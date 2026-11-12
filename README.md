@@ -1,54 +1,45 @@
 # The marketing agent workshop
 
-Nimbus Markets is an online broker. It has an AI assistant built with
-[Google ADK](https://google.github.io/adk-docs/) that answers questions about **finance**,
-**trading** and the day's **market news**. It can't answer questions about **marketing**, and Vernon, who runs marketing, needs
-answers by Friday.
+Nimbus Markets is an online broker with an AI assistant built with
+[Google ADK](https://google.github.io/adk-docs/). It answers questions about **finance**,
+**trading** and the day's **market news**, but not about **marketing**. Vernon, who runs
+marketing, needs answers by Friday.
 
-In this workshop you build the marketing agent and plug it into the assistant. Then you score
-your agent on a set of hard questions, and compete for the best score.
+In one hour you build the marketing agent, plug it into the assistant, score it on hard
+questions, improve it, and submit it to a competition.
 
-## Start here
+## The hour
 
-1. **Set up** the app: [Set up](#set-up), about 5 minutes.
-2. **Read the story**: [The story so far](#the-story-so-far), 2 minutes. It explains what you're
-   building and why.
-3. **Do the exercises in order**, starting with [exercise 0](exercises/0-meet-nimbus.md). Each one
-   ends with a check and a link to the next.
+| Time | What you do | Minutes |
+|---|---|---|
+| 0:00 | [Set up](#set-up). Read [the story](#the-story) while it builds | 10 |
+| 0:10 | [Exercise 0: Meet Nimbus](exercises/0-meet-nimbus.md). See the problem | 4 |
+| 0:14 | [Exercise 1: Give the data a voice](exercises/1-tools.md). Write two tools | 9 |
+| 0:23 | [Exercise 2: Hire the marketing agent](exercises/2-agent.md). Build the agent | 6 |
+| 0:29 | [Exercise 3: Join the team](exercises/3-orchestrator.md). Plug it in | 6 |
+| 0:35 | [Exercise 4: Teamwork](exercises/4-teamwork.md). Route questions that cross teams | 7 |
+| 0:42 | [Exercise 5: Prove it](exercises/5-evals.md). Score it, fix one failure, score again | 10 |
+| 0:52 | Submit to the competition | 2 |
+| 0:54 | Leaderboard, and Vernon's answer | 6 |
 
-## Where your work goes
+Each exercise ends with a check, like `make check-1`, and a link to the next one. If you fall
+behind, open the hints: every exercise has one that shows the finished code.
 
-Everything you write goes in one folder, `my_agent/`:
+## Before the session
 
-```
-my_agent/
-  marketing_agent.py      your tools and your agent           exercises 1 and 2
-  marketing_queries.py    the data team's queries; your tools call these
-  team.py                 the agents the orchestrator can call    exercise 3
-  prompts/
-    marketing_agent.md    how your agent behaves              exercise 2
-    orchestrator.md       how questions get routed            exercises 3 and 4
-    main_agent.md         the assistant's persona             exercise 5
-```
+These have to be on your laptop already. Installing them takes longer than the hour allows.
 
-The rest of the app is in `platform/`. You never need to open it, although you're free to.
+- **Docker Desktop or Podman**, installed and **running**.
+- **`git`** and **`make`**. Macs and Linux have them. On Windows, use WSL.
+- **A GitHub account**, to fork this repo and submit your work.
+- **Some Python.** You'll write two short `async def` functions with type hints and docstrings,
+  and fill in one function call. You don't need Python installed: everything runs in containers.
 
-**How your changes show up.** You never restart anything:
-
-1. Save a file. The app notices and restarts itself in about 2 seconds.
-2. Ask a question in the app's **Chat** page. The **Agent route** panel shows which agents and
-   tools answered, live. Refresh the **Overview** page to see your agent join the diagram.
-3. Run `make check-1` (or 0, 2, 3, 4) to check one exercise, or `make eval` to score everything.
-
-Until your agent is plugged in (exercise 3), the app can't show it yet. That's what the checks
-are for. If the chat stops answering after a save, you probably have a Python error. Run
-`make logs`.
+You also need an LLM key. A free Gemini key from
+[Google AI Studio](https://aistudio.google.com/apikey) works, or use the one your facilitators
+give you.
 
 ## Set up
-
-You need Docker or Podman, `make`, `git`, and an LLM key. A free Gemini key from
-[Google AI Studio](https://aistudio.google.com/apikey) works, or use the key your facilitators
-give you.
 
 **1. Get the code.** Fork this repo on GitHub, then clone your fork:
 
@@ -57,70 +48,49 @@ git clone <your fork's URL>
 cd devfest_adk_multiagent
 ```
 
-**2. Create your settings file.**
+**2. Add your key.** Copy the settings file:
 
 ```bash
 cp .env.example .env
 ```
 
-**3. Add your key** to `.env`:
+Then open `.env`. Put a Gemini key after `GEMINI_API_KEY=`. If your facilitators gave you a key
+and a URL instead, add `LLM_API_KEY=<key>` and `LLM_BASE_URL=<url>`.
 
-- a Gemini key from AI Studio goes after `GEMINI_API_KEY=`;
-- if your facilitators gave you a key and a URL instead, add `LLM_API_KEY=<key>` and
-  `LLM_BASE_URL=<url>`.
-
-**4. Start the app.**
+**3. Start the app.**
 
 ```bash
 make up
 ```
 
-The first start takes a few minutes. It builds the app and loads the data. `make up` uses Docker
-if you have it, and Podman otherwise.
+The first start takes a few minutes: it builds the app and loads the data. `make up` uses Docker
+if you have it, and Podman otherwise. Read [the story](#the-story) while it runs.
 
-**5. Open http://localhost:8080.** You should see the Overview page.
+**4. Open http://localhost:8080.** You should see the Overview page. Then start
+[exercise 0](exercises/0-meet-nimbus.md).
 
-## The story so far
+## The story
 
-Nimbus Markets is an online broker. Clients trade currencies, crypto, gold and stock indices
-through four companies: Nimbus Markets UK in London, Nimbus Markets SG in Singapore, Nimbus
-Markets AE in Dubai, and Nimbus Markets International for everyone else. Inside the company they
-go by short codes: NM-UK, NM-SG, NM-AE and NM-INTL.
+Nimbus Markets is a fictional online broker with four companies: NM-UK, NM-SG (Singapore),
+NM-AE (Dubai) and NM-INTL. Its AI assistant answers questions from the company's own data, and
+finance and the trading desk use it every day.
 
-A few months ago the AI team shipped an assistant, built with Google ADK. You type a question in
-plain English and it answers from the company's own data. Finance uses it every morning for P&L
-and budgets. The trading desk uses it for volumes and commission, and to catch up on the day's
-market news. It is the most popular tool in
-the building.
+In June, the Singapore team launched **Nimbus Go**, a new mobile app, and backed it with ad
+campaigns. They spent fast. Singapore's marketing costs ran far over budget, and the CFO booked
+a review for Friday with one question on the agenda: *was Nimbus Go worth the money?*
 
-Then there's Vernon.
+Vernon, who runs marketing, asked the assistant. It said no part of it knows about marketing.
 
-Vernon runs marketing. In June, the Singapore team launched **Nimbus Go**, a new mobile app, and
-backed it with a wave of ad campaigns across search, social, video, app stores and affiliates.
-The campaigns spent fast. Last week the CFO noticed that Singapore's marketing costs were running
-far over budget, and booked a review for Friday. The question on the agenda is short: *was Nimbus
-Go worth the money?*
+The data team has done their part. They wrote and tested the queries over the marketing data
+and left them in `my_agent/marketing_queries.py`, with a note: *"These return the right numbers.
+We don't do agents. Over to you."*
 
-Vernon opened the assistant and asked. The assistant said, politely, that no part of it knows
-anything about marketing. Vernon asked again with different words. Same answer.
-
-The data team has already done their part. They wrote and tested five queries over the marketing
-data and left them in `my_agent/marketing_queries.py`, with a note: *"These return the right
-numbers. We don't do agents. Over to you."*
-
-That's where you come in. You've just joined the AI team, and your first job is to give the
-assistant a marketing agent. When you're done, Vernon should be able to ask about campaigns in
-plain English. The assistant should also answer the questions that matter on Friday: how many
-clients Nimbus Go brought in, what each one cost, how much commission Singapore's clients bring
-in, and how far over budget Singapore really is. Those need marketing, trading and finance data
-together.
-
-Then the competition starts. The AI team has a set of hard questions waiting. Some are lookups,
-some need real analysis, some cross three teams, and a few are traps. The best agent wins.
+You've just joined the AI team. Your job: give the assistant a marketing agent, so that by
+Friday it can answer Vernon honestly.
 
 ## How the assistant works
 
-Today the assistant has a main agent, an orchestrator and three specialists: finance, trading and
+The assistant has a main agent, an orchestrator and three specialists: finance, trading and
 news. You add the fourth.
 
 ```mermaid
@@ -142,9 +112,10 @@ flowchart LR
 
 The main agent talks to people. The orchestrator reads each question, decides which specialists
 it needs, asks them, and merges what they say. Each specialist knows one part of the business and
-reads only its own data.
+reads only its own data. The news agent reads live headlines; this workshop doesn't use it, but
+it shows how many specialists one orchestrator can manage.
 
-The interesting questions need more than one specialist:
+Vernon's question needs three of them at once:
 
 ```mermaid
 flowchart LR
@@ -157,23 +128,26 @@ flowchart LR
     FIN --> A
 ```
 
-## The exercises
+## Where your work goes
 
-| | Exercise | You'll end up with | About |
-|---|---|---|---|
-| 0 | [Meet Nimbus](exercises/0-meet-nimbus.md) | The app running, and Vernon's problem in front of you | 5 min |
-| 1 | [Give the data a voice](exercises/1-tools.md) | Two tools Gemini can call | 10 min |
-| 2 | [Hire the marketing agent](exercises/2-agent.md) | An agent that uses them | 7 min |
-| 3 | [Join the team](exercises/3-orchestrator.md) | The orchestrator sends marketing questions to your agent | 8 min |
-| 4 | [Teamwork](exercises/4-teamwork.md) | Questions that need two or three agents get the right ones | 8 min |
-| 5 | [Prove it](exercises/5-evals.md) | A score, and then the competition, where you can change anything | the rest |
-| + | [Extra: tools from the UI](exercises/extra-ui-tools.md) | New finance and trading tools, added without code | if you finish early |
+Everything you write goes in one folder, `my_agent/`:
 
-Every exercise ends with a check you can run, like `make check-1`. It tells you what works and
-what doesn't yet.
+```
+my_agent/
+  marketing_agent.py      your two tools and your agent       exercises 1 and 2
+  marketing_queries.py    the data team's queries; your tools call these
+  team.py                 the agents the orchestrator can call    exercise 3
+  prompts/
+    marketing_agent.md    how your agent behaves                exercise 5
+    orchestrator.md       how questions get routed              exercises 3 and 4
+    main_agent.md         the assistant's persona               exercise 5
+```
 
-You can also score your agents at any point with `make eval`, even before you've written a line.
-It takes a minute or two. The score starts low. Watching it climb is half the fun.
+The rest of the app is in `platform/`. You never need to open it.
+
+**How your changes show up.** You never restart anything. Save a file, and the app restarts
+itself in about 2 seconds. Ask a question on the **Chat** page, and the **Agent route** panel
+shows which agents and tools answered.
 
 ## Commands
 
@@ -181,26 +155,31 @@ It takes a minute or two. The score starts low. Watching it climb is half the fu
 |---|---|
 | `make up` | Start the app |
 | `make check-1` | Check exercise 1 (or 0, 2, 3, 4) |
-| `make eval` | Score your agents on the practice questions |
-| `make submit` | Check your work is pushed, and show what to hand in for the competition |
-| `make logs` | Show the app's logs. Use it when something breaks. |
+| `make eval` | Score your agents on the practice questions, in about 2 minutes |
+| `make eval Q=<id>` | Score one question again |
+| `make eval P=2` | Score more slowly, for a shared key or one that hits rate limits |
+| `make submit` | Check your work is pushed, and show what to hand in |
+| `make logs` | Show the app's logs. Use it when something breaks |
 | `make reset` | Reload the database from scratch |
 | `make down` | Stop the app |
 
-The app is at http://localhost:8080. ADK's own developer UI, showing the same agents, is at
+The app is at http://localhost:8080. ADK's own developer UI, with the same agents, is at
 http://localhost:8000.
 
 ## If something goes wrong
 
 | Problem | Fix |
 |---|---|
-| `make up` stops and asks for a key | Add your key to `.env`, then run it again. |
-| "port 5432 is already in use" | Another database is running. In `.env`, change `POSTGRES_PORT=5432` to `POSTGRES_PORT=5433`, then start again. |
-| The chat stops answering after you save a file | You have a Python error. Run `make logs`, fix the error, save again. |
+| `make up` says Docker or Podman isn't running | Start Docker Desktop, or run `podman machine start`. Then `make up` again. |
+| `make up` stops and asks for a key | Add your key to `.env`, then `make up` again. |
+| "port 5432 is already in use" | Another database is running. In `.env`, set `POSTGRES_PORT=5433`, then `make up` again. |
+| The first `make up` is very slow | It downloads about 1 GB of images. Keep going with the story and exercise 0's reading. |
+| The chat stops answering after you save a file | You have a Python error. Run `make logs`, fix it, save again. |
+| `make eval` shows "rate limit" or many timeouts | Run `make eval P=2`. |
 | The data looks wrong | Run `make reset`. |
 
 ## Going deeper
 
 - [How the orchestrator picks agents](platform/docs/ORCHESTRATION.md)
 - [How the app is built](platform/docs/ARCHITECTURE.md): containers, data model, tools and safety
-- [Maintaining the app](platform/README.md): tests, data, and the full reference docs
+- [Maintaining the app](platform/README.md): tests, data, judging, and the reference docs

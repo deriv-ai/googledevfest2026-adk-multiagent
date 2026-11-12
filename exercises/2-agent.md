@@ -1,6 +1,6 @@
 # Exercise 2: Hire the marketing agent
 
-[Back to the workshop](../README.md) · [Previous: Give the data a voice](1-tools.md)
+[Back to the workshop](../README.md) · [Previous: Give the data a voice](1-tools.md) · About 6 minutes
 
 ## The problem
 
@@ -37,10 +37,15 @@ In the same file, **`my_agent/marketing_agent.py`**, finish the marketing agent:
 
 1. Write its `DESCRIPTION`. Remember who reads it: the orchestrator, deciding whether a question
    belongs to marketing.
-2. Make `build()` return an `LlmAgent` that uses your two tools.
+2. Make `build()` return an `LlmAgent` that uses your two tools and the three ready-made ones
+   (`*READY_MADE_TOOLS`).
 
 You don't need to write the instruction from scratch. It's waiting for you in a prompt file, and
 you'll get to tune it in the competition.
+
+`build()` takes `services` and `model`. Every specialist has this same signature, so the team can
+build them all the same way. Finance and trading use `services` to reach their tools in the
+database. Yours doesn't need it, so leave it unused.
 
 <details>
 <summary>Hint: where does the instruction come from?</summary>
@@ -54,8 +59,8 @@ in today's date. It's already imported in `marketing_agent.py`.
 <summary>Hint: how do the other specialists do it?</summary>
 
 Look at `finance_agent.py` and `trading_agent.py` in `platform/src/devfest_agents/agents/`. Their
-tools come from the database instead of Python, but their `DESCRIPTION`s show the style. `GENERATION` sets a low
-temperature, so answers stay consistent from run to run.
+tools come from the database instead of Python, but their `DESCRIPTION`s show the style.
+`GENERATION` sets a low temperature, so answers stay consistent from run to run.
 
 </details>
 
@@ -69,7 +74,7 @@ def build(services: Any, model: Any) -> LlmAgent:
         model=model,
         description=DESCRIPTION,
         instruction=static_instruction(NAME),
-        tools=[campaign_performance, channel_summary],
+        tools=[campaign_performance, channel_summary, *READY_MADE_TOOLS],
         generate_content_config=GENERATION,
     )
 ```
@@ -83,7 +88,17 @@ make check-2
 ```
 
 It builds your agent the way the app will, and checks its name, description, instruction and
-tools.
+tools. Then it asks your agent one question **on its own**, with no orchestrator in between:
+
+```
+  Asking your agent on its own: "Which campaign brought in the most new clients in August 2026, and how many?"
+  ✓ It picked a tool: campaign_performance(start_date='2026-08-01', end_date='2026-08-31')
+  ✓ It found the right answer (NM-INTL's social ads campaign, 6 new clients)
+```
+
+You can see which tool it picked from your docstrings, and whether the answer was right. This
+takes about 10 seconds. If it picks a different tool or gets the answer wrong, read that tool's
+docstring again.
 
 ## Read more
 
@@ -91,6 +106,5 @@ tools.
 
 ## Next
 
-Your agent exists, but nobody on the team knows. Ask a marketing question in the chat now and
-you'll still get "no one here covers that". In **[exercise 3](3-orchestrator.md)** you introduce
-it to the orchestrator.
+Your agent works, but only on its own: the chat still can't reach it. In
+**[exercise 3](3-orchestrator.md)** you introduce it to the orchestrator.

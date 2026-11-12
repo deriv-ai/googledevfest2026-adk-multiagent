@@ -264,10 +264,10 @@ exercise N, with a hint under every ✗, and exits non-zero if anything failed.
 | N | checks |
 |---|---|
 | 0 | LLM key set; marketing data loaded |
-| 1 | `my_agent/marketing_agent.py` has at least two `async def` tools; each has a docstring and type hints on every parameter; ADK can build a declaration for each; each returns rows for Q3 2026 |
-| 2 | `DESCRIPTION` filled in; `build()` returns an `LlmAgent` named `marketing_agent` that uses `DESCRIPTION`, has an instruction and at least two tools |
+| 1 | the participant's own `async def` tools (not `READY_MADE_TOOLS`) include one calling `queries.fetch_campaign_performance` and one calling `queries.fetch_channel_summary`; each has a docstring and type hints on every parameter; ADK can build a declaration for each; each returns rows for Q3 2026 |
+| 2 | `DESCRIPTION` filled in; `build()` returns an `LlmAgent` named `marketing_agent` that uses `DESCRIPTION`, has an instruction, the participant's tools and `READY_MADE_TOOLS`; then the agent alone answers one live question ("Which campaign brought in the most new clients in August 2026?", NM-INTL social ads, 6), printing the tools it called |
 | 3 | `marketing_agent` in `SPECIALISTS`; the orchestrator can call it; `my_agent/prompts/orchestrator.md` mentions it; one live practice question routes to it |
-| 4 | three live practice questions (`spend-per-new-client`, `sg-marketing-booked`, `new-clients-september`) route correctly |
+| 4 | `spend-per-new-client` (parallel: both calls before either result), a sequential question defined in `check.py` (Nimbus Go's first spend month, then NM-SG's operating profit that month: finance is asked after marketing answers, about June) and `sg-marketing-booked` (finance only); each needs the right agents and a right answer |
 
 ## Evals (`src/devfest_agents/evals.py`, `src/devfest_agents/judge.py`, `evals/practice.yaml`)
 ```
@@ -303,7 +303,8 @@ Each question scores 2 points:
   temperature 0, and replies PASS or FAIL with a reason. A judge error costs the answer point, not the run.
 
 Report: `{"score", "max_score", "results": [{id, kind, question, expected_agents, called_agents, route_point,
-answer_point, missing, answer, error, elapsed_ms}]}`.
+answer_point, missing, answer, tools, error, elapsed_ms}]}`. `tools` is the call trace: `"<agent> -> <tool>(<json args>)"`
+for every tool call, in order.
 
 **The hidden set and the judge.** `evals/final.yaml` is gitignored and stays with the facilitators. The judge reads
 a submissions CSV with `name` and `repo` columns, plus optional `commit` and timestamp columns; headers are matched
