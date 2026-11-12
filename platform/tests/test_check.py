@@ -71,7 +71,7 @@ async def test_exercise_2_wants_every_tool_then_asks_the_agent_alone(fake_servic
     def respond(request, seen):
         if seen == 0:
             return [call("campaign_tool", start_date="2026-08-01", end_date="2026-08-31")]
-        return [text("Our campaigns brought in 19 new clients in August 2026.")]
+        return [text("NM-INTL Q3 2026 - social ads brought in the most: 6 new clients.")]
 
     monkeypatch.setattr("devfest_agents.agents.model.agent_model", lambda settings: ScriptedLlm(model="x", responder=respond))
     failed, out = await run_exercise(2, monkeypatch, fake_module(campaign_tool), capsys)

@@ -29,8 +29,8 @@ YOUR_QUERIES = {"fetch_campaign_performance": "one row per campaign",
                 "fetch_channel_summary": "one row per ad channel"}
 
 # Exercise 2: one question for the marketing agent on its own. Not in either eval set.
-SMOKE_QUESTION = {"id": "check-2", "question": "How many new clients did our ad campaigns bring in during August 2026?",
-                  "agents": [], "numbers": [19]}
+SMOKE_QUESTION = {"id": "check-2", "question": "Which campaign brought in the most new clients in August 2026, and how many?",
+                  "agents": [], "numbers": [6], "words": ["NM-INTL", "social"]}
 
 # Exercise 4: the two kinds of teamwork, and a tie-break. The sequential question's second
 # request has to use what the first answer found: the entity with the most sign-ups.
@@ -167,7 +167,7 @@ async def smoke_test(c: Checklist, module) -> None:
                    "It answered without calling a tool. Make the docstrings say what each tool returns."):
         return
     answer = events[-1].get("text", "") if events[-1]["type"] == "answer" else ""
-    c.check(bool(answer) and not missed_checks(SMOKE_QUESTION, answer), "It found the right answer (19 new clients)",
+    c.check(bool(answer) and not missed_checks(SMOKE_QUESTION, answer), "It found the right answer (NM-INTL's social ads campaign, 6 new clients)",
             events[-1].get("message") or f"It said: {answer[:200]}")
     print("  That tested your agent on its own. The chat can't reach it until exercise 3.")
 
