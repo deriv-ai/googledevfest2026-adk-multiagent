@@ -178,6 +178,3 @@ uv run python -m devfest_agents.evals evals/final.yaml --encrypt --key "<passphr
 
 **All data is synthetic.** `scripts/generate_synthetic_data.py` generates every client, trade,
 ledger line and campaign.
-
-**Note:** `cryptography` is held below version 47 in `pyproject.toml`. Newer versions crash with
-"Illegal instruction" inside Podman on Apple Silicon Macs.
