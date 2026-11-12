@@ -132,7 +132,7 @@ def test_encrypted_sets_need_the_right_passphrase(tmp_path):
 def test_practice_questions_are_well_formed(question):
     assert set(question) <= {"id", "kind", "question", "agents", "numbers", "words", "absent", "judge"}
     assert question["kind"] in KINDS
-    assert set(question["agents"]) <= {"finance_agent", "trading_agent", "marketing_agent"}
+    assert set(question["agents"]) <= {"finance_agent", "trading_agent", "news_agent", "marketing_agent"}
     assert {"numbers", "words", "absent", "judge"} & set(question)
 
 
