@@ -292,12 +292,13 @@ fail to build. If `marketing_agent` isn't wired in yet, the run goes ahead with 
 questions will fail, so participants can score from the very start.
 
 **Judging.** The hidden set, `evals/final.yaml`, is gitignored and never leaves the
-facilitators. Participants run `make submit` (it checks that `my_agent/` is committed and pushed)
-and hand in their fork's URL and commit. `make -C platform judge SUBMISSIONS=<csv>` then scores
-each one: it checks out only `my_agent/` at that commit, starts the app image with that folder
-mounted on the running stack's network, asks every question through `POST /api/chat`, and grades
-the answers in its own process, so participant code can't touch the grading. Results are cached
-per commit in `platform/.judge/`, and `leaderboard.html` there is rewritten after each submission.
+facilitators. Participants run `make submit NAME=<name>`, which zips `my_agent/`, and upload the
+zip to a shared Google Drive folder. `make -C platform judge SUBMISSIONS=<downloaded folder or zip>`
+then scores each `<name>.zip` or `<name>/` in it: it unpacks the folder that holds `team.py`,
+starts the app image with that folder mounted on the running stack's network, asks every question
+through `POST /api/chat`, and grades the answers in its own process, so participant code can't
+touch the grading. Results are cached per version (a hash of the files) in `platform/.judge/`, and
+`leaderboard.html` there is rewritten after each submission.
 See [the platform README](../README.md) for running it on the day.
 
 See the Evals section of [CONTRACT.md](CONTRACT.md) for the formats.

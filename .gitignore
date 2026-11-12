@@ -38,3 +38,6 @@ Thumbs.db
 evals/report.json
 evals/final.yaml
 platform/.judge/
+
+# make submit's zips
+submission/

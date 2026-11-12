@@ -110,7 +110,7 @@ function scriptFor(message: string): Step[] {
       [200, { type: "agent_start", agent: "orchestrator" }],
       [300, { type: "tool_call", agent: "orchestrator", tool: "trading_agent", call_id: "e2", kind: "agent", args: { request: "Top instruments by commission, October 2026" } }],
       [200, { type: "agent_start", agent: "trading_agent" }],
-      [700, { type: "error", message: "GEMINI_API_KEY is missing or invalid. Add it to .env at the repo root and run make up again." }],
+      [700, { type: "error", message: "LLM_API_KEY is missing or invalid. Add it to .env at the repo root and run make up again." }],
     ];
   }
 

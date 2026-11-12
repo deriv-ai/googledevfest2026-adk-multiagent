@@ -1,30 +1,35 @@
 """Score competition submissions and keep a leaderboard (facilitators only).
 
-    python -m devfest_agents.judge submissions.csv --questions ../evals/final.yaml
+    python -m devfest_agents.judge ~/Downloads/submissions --questions ../evals/final.yaml
 
-Each submission is a fork and a commit. For each one the judge:
+Participants upload their `my_agent/` folder, zipped by `make submit` and named after
+them, to a shared Google Drive folder. Download that folder and point the judge at it
+(the folder, or the zip Google Drive gives you). Each `<name>.zip` or `<name>/` inside
+is one submission. For each one the judge:
 
-1. fetches only `my_agent/` from that commit (the rest of the fork is ignored),
+1. unpacks its `my_agent/` (the folder that holds team.py),
 2. starts the app image with that folder mounted, on the running stack's network,
    so it shares the database and the news server,
 3. asks every question through the app's chat API and grades the answers here,
    outside the participant's code, so their code can't touch the grading,
 4. saves the result and rewrites leaderboard.html.
 
-Results are cached per commit: run the judge again and it only scores new commits.
-The participant's code runs with the LLM key from --env-file, so use a key with a
-spending cap.
+Results are cached per version (a hash of the files): run the judge again and it only
+scores new or changed uploads. The participant's code runs with the LLM key from
+--env-file, so use a key with a spending cap.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
-import csv
+import hashlib
 import json
 import re
+import shutil
 import sys
 import time
+import zipfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -38,14 +43,14 @@ from .leaderboard import write_leaderboard
 BOOT_TIMEOUT_S = 90
 APP_CONTAINER = "nimbus-app"  # the running stack's app; submissions copy its settings
 STACK_KEYS = ("DATABASE_URL", "AGENT_DATABASE_URL", "NEWS_MCP_URL", "STATIC_DIR", "STARTER_TOOLS_PATH")
+SKIP = {"__pycache__", ".DS_Store", "__MACOSX"}  # junk that zips and Macs add
 
 
 @dataclass
 class Submission:
     name: str
-    repo: str
-    commit: str = ""          # empty: the default branch's latest commit
-    submitted_at: str = ""
+    path: Path               # a .zip or a folder
+    submitted_at: str = ""   # the upload's modified time, for tie-breaks
 
 
 class JudgeError(Exception):
@@ -55,30 +60,66 @@ class JudgeError(Exception):
 # ---------------------------------------------------------------------------
 # Submissions
 # ---------------------------------------------------------------------------
-def read_submissions(path: Path) -> list[Submission]:
-    """A CSV with name and repo columns, and optionally commit and a timestamp.
-    Header names are matched loosely, so a form export works as it is. When a name
-    appears more than once, the last row counts: your latest submission is the one judged."""
-    with path.open(newline="", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
-
-    def pick(row: dict[str, str], *words: str) -> str:
-        for key, value in row.items():
-            if key and any(word in key.lower() for word in words):
-                return (value or "").strip()
-        return ""
-
-    subs = [Submission(name=pick(row, "name", "team"), repo=https_url(pick(row, "repo", "fork", "url")),
-                       commit=pick(row, "commit"), submitted_at=pick(row, "timestamp", "submitted", "time"))
-            for row in rows]
-    latest = {slug(s.name): s for s in subs if s.name and s.repo}
+def read_submissions(inbox: Path, out: Path) -> list[Submission]:
+    """One submission per `<name>.zip` or `<name>/` in the inbox. A zip of the whole
+    inbox (what Google Drive's "Download" gives you) is unpacked first. When two uploads
+    share a name (Drive downloads the second as "Ada (1).zip"), the newer one counts."""
+    if inbox.is_file() and inbox.suffix == ".zip":
+        unpacked = out / "inbox"
+        shutil.rmtree(unpacked, ignore_errors=True)
+        unzip(inbox, unpacked)
+        inbox = unpacked
+    if not inbox.is_dir():
+        raise JudgeError(f"{inbox} isn't a folder or a .zip")
+    entries = [p for p in inbox.iterdir() if p.name not in SKIP and not p.name.startswith(".")
+               and (p.is_dir() or p.suffix == ".zip")]
+    # Drive wraps a downloaded folder in one more folder of the same name; look inside it.
+    if len(entries) == 1 and entries[0].is_dir() and not find_my_agent(entries[0], depth=1):
+        return read_submissions(entries[0], out)
+    latest: dict[str, Submission] = {}
+    for path in sorted(entries, key=lambda p: p.stat().st_mtime):
+        name = path.stem if path.suffix == ".zip" else path.name
+        name = re.sub(r"\s*\(\d+\)$", "", name)  # "Ada (1)": Drive's name for a second upload
+        latest[slug(name)] = Submission(name=name, path=path, submitted_at=time.strftime(
+            "%Y-%m-%d %H:%M:%S", time.localtime(path.stat().st_mtime)))
     return list(latest.values())
 
 
-def https_url(repo: str) -> str:
-    """git@github.com:me/fork.git -> https://github.com/me/fork.git, so no SSH key is needed."""
-    match = re.fullmatch(r"git@([^:]+):(.+)", repo)
-    return f"https://{match[1]}/{match[2]}" if match else repo
+def unzip(archive: Path, dest: Path) -> None:
+    """Extract a zip, refusing any entry that would land outside dest."""
+    dest.mkdir(parents=True, exist_ok=True)
+    try:
+        with zipfile.ZipFile(archive) as zf:
+            for member in zf.namelist():
+                if not (dest / member).resolve().is_relative_to(dest.resolve()):
+                    raise JudgeError(f"{archive.name} has a file outside its own folder: {member}")
+            zf.extractall(dest)
+    except zipfile.BadZipFile:
+        raise JudgeError(f"{archive.name} isn't a readable zip") from None
+
+
+def find_my_agent(root: Path, depth: int = 3) -> Path | None:
+    """The shallowest folder under root that holds team.py."""
+    level = [root]
+    for _ in range(depth + 1):
+        for folder in level:
+            if (folder / "team.py").is_file():
+                return folder
+        level = [c for f in level for c in sorted(f.iterdir()) if c.is_dir() and c.name not in SKIP]
+    return None
+
+
+def files_of(folder: Path) -> list[Path]:
+    return sorted(p for p in folder.rglob("*")
+                  if p.is_file() and not SKIP & set(p.relative_to(folder).parts) and p.suffix != ".pyc")
+
+
+def version(folder: Path) -> str:
+    """A hash of every file's path and contents, so an unchanged upload isn't scored twice."""
+    digest = hashlib.sha256()
+    for path in files_of(folder):
+        digest.update(path.relative_to(folder).as_posix().encode() + b"\0" + path.read_bytes() + b"\0")
+    return digest.hexdigest()
 
 
 def slug(name: str) -> str:
@@ -97,23 +138,20 @@ async def sh(*args: str, check: bool = True) -> str:
     return out
 
 
-async def fetch_my_agent(sub: Submission, workdir: Path) -> tuple[Path, str]:
-    """Check out my_agent/ at the submitted commit. Returns its path and the full commit id."""
-    repo = workdir / "repo"
-    if not repo.exists():
-        await sh("git", "clone", "--quiet", "--no-checkout", "--filter=blob:none", sub.repo, str(repo))
+def unpack_my_agent(sub: Submission, workdir: Path) -> tuple[Path, str]:
+    """Copy the submission's my_agent/ into workdir. Returns its path and its version."""
+    shutil.rmtree(workdir, ignore_errors=True)
+    source = workdir / "upload"
+    if sub.path.is_dir():
+        shutil.copytree(sub.path, source)
     else:
-        await sh("git", "-C", str(repo), "fetch", "--quiet", "origin")
-    wanted = sub.commit or "origin/HEAD"
-    try:
-        commit = await sh("git", "-C", str(repo), "rev-parse", "--verify", f"{wanted}^{{commit}}")
-    except JudgeError:
-        raise JudgeError(f"commit {wanted[:12]} isn't on the fork. Was it pushed?") from None
-    await sh("git", "-C", str(repo), "checkout", "--quiet", "--force", commit, "--", "my_agent")
-    my_agent = repo / "my_agent"
-    if not (my_agent / "team.py").exists():
-        raise JudgeError("that commit has no my_agent/team.py")
-    return my_agent, commit
+        unzip(sub.path, source)
+    found = find_my_agent(source)
+    if found is None:
+        raise JudgeError("no team.py inside. Upload the whole my_agent folder (make submit zips it).")
+    my_agent = workdir / "my_agent"
+    shutil.copytree(found, my_agent, ignore=shutil.ignore_patterns(*SKIP, "*.pyc"))
+    return my_agent, version(my_agent)
 
 
 async def stack_settings(args: argparse.Namespace) -> list[str]:
@@ -174,12 +212,12 @@ def http_asker(url: str):
 async def judge_one(args: argparse.Namespace, sub: Submission, questions: list[dict[str, Any]]) -> dict[str, Any]:
     workdir = args.out / "work" / slug(sub.name)
     workdir.mkdir(parents=True, exist_ok=True)
-    result: dict[str, Any] = asdict(sub) | {"score": 0, "max_score": 2 * len(questions), "by_kind": {},
+    result: dict[str, Any] = asdict(sub) | {"path": str(sub.path), "version": "", "score": 0, "max_score": 2 * len(questions), "by_kind": {},
                                             "error": None, "judged_at": time.strftime("%Y-%m-%d %H:%M:%S")}
     container = f"judge-{slug(sub.name)}"
     try:
-        my_agent, result["commit"] = await fetch_my_agent(sub, workdir)
-        cached = args.out / "results" / f"{slug(sub.name)}-{result['commit'][:12]}.json"
+        my_agent, result["version"] = unpack_my_agent(sub, workdir)
+        cached = args.out / "results" / f"{slug(sub.name)}-{result['version'][:12]}.json"
         if cached.exists() and not args.force:
             return json.loads(cached.read_text())
         url = await start_app(args, container, my_agent, args.stack_settings)
@@ -224,10 +262,10 @@ def saved_results(out: Path) -> dict[str, dict[str, Any]]:
 
 
 async def judge_all(args: argparse.Namespace) -> None:
-    subs = read_submissions(args.submissions)
+    subs = read_submissions(args.submissions, args.out)
     questions = evals.load_questions(args.questions)
     if not subs:
-        raise JudgeError(f"no submissions with a name and a repo in {args.submissions}")
+        raise JudgeError(f"no .zip files or folders in {args.submissions}")
     networks = await sh(args.engine, "network", "ls", "--format", "{{.Name}}")
     if args.network not in networks.split():
         raise JudgeError(f"network {args.network} doesn't exist. Start the stack first: make up")
@@ -253,7 +291,7 @@ async def judge_all(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score competition submissions into a leaderboard.")
-    parser.add_argument("submissions", type=Path, help="CSV with name, repo and optionally commit and timestamp")
+    parser.add_argument("submissions", type=Path, help="the downloaded Drive folder (or its .zip): one <name>.zip or <name>/ per submission")
     parser.add_argument("--questions", type=Path, default=REPO_ROOT / "evals" / "final.yaml")
     parser.add_argument("--out", type=Path, default=PLATFORM_ROOT / ".judge", help="results and leaderboard.html")
     parser.add_argument("--engine", default="docker", help="docker or podman")
@@ -263,7 +301,7 @@ def main() -> None:
     parser.add_argument("--at-once", type=int, default=2, help="submissions to score at the same time")
     parser.add_argument("--parallel", type=int, default=evals.PARALLEL, help="questions at the same time, each")
     parser.add_argument("--timeout", type=float, default=evals.TIMEOUT_S, help="seconds per question")
-    parser.add_argument("--force", action="store_true", help="score again even if a commit was scored before")
+    parser.add_argument("--force", action="store_true", help="score again even if a version was scored before")
     args = parser.parse_args()
     try:
         asyncio.run(judge_all(args))

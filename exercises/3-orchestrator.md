@@ -1,7 +1,6 @@
 # Exercise 3: Join the team
 
-[Back to the workshop](../README.md) · [Previous: Hire the marketing agent](2-agent.md) · About 6 minutes
-
+[Back to the workshop](../README.md) · [Previous: Hire the marketing agent](2-agent.md)
 ## The problem
 
 The orchestrator only sends work to the specialists it knows about. Right now that's finance,

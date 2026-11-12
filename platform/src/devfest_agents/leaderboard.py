@@ -38,12 +38,12 @@ def render_row(rank: int, r: dict[str, Any], kinds: list[str]) -> str:
     cells = "".join(f"<td class=kind>{'/'.join(map(str, r['by_kind'][k])) if k in r.get('by_kind', {}) else '–'}</td>"
                     for k in kinds)
     note = f"<div class=note>{html.escape(r['error'].splitlines()[0][:120])}</div>" if r.get("error") else ""
-    commit = html.escape((r.get("commit") or "")[:7])
+    version = html.escape((r.get("version") or "")[:7])
     return (f"<tr><td class=rank>{rank}</td>"
             f"<td><div class=name>{html.escape(r['name'])}</div>{note}</td>"
             f"<td class=score><span>{r['score']}</span><small>/{r['max_score']}</small>"
             f"<div class=bar><i style='width:{share:.0%}'></i></div></td>{cells}"
-            f"<td class=commit>{commit}</td></tr>")
+            f"<td class=version>{version}</td></tr>")
 
 
 PAGE = """<!doctype html>
@@ -82,7 +82,7 @@ PAGE = """<!doctype html>
   .bar {{ height: 6px; margin-top: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }}
   .bar i {{ display: block; height: 100%; background: var(--accent); }}
   .kind {{ font-size: 15px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }}
-  .commit {{ font: 13px ui-monospace, SFMono-Regular, monospace; color: var(--muted); }}
+  .version {{ font: 13px ui-monospace, SFMono-Regular, monospace; color: var(--muted); }}
   .empty {{ text-align: center; color: var(--muted); padding: 48px; }}
 </style>
 </head>
@@ -94,7 +94,7 @@ PAGE = """<!doctype html>
   </header>
   <div class="table">
     <table>
-      <thead><tr><th>#</th><th>Name</th><th>Score</th>{head}<th>Commit</th></tr></thead>
+      <thead><tr><th>#</th><th>Name</th><th>Score</th>{head}<th>Version</th></tr></thead>
       <tbody>
 {body}
       </tbody>

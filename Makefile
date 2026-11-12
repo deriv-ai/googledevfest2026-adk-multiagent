@@ -1,7 +1,8 @@
 # The marketing agent workshop. Run `make help` for the commands you need.
 # Maintainer commands (tests, data, security scans) are in platform/Makefile: `make -C platform help`.
 
-# Docker if it's installed, otherwise Podman. Force one with ENGINE=docker or ENGINE=podman.
+# The workshop uses Docker. Maintainers without it can use Podman: it's picked when Docker
+# isn't installed, or force it with ENGINE=podman.
 ENGINE ?= $(if $(shell command -v docker 2>/dev/null),docker,podman)
 ifeq ($(ENGINE),podman)
 COMPOSE ?= podman-compose -f compose.yaml
@@ -43,12 +44,13 @@ check-env:
 
 check-engine:
 	@if ! command -v $(ENGINE) >/dev/null 2>&1; then \
-		echo "Neither Docker nor Podman is installed. Install Docker Desktop (or Podman), then run make up again."; \
+		echo "Docker isn't installed. Follow 'Install Docker' in README.md, then run make up again."; \
 		exit 1; \
 	fi
 	@if ! $(ENGINE) info >/dev/null 2>&1; then \
-		echo "$(ENGINE) is installed but not running."; \
-		echo "Start Docker Desktop, or run: podman machine start. Then run make up again."; \
+		if [ "$(ENGINE)" = podman ]; then echo "Podman isn't running. Run: podman machine start"; \
+		else echo "Docker is installed but not running. Start Docker Desktop (on Linux: sudo systemctl start docker),"; \
+			echo "then run make up again. See 'If something goes wrong' in README.md if it still fails."; fi; \
 		exit 1; \
 	fi
 
@@ -78,14 +80,15 @@ eval: ## Score your agents on the practice questions (one question: Q=<id>)
 	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) \
 		$(if $(P),--parallel $(P)) > evals/report.json && echo "Full report: evals/report.json" || true
 
-submit: ## Check your work is pushed, and show what to hand in for the competition
-	@if ! git diff --quiet HEAD -- my_agent || [ -n "$$(git ls-files --others --exclude-standard my_agent)" ]; then \
-		echo "You have changes in my_agent/ that aren't committed yet. Commit and push them first:"; \
-		echo '  git add my_agent && git commit -m "My agent" && git push'; exit 1; \
+submit: ## Zip my_agent/ for the competition: make submit NAME="your name or team"
+	@if [ -z "$(NAME)" ]; then echo 'Add your name or team: make submit NAME="Ada Lovelace"'; exit 1; fi
+	@mkdir -p submission && rm -f "submission/$(NAME).zip"
+	@if command -v zip >/dev/null 2>&1; then \
+		zip -qr "submission/$(NAME).zip" my_agent -x '*__pycache__*' '*.pyc' '*.DS_Store'; \
+	elif command -v python3 >/dev/null 2>&1; then \
+		python3 -m zipfile -c "submission/$(NAME).zip" my_agent; \
+	else \
+		echo "Can't zip here. Copy the my_agent folder, rename the copy to your name, and upload that."; exit 1; \
 	fi
-	@if [ -z "$$(git branch -r --contains HEAD 2>/dev/null)" ]; then \
-		echo "Your latest commit isn't on GitHub yet. Run: git push"; exit 1; \
-	fi
-	@echo "Hand these in on the form your facilitators shared:"
-	@echo "  Fork:   $$(git remote get-url origin)"
-	@echo "  Commit: $$(git rev-parse HEAD)"
+	@echo "Made submission/$(NAME).zip. Upload it to the Google Drive folder your facilitators shared."
+	@echo "Changed something? Run this again and upload the new zip: the newest upload counts."

@@ -23,9 +23,9 @@ on the same network.
 ## Environment variables (read by `config.py`, provided via `.env` + compose)
 | var | default | meaning |
 |---|---|---|
-| `LITELLM_GEMINI_API_KEY` | – | LLM key. **Takes precedence.** Used with `OPENAI_BASE_URL` (LiteLLM proxy mode) or alone as a Gemini key |
-| `GEMINI_API_KEY` | – | Fallback LLM key (Google AI Studio, direct mode). One of the two keys must be set |
-| `OPENAI_BASE_URL` | – | Optional OpenAI-compatible LiteLLM proxy base (e.g. `https://proxy.example.com/v1`). When set → proxy mode: pass `api_base`+`api_key` to `LiteLlm`, model strings use the `openai/` prefix |
+| `LLM_API_KEY` (or `LITELLM_GEMINI_API_KEY`) | – | LLM key for any LiteLLM provider, passed to `LiteLlm` as `api_key`. **Takes precedence** |
+| `GEMINI_API_KEY` | – | Fallback LLM key. One of the keys must be set |
+| `LLM_BASE_URL` (or `OPENAI_BASE_URL`) | – | Optional OpenAI-compatible endpoint (e.g. `https://proxy.example.com/v1`). When set → proxy mode: pass `api_base`+`api_key` to `LiteLlm`, model strings use the `openai/` prefix |
 | `AGENT_MODEL` | proxy mode: `openai/gemini-3.7-flash`; direct mode: `gemini/gemini-3.7-flash` | specialists' model (LiteLLM model string) |
 | `ROUTER_MODEL` | = AGENT_MODEL | main_agent + orchestrator model |
 | `DATABASE_URL` | role `app` on `db:5432/nimbus` (see compose.yaml) | rw on `tools` schema, read on finance/trading/marketing for schema browsing |
@@ -272,11 +272,11 @@ exercise N, with a hint under every ✗, and exits non-zero if anything failed.
 ## Evals (`src/devfest_agents/evals.py`, `src/devfest_agents/judge.py`, `evals/practice.yaml`)
 ```
 python -m devfest_agents.evals evals/practice.yaml [--only ID] [--parallel N] [--timeout S] > report.json
-python -m devfest_agents.judge submissions.csv [--questions evals/final.yaml] [--engine podman]    # facilitators
+python -m devfest_agents.judge <folder-or-zip> [--questions evals/final.yaml] [--engine podman]    # facilitators
 ```
 - `make eval` runs the practice set (18 questions, every kind) and writes `evals/report.json`. `make eval Q=<id>` runs
   one question.
-- `make submit` checks that `my_agent/` is committed and pushed, and prints the fork URL and commit to hand in.
+- `make submit NAME=<name>` zips `my_agent/` into `submission/<name>.zip` for the Google Drive folder.
 - Questions run in parallel, 8 at a time by default (`--parallel`, or `make eval P=<n>`). Each runs as a fresh
   conversation. A question with no answer within 120 s (`--timeout`) scores 0, so one slow question can't hold up
   the run. Each specialist may call at most `MAX_TOOL_CALLS` (8) tools per request; further calls return an error

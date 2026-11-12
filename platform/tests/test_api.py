@@ -168,7 +168,7 @@ def test_missing_key_chat(fake_services, monkeypatch):
     app = create_app(services=fake_services, schema=FakeSchema(), connect_db=False)
     with TestClient(app) as c:
         raw = c.post("/api/chat", json={"conversation_id": "x", "message": "hi"}).text
-        assert "LITELLM_GEMINI_API_KEY" in raw and '"type": "error"' in raw
+        assert "LLM_API_KEY" in raw and '"type": "error"' in raw
         assert c.get("/api/tools").status_code == 200  # app works without a key
 
 

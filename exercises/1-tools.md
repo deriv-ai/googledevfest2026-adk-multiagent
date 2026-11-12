@@ -1,7 +1,6 @@
 # Exercise 1: Give the data a voice
 
-[Back to the workshop](../README.md) · [Previous: Meet Nimbus](0-meet-nimbus.md) · About 9 minutes
-
+[Back to the workshop](../README.md) · [Previous: Meet Nimbus](0-meet-nimbus.md)
 ## The problem
 
 The data team's functions work, but a model can't use them well. They have names like

@@ -1,7 +1,6 @@
 # Exercise 2: Hire the marketing agent
 
-[Back to the workshop](../README.md) · [Previous: Give the data a voice](1-tools.md) · About 6 minutes
-
+[Back to the workshop](../README.md) · [Previous: Give the data a voice](1-tools.md)
 ## The problem
 
 Tools don't run themselves. Something has to read Vernon's question, choose a tool, fill in the

@@ -186,7 +186,7 @@ def log(text: str) -> None:
 # ---------------------------------------------------------------------------
 def build_runtime() -> AgentRuntime:
     if not get_services().settings.llm_key_configured:
-        raise EvalSetupError("No LLM key configured. Add GEMINI_API_KEY (or LITELLM_GEMINI_API_KEY) to .env, "
+        raise EvalSetupError("No LLM key configured. Add LLM_API_KEY (and AGENT_MODEL) to .env, "
                              "then run `make up` again.")
     try:
         from .agents import build_root_agent

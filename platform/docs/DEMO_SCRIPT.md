@@ -14,10 +14,10 @@ about a minute. The demos in sections 2, 3 and 7 are optional: use them only if 
 | 0:23 | Exercise 2 | Description vs instruction (section 5). |
 | 0:29 | Exercise 3 | Agents as tools (section 6). |
 | 0:35 | Exercise 4 | Parallel, sequential, tie-breaks (section 7). |
-| 0:42 | Exercise 5: score, fix one failure, rerun | Show one improvement cycle (section 8). Open the submission form. |
-| 0:45 | | Start judging, and re-run `make -C platform judge` every few minutes as submissions arrive. |
-| 0:52 | `make submit`, fill in the form | Close the form at 0:54. |
-| 0:54 | | Final judge run, leaderboard on screen, Vernon's answer (section 9). |
+| 0:42 | Exercise 5: score, fix one failure, rerun | Show one improvement cycle (section 8). Put the Drive folder link on screen. |
+| 0:45 | | Start judging: download the Drive folder and run `make -C platform judge` on it. Repeat every few minutes as uploads arrive. |
+| 0:52 | `make submit NAME=...`, upload the zip | Stop accepting uploads at 0:54. |
+| 0:54 | | Final download and judge run, leaderboard on screen, Vernon's answer (section 9). |
 
 Which improvements separate a finished workshop from full marks, and what the reference
 solutions score, is in [CHALLENGES.md](CHALLENGES.md).
@@ -25,7 +25,7 @@ solutions score, is in [CHALLENGES.md](CHALLENGES.md).
 **Setup before going on stage:** `make up` has finished. Open http://localhost:8080 on the Chat
 page, with http://localhost:8000 (ADK dev UI) in a second tab. Run one warm-up question so the model
 connection is hot. Have a second checkout (or branch) ready with exercises 1 to 4 done, for sections
-4 to 8. Have the submission form ready (name, fork URL, commit), and the judge set up as in
+4 to 8. Have a Google Drive folder that anyone with the link can upload to, and the judge set up as in
 [the platform README](../README.md).
 
 > Say early and often: **all company data is synthetic.** Nimbus Markets is a fictional broker, and
@@ -248,15 +248,15 @@ Show one improvement cycle on screen: pick a ✗ row, read its `missing` and `to
 change one sentence in a prompt, `make eval Q=<id>`, then `make eval` for regressions. If the
 room shares one key, tell people to use `make eval P=2`.
 
-When you're ready to start the competition, put the form link on screen and say:
+When you're ready to start the competition, put the Drive folder link on screen and say:
 
 ```bash
-make submit
+make submit NAME="your name or team"
 ```
 
-- It checks their work is pushed and prints their fork URL and commit, for the form.
+- It zips `my_agent/` into `submission/<name>.zip`, which they upload to the Drive folder.
 - You judge every submission on the hidden set with the same model and key, and only their
-  `my_agent/` folder counts. They can resubmit until the deadline; the last one counts.
+  `my_agent/` folder counts. They can upload again until the deadline; the newest upload counts.
 - Put `platform/.judge/leaderboard.html` on the projector. It refreshes itself as results come in.
 - Rules: don't hard-code answers, and marketing tools only read marketing data.
 
@@ -283,6 +283,7 @@ the cost per sign-up, and say the data can't show what those clients trade.
 | Marketing node still dashed | `marketing_agent` is not in `SPECIALISTS`, or the app has not reloaded yet. Check `make logs`. |
 | `make eval` stops with "build() isn't finished yet" | `marketing_agent` is in `SPECIALISTS` but exercise 2 isn't done. Finish `build()`, or take it out of the list for now. |
 | `make eval` or `make check-N` says the agents don't build | Usually a syntax error in `my_agent/marketing_agent.py`. The message names it; `make logs` shows more. |
-| `make submit` says the commit isn't on GitHub | They haven't pushed. `git push`, then `make submit` again. |
+| `make submit` asks for a name | Run it with one: `make submit NAME="Ada Lovelace"`. |
+| A leaderboard row says "no team.py inside" | They uploaded the wrong folder. Ask them to run `make submit` and upload that zip. |
 | Old data or tools | `make reset` reloads the CSVs. `make -C platform seed-tools` re-applies the starter YAML. |
 | Port 5432 busy | Set `POSTGRES_PORT=5433` in `.env`. |

@@ -1,24 +1,71 @@
 """The competition judge: reading submissions, summing points, the leaderboard."""
 
-from devfest_agents.judge import Submission, https_url, points_by_kind, read_submissions, shared_error, sse_events
+import os
+import zipfile
+
+import pytest
+
+from devfest_agents.judge import (JudgeError, Submission, points_by_kind, read_submissions, shared_error, sse_events,
+                                  unpack_my_agent, version)
 from devfest_agents.leaderboard import ranked, render
 
 
-def test_a_form_export_reads_as_it_is_and_the_latest_row_counts(tmp_path):
-    csv = tmp_path / "subs.csv"
-    csv.write_text("Timestamp,Your name,Fork URL,Commit (optional)\n"
-                   "2026-11-20 10:01,Ada,https://github.com/ada/fork,abc123\n"
-                   "2026-11-20 10:02,Bo,git@github.com:bo/fork.git,\n"
-                   "2026-11-20 10:05,Ada,https://github.com/ada/fork,def456\n"
-                   "2026-11-20 10:06,,https://github.com/nobody/fork,\n")
-    subs = read_submissions(csv)
-    assert subs == [Submission("Ada", "https://github.com/ada/fork", "def456", "2026-11-20 10:05"),
-                    Submission("Bo", "https://github.com/bo/fork.git", "", "2026-11-20 10:02")]
+def make_zip(path, files):
+    with zipfile.ZipFile(path, "w") as zf:
+        for name, text in files.items():
+            zf.writestr(name, text)
 
 
-def test_ssh_urls_become_https():
-    assert https_url("git@github.com:me/fork.git") == "https://github.com/me/fork.git"
-    assert https_url("https://github.com/me/fork") == "https://github.com/me/fork"
+def test_each_zip_or_folder_is_a_submission_and_the_newest_upload_counts(tmp_path):
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    make_zip(inbox / "Ada.zip", {"my_agent/team.py": "old"})
+    (inbox / "Team Bo").mkdir()
+    (inbox / "Team Bo" / "team.py").write_text("x")
+    (inbox / "Ada (1).zip").write_bytes((inbox / "Ada.zip").read_bytes())
+    (inbox / "notes.txt").write_text("not a submission")
+    os.utime(inbox / "Ada.zip", (1000, 1000))
+    os.utime(inbox / "Ada (1).zip", (2000, 2000))
+    subs = read_submissions(inbox, tmp_path / "out")
+    assert sorted((s.name, s.path.name) for s in subs) == [("Ada", "Ada (1).zip"), ("Team Bo", "Team Bo")]
+
+
+def test_a_drive_download_zip_is_unpacked_and_its_wrapper_folder_skipped(tmp_path):
+    inner = tmp_path / "Ada.zip"
+    make_zip(inner, {"my_agent/team.py": "x"})
+    download = tmp_path / "drive-download.zip"
+    make_zip(download, {"Submissions/Ada.zip": inner.read_bytes()})
+    subs = read_submissions(download, tmp_path / "out")
+    assert [s.name for s in subs] == ["Ada"]
+
+
+def test_my_agent_is_found_however_it_was_zipped_and_junk_is_dropped(tmp_path):
+    for i, files in enumerate([{"my_agent/team.py": "x", "my_agent/__pycache__/a.pyc": "junk"},
+                               {"team.py": "x", ".DS_Store": "junk"},
+                               {"Ada/my_agent/team.py": "x", "__MACOSX/Ada/._team.py": "junk"}]):
+        make_zip(tmp_path / f"s{i}.zip", files)
+        my_agent, ver = unpack_my_agent(Submission("Ada", tmp_path / f"s{i}.zip"), tmp_path / f"work{i}")
+        assert sorted(p.name for p in my_agent.rglob("*")) == ["team.py"]
+        assert ver == version(my_agent)
+
+
+def test_a_zip_without_team_py_or_with_escaping_paths_is_refused(tmp_path):
+    make_zip(tmp_path / "empty.zip", {"README.md": "hi"})
+    with pytest.raises(JudgeError, match="no team.py"):
+        unpack_my_agent(Submission("x", tmp_path / "empty.zip"), tmp_path / "w1")
+    make_zip(tmp_path / "evil.zip", {"../../evil.py": "x", "team.py": "x"})
+    with pytest.raises(JudgeError, match="outside"):
+        unpack_my_agent(Submission("x", tmp_path / "evil.zip"), tmp_path / "w2")
+
+
+def test_the_version_changes_only_when_a_file_does(tmp_path):
+    (tmp_path / "team.py").write_text("a")
+    first = version(tmp_path)
+    (tmp_path / "__pycache__").mkdir()
+    (tmp_path / "__pycache__" / "team.pyc").write_text("junk")
+    assert version(tmp_path) == first
+    (tmp_path / "team.py").write_text("b")
+    assert version(tmp_path) != first
 
 
 def test_sse_lines_become_events():
@@ -44,7 +91,7 @@ def test_ties_go_to_the_earlier_submission():
 
 def test_the_page_escapes_names_and_shows_errors():
     page = render([{"name": "<b>x</b>", "score": 3, "max_score": 44, "by_kind": {"trap": [1, 6]},
-                    "commit": "abcdef1234", "error": "the app didn't start"}])
+                    "version": "abcdef1234", "error": "the app didn't start"}])
     assert "&lt;b&gt;x&lt;/b&gt;" in page and "<b>x</b>" not in page
     assert "the app didn&#x27;t start" in page and "abcdef1" in page and "1/6" in page
     assert "No submissions judged yet." in render([])

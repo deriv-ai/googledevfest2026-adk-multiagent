@@ -29,10 +29,11 @@ test: ## Python tests + web typecheck
 	$(PYTEST)
 	cd web && npm run typecheck
 
-# The stack must be running (make up). SUBMISSIONS is a CSV: name, repo, and optionally commit and a timestamp.
-judge: ## Score competition submissions into .judge/leaderboard.html (SUBMISSIONS=subs.csv)
+# The stack must be running (make up). SUBMISSIONS is the downloaded Drive folder, or the zip
+# Drive gives you: one <name>.zip (from make submit) or <name>/ folder per participant.
+judge: ## Score competition submissions into .judge/leaderboard.html (SUBMISSIONS=folder-or-zip)
 ifndef SUBMISSIONS
-	$(error SUBMISSIONS is required, e.g. make judge SUBMISSIONS=~/Downloads/submissions.csv)
+	$(error SUBMISSIONS is required, e.g. make judge SUBMISSIONS=~/Downloads/submissions)
 endif
 	uv run --env-file ../.env python -m devfest_agents.judge "$(SUBMISSIONS)" --engine $(ENGINE) $(JUDGE_ARGS)
 

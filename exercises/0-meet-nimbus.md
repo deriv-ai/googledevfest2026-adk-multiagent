@@ -1,7 +1,6 @@
 # Exercise 0: Meet Nimbus
 
-[Back to the workshop](../README.md) · About 4 minutes
-
+[Back to the workshop](../README.md)
 ## The problem
 
 Before fixing anything, see it break the way Vernon did.
@@ -27,8 +26,8 @@ Open http://localhost:8080.
    they answered the question. You'll delete it in exercise 3, once a real marketing agent exists.
 
 3. Open `my_agent/marketing_queries.py`, the data team's handover. Skim the `fetch_...` functions
-   at the bottom: their names, their parameters, and the comment under each one. That's all your
-   tools need. You won't change this file, and you can skip the SQL.
+   at the bottom: their names, their parameters, and the comment under each one. Your tools will
+   call them. You won't change this file, and you can skip the SQL.
 
 ## Check it
 

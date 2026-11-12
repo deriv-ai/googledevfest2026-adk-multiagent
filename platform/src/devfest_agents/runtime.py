@@ -40,8 +40,8 @@ KEEPALIVE_SECONDS = 15.0
 STREAMING = RunConfig(streaming_mode=StreamingMode.SSE)
 
 MISSING_KEY_MESSAGE = (
-    "No LLM key is configured. Add LITELLM_GEMINI_API_KEY or GEMINI_API_KEY to .env "
-    "(get a key from Google AI Studio), then restart the app."
+    "No LLM key is configured. Add LLM_API_KEY (and AGENT_MODEL) to .env "
+    "as step 2 of Set up in README.md shows, then run make up again."
 )
 
 

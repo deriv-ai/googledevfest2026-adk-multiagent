@@ -1,7 +1,6 @@
 # Exercise 4: Teamwork
 
-[Back to the workshop](../README.md) · [Previous: Join the team](3-orchestrator.md) · About 7 minutes
-
+[Back to the workshop](../README.md) · [Previous: Join the team](3-orchestrator.md)
 ## The problem
 
 Vernon's real questions cross teams:

@@ -50,23 +50,28 @@ HIGH/CRITICAL issues. `make trivy-audit` patches, tests and scans in one go.
 **Judging the competition.** The hidden set is `evals/final.yaml` at the repo root. It's
 gitignored, so it only exists on the facilitators' machines.
 
-1. Make a form that collects a name, the fork URL and the commit (participants get the last two
-   from `make submit`). Export the responses as CSV.
-2. With the stack running (`make up`), score them:
+1. Make a Google Drive folder that anyone with the link can upload to, and share the link.
+   Participants run `make submit NAME="<name>"` and upload the zip it makes.
+2. Download the Drive folder (Drive gives you a zip), and with the stack running (`make up`),
+   score it. The judge takes the zip or the unzipped folder:
 
    ```bash
-   make -C platform judge SUBMISSIONS=~/Downloads/submissions.csv
+   make -C platform judge SUBMISSIONS=~/Downloads/submissions.zip
    ```
 
 3. Open `platform/.judge/leaderboard.html` on the projector. It refreshes every 15 seconds.
 
+Each `<name>.zip` or `<name>/` folder is one submission, named after the file. A second upload
+under the same name (Drive downloads it as `<name> (1).zip`) replaces the first; on a tie, the
+earlier upload wins, going by the files' modified times.
+
 **Fit judging into the hour.** Each submission takes about 2 minutes to score (22 questions, 8
 at a time). With 30 participants and 2 at a time, that's 30 minutes, which is too long for the
-6 minutes after the deadline. So start at 0:45, as soon as the first submissions arrive, and
-re-run the command every few minutes. Raise `--at-once` to 4 or 6 if your key's rate limit
+6 minutes after the deadline. So start at 0:45, as soon as the first uploads arrive, and
+download and re-run every few minutes. Raise `--at-once` to 4 or 6 if your key's rate limit
 allows it.
 
-Re-run the same command with a fresh export at any time: commits already scored are skipped.
+Re-run the same command on a fresh download at any time: uploads already scored are skipped.
 Pass options through `JUDGE_ARGS`, for example `JUDGE_ARGS="--at-once 4"` to score four
 submissions at a time, or `--force` to score everything again. The participants' code runs with
 the LLM key in `.env`, so use a key with a spending cap. A participant's code also runs with the

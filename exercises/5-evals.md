@@ -1,7 +1,6 @@
 # Exercise 5: Prove it
 
-[Back to the workshop](../README.md) · [Previous: Teamwork](4-teamwork.md) · About 10 minutes,
-then submit
+[Back to the workshop](../README.md) · [Previous: Teamwork](4-teamwork.md)
 
 ## The problem
 
@@ -81,7 +80,7 @@ answer, and whose instruction would you change?
 
 </details>
 
-**What the score can and can't tell you.** The checks are simple on purpose. A number counts if
+**What the score can and can't tell you.** The checks are simple. A number counts if
 it appears anywhere in the answer, so questions where the wrong number could slip in also have a
 judge rule about what the number means. The judge is a model too: it's strict, but not perfect.
 The route point is all or nothing. And the same agents can score a point or two differently from
@@ -91,18 +90,17 @@ one run to the next. Trust a change that helps over two runs, not one.
 
 The competition uses a hidden set of harder questions in the same style. You never run it
 yourself. The facilitators run it on your `my_agent/` folder, with the same model and key for
-everyone. Submit before 0:54 on the schedule:
+everyone.
+
+To enter, zip your folder with your name or your team's name:
 
 ```bash
-git add my_agent
-git commit -m "My agent"
-git push
-make submit
+make submit NAME="Ada Lovelace"
 ```
 
-`make submit` checks your work is pushed and prints your fork's URL and commit. Paste both into
-the form your facilitators shared. You can submit again until the deadline, and your last
-submission counts. Highest score wins; on a tie, the earlier submission wins.
+That makes `submission/Ada Lovelace.zip`. Upload it to the Google Drive folder your facilitators
+shared. You can upload again until the deadline: run `make submit` again and upload the new zip,
+and your newest upload counts. Highest score wins; on a tie, the earlier upload wins.
 
 Don't hard-code answers: the hidden questions are different, so it wouldn't help anyway. Your
 marketing tools read only the marketing data; when a question needs finance or trading numbers,
@@ -114,7 +112,7 @@ Ask the question from the start one last time:
 
 > Was the Nimbus Go launch campaign worth the money?
 
-Here's what the data can show, and what an honest answer does with it:
+Here's what the data can show:
 
 | What we know | Figure | Where it comes from |
 |---|---|---|
