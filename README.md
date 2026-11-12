@@ -108,6 +108,26 @@ set `LLM_API_KEY` and `LLM_BASE_URL` in `.env`. The comments in `.env.example` e
 
 ---
 
+## Security: for your own machine only
+
+This repo is a workshop template. It is built to run on one laptop, for one person, with made-up
+data, so it has no logins.
+
+- **Every port listens on `127.0.0.1` only** (`BIND_ADDRESS` in `.env`). Nobody else on your
+  network can reach the app, the ADK dev UI or Postgres. Don't change it to `0.0.0.0`, especially
+  on shared or conference Wi-Fi.
+- **There is no authentication.** Anyone who can reach port 8080 can chat, read the data and
+  create, edit or delete tools. The ADK dev UI on port 8000 has no login either.
+- **The database passwords are fixed defaults** (`postgres`, `app`, `agent_ro`). They protect a
+  throwaway local container.
+- **All data is synthetic.** There are no real clients, trades or ledgers.
+- **Tool SQL is read-only.** It runs as `agent_ro`: SELECT on finance, trading and marketing only,
+  in a read-only transaction with a 5-second timeout.
+- **Tool titles and descriptions go into the agents' prompts.** That is how routing works, so only
+  add tools you wrote or trust.
+
+---
+
 ## More docs
 
 - [WORKSHOP.md](WORKSHOP.md): the workshop. **Start here.**
@@ -158,6 +178,3 @@ uv run python -m devfest_agents.evals evals/final.yaml --encrypt --key "<passphr
 
 **All data is synthetic.** `scripts/generate_synthetic_data.py` generates every client, trade,
 ledger line and campaign.
-
-**Note:** `cryptography` is held below version 47 in `pyproject.toml`. Newer versions crash with
-"Illegal instruction" inside Podman on Apple Silicon Macs.

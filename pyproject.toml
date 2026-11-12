@@ -37,7 +37,3 @@ markers = [
     "integration: needs the compose Postgres on localhost:5432 (make up first)",
 ]
 addopts = "-m 'not integration'"
-
-[tool.uv]
-# cryptography 47+ dies with "Illegal instruction" in Podman's Linux VM on Apple Silicon.
-constraint-dependencies = ["cryptography<47"]
