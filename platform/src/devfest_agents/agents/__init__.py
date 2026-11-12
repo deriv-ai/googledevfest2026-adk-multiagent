@@ -49,9 +49,10 @@ def build_root_agent(services: Services | None = None, *, model_factory: ModelFa
     services = services or get_services()
     models = model_factory or default_model_factory(services)
     guard = tracing.DelegationGuard(services.settings.max_delegations)
+    tool_limit = tracing.ToolCallLimit(services.settings.max_tool_calls)
     specialists = [module.build(services, models("agent")) for module in SPECIALISTS]
     for agent in specialists:
-        tracing.attach(agent)
+        tracing.attach(agent, guard=tool_limit)
     orch = orchestrator.build_orchestrator(models("router"), specialists, guard)
     return main_agent.build_main_agent(models("router"), orch, guard)
 

@@ -48,6 +48,7 @@ class Settings(BaseSettings):
 
     tool_max_rows: int = Field(default=200, ge=1, le=5000)
     max_delegations: int = Field(default=4, ge=1, le=20)
+    max_tool_calls: int = Field(default=8, ge=1, le=50)  # per specialist, per request
     log_level: str = "INFO"
 
     @field_validator("router_model", "agent_model", "llm_reasoning_effort", "gemini_api_key", "litellm_gemini_api_key",

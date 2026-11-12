@@ -7,8 +7,8 @@ adds up to about 25 minutes.
 **Setup before going on stage:** `make up` has finished. Open http://localhost:8080 on the Chat
 page, with http://localhost:8000 (ADK dev UI) in a second tab. Run one warm-up question so the model
 connection is hot. Have a second checkout (or branch) ready with exercises 1 to 4 done, for sections
-4 to 8. Put the competition passphrase on a slide you can show at the end, and keep it off any
-shared screen until then.
+4 to 8. Have the submission form ready (name, fork URL, commit), and the judge set up as in
+[the platform README](../README.md).
 
 > Say early and often: **all company data is synthetic.** Nimbus Markets is a fictional broker, and
 > prices, clients, ledgers and campaigns are generated.
@@ -219,17 +219,17 @@ Run `make eval` (or `make eval Q=worst-channel-chain` for one question). Show th
   shows a score per kind.
 - The full report, with every answer, is in `evals/report.json`.
 
-When you're ready to start the competition, show the passphrase slide and say:
+When you're ready to start the competition, put the form link on screen and say:
 
 ```bash
-make eval-final KEY=<the passphrase>
+make submit
 ```
 
-- It runs a hidden set of harder questions in the same style. The table shows only ids, kinds and
-  ticks, never the questions.
-- Participants tell you their score when you ask. Collect the scores by hand.
-- Rules: keep the default model, don't hard-code answers, and marketing tools only read marketing
-  data.
+- It checks their work is pushed and prints their fork URL and commit, for the form.
+- You judge every submission on the hidden set with the same model and key, and only their
+  `my_agent/` folder counts. They can resubmit until the deadline; the last one counts.
+- Put `platform/.judge/leaderboard.html` on the projector. It refreshes itself as results come in.
+- Rules: don't hard-code answers, and marketing tools only read marketing data.
 
 ## 9. Wrap-up (1 min)
 
@@ -250,6 +250,6 @@ make eval-final KEY=<the passphrase>
 | Marketing node still dashed | `marketing_agent` is not in `SPECIALISTS`, or the app has not reloaded yet. Check `make logs`. |
 | `make eval` stops with "build() isn't finished yet" | `marketing_agent` is in `SPECIALISTS` but exercise 2 isn't done. Finish `build()`, or take it out of the list for now. |
 | `make eval` or `make check-N` says the agents don't build | Usually a syntax error in `my_agent/marketing_agent.py`. The message names it; `make logs` shows more. |
-| `make eval-final` says the passphrase doesn't open the set | A typo in `KEY=...`. Check it against the slide. |
+| `make submit` says the commit isn't on GitHub | They haven't pushed. `git push`, then `make submit` again. |
 | Old data or tools | `make reset` reloads the CSVs. `make -C platform seed-tools` re-applies the starter YAML. |
 | Port 5432 busy | Set `POSTGRES_PORT=5433` in `.env`. |

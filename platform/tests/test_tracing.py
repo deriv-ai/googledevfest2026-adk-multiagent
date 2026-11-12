@@ -143,6 +143,23 @@ async def test_delegation_cap_blocks_extra_calls(fake_services):
     assert events[-1]["type"] == "answer"
 
 
+async def test_tool_call_limit_stops_a_looping_specialist(fake_services):
+    fake_services.settings.max_tool_calls = 2
+
+    def looping(req, seen):
+        if seen < 4:
+            return [call("finance_monthly_pnl", start_month="2026-07-01", end_month="2026-09-01")]
+        return [text("Finance numbers")]
+
+    root = build_tree(fake_services, scripts=dict(SCRIPTS, finance_agent=looping))
+    events = await collect(AgentRuntime(root, settings=fake_services.settings))
+    results = [e for e in events if e["type"] == "tool_result" and e["tool"] == "finance_monthly_pnl"]
+    assert len(results) == 4
+    assert [r["ok"] for r in results] == [True, True, False, False]
+    assert "Tool-call limit" in results[-1]["error"]
+    assert events[-1]["type"] == "answer"
+
+
 async def test_orchestrator_instruction_has_live_catalogue(fake_services):
     from devfest_agents.agents.orchestrator import build_catalogue
     from devfest_agents.tools.spec import ToolSpec

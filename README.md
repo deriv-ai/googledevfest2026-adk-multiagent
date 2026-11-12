@@ -173,7 +173,7 @@ Every exercise ends with a check you can run, like `make check-1`. It tells you 
 what doesn't yet.
 
 You can also score your agents at any point with `make eval`, even before you've written a line.
-It takes about 3 minutes. The score starts low. Watching it climb is half the fun.
+It takes a minute or two. The score starts low. Watching it climb is half the fun.
 
 ## Commands
 
@@ -182,7 +182,7 @@ It takes about 3 minutes. The score starts low. Watching it climb is half the fu
 | `make up` | Start the app |
 | `make check-1` | Check exercise 1 (or 0, 2, 3, 4) |
 | `make eval` | Score your agents on the practice questions |
-| `make eval-final KEY=...` | Score your agents on the competition questions |
+| `make submit` | Check your work is pushed, and show what to hand in for the competition |
 | `make logs` | Show the app's logs. Use it when something breaks. |
 | `make reset` | Reload the database from scratch |
 | `make down` | Stop the app |

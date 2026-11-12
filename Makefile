@@ -15,7 +15,7 @@ EXEC ?= $(ENGINE) exec
 ENV_MSG := add your LLM key to .env (see .env.example), then run make up again
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env up down logs reset eval eval-final check
+.PHONY: help check-env up down logs reset eval submit check
 
 help: ## Show this help
 	@echo "The marketing agent workshop. Start with README.md."
@@ -64,9 +64,17 @@ check-%:
 	@$(EXEC) nimbus-app python -m devfest_agents.check $* || true
 
 eval: ## Score your agents on the practice questions (one question: Q=<id>)
-	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json \
-		&& echo "Full report: evals/report.json" || true
+	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) \
+		$(if $(P),--parallel $(P)) > evals/report.json && echo "Full report: evals/report.json" || true
 
-eval-final: ## Score your agents on the competition questions (KEY=<passphrase>)
-	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --key "$(KEY)" > evals/report.json \
-		&& echo "Full report: evals/report.json" || true
+submit: ## Check your work is pushed, and show what to hand in for the competition
+	@if ! git diff --quiet HEAD -- my_agent || [ -n "$$(git ls-files --others --exclude-standard my_agent)" ]; then \
+		echo "You have changes in my_agent/ that aren't committed yet. Commit and push them first:"; \
+		echo '  git add my_agent && git commit -m "My agent" && git push'; exit 1; \
+	fi
+	@if [ -z "$$(git branch -r --contains HEAD 2>/dev/null)" ]; then \
+		echo "Your latest commit isn't on GitHub yet. Run: git push"; exit 1; \
+	fi
+	@echo "Hand these in on the form your facilitators shared:"
+	@echo "  Fork:   $$(git remote get-url origin)"
+	@echo "  Commit: $$(git rev-parse HEAD)"

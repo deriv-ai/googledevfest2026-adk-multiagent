@@ -1,5 +1,6 @@
-"""The eval runner: number parsing, the two points per question, setup errors and encryption."""
+"""The eval runner: number parsing, the two points per question, time limits and setup errors."""
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -7,7 +8,7 @@ import yaml
 from pydantic import SecretStr
 
 from devfest_agents import evals
-from devfest_agents.evals import EvalSetupError, close_to, fernet, grade, load_questions, numbers_in
+from devfest_agents.evals import EvalSetupError, close_to, grade, numbers_in
 
 EVALS = Path(__file__).resolve().parents[2] / "evals"
 KINDS = {"lookup", "analysis", "multi-domain", "routing", "trap", "adversarial"}
@@ -97,12 +98,10 @@ async def test_error_scores_zero_answer():
 
 
 async def test_hidden_report_leaves_out_questions_and_answers(fake_services):
-    class Runtime:
-        async def ask_stream(self, conversation_id, text):
-            for event in events("117,844.95 app-store 58", "marketing_agent", "trading_agent"):
-                yield event
+    async def asker(question):
+        return events("117,844.95 app-store 58", "marketing_agent", "trading_agent")
 
-    report = await evals.run([QUESTION], Runtime(), judge=passing_judge, hidden=True)
+    report = await evals.run([QUESTION], asker, judge=passing_judge, hidden=True)
     assert report["score"] == 2 and report["max_score"] == 2
     assert set(report["results"][0]) == {"id", "kind", "route_point", "answer_point", "called_agents", "error"}
 
@@ -118,14 +117,19 @@ def test_setup_errors_say_what_to_fix(fake_services, monkeypatch):
         evals.build_runtime()
 
 
-def test_encrypted_sets_need_the_right_passphrase(tmp_path):
-    path = tmp_path / "set.enc"
-    path.write_bytes(fernet("open sesame").encrypt(b"- id: a\n"))
-    assert load_questions(path, "open sesame") == [{"id": "a"}]
-    with pytest.raises(EvalSetupError, match="doesn't open"):
-        load_questions(path, "wrong")
-    with pytest.raises(EvalSetupError, match="encrypted"):
-        load_questions(path, None)
+async def test_a_slow_question_scores_zero_instead_of_holding_up_the_run(fake_services):
+    async def asker(question):
+        if question["id"] == "slow":
+            await asyncio.sleep(5)
+        return events("117,844.95 app-store 58", "marketing_agent", "trading_agent")
+
+    started = asyncio.get_running_loop().time()
+    report = await evals.run([QUESTION, QUESTION | {"id": "slow"}], asker, judge=passing_judge, timeout_s=0.2,
+                             quiet=True)
+    assert asyncio.get_running_loop().time() - started < 2
+    slow = next(r for r in report["results"] if r["id"] == "slow")
+    assert (slow["route_point"], slow["answer_point"]) == (0, 0) and "no answer within" in slow["error"]
+    assert report["score"] == 2
 
 
 @pytest.mark.parametrize("question", yaml.safe_load((EVALS / "practice.yaml").read_text()), ids=lambda q: q["id"])

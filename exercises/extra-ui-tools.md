@@ -1,8 +1,9 @@
 # Extra: teach finance and trading new skills from the UI
 
 > **The main workshop is in the [README](../README.md)**, where you build the marketing agent. This
-> page is an optional side exercise for when you finish early, or want better finance and trading
-> tools for the competition in [exercise 5](5-evals.md).
+> page is an optional side exercise for when you finish early. Tools you add here live in your own
+> database, so they don't count for the competition in [exercise 5](5-evals.md): only `my_agent/`
+> is judged.
 
 **Time:** about 45 minutes. **You need:** the stack running (`make up`, see the
 [README](../README.md)) and a browser at http://localhost:8080.

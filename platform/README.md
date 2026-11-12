@@ -45,13 +45,24 @@ HIGH/CRITICAL issues. `make trivy-audit` patches, tests and scans in one go.
 
 ## Notes
 
-**The hidden competition set** is `evals/final.enc` at the repo root. The readable
-`evals/final.yaml` is gitignored and stays with the facilitators. After editing it, encrypt it
-again from this folder:
+**Judging the competition.** The hidden set is `evals/final.yaml` at the repo root. It's
+gitignored, so it only exists on the facilitators' machines.
 
-```bash
-uv run python -m devfest_agents.evals ../evals/final.yaml --encrypt --key "<passphrase>"
-```
+1. Make a form that collects a name, the fork URL and the commit (participants get the last two
+   from `make submit`). Export the responses as CSV.
+2. With the stack running (`make up`), score them:
+
+   ```bash
+   make -C platform judge SUBMISSIONS=~/Downloads/submissions.csv
+   ```
+
+3. Open `platform/.judge/leaderboard.html` on the projector. It refreshes every 15 seconds.
+
+Re-run the same command with a fresh export at any time: commits already scored are skipped.
+Pass options through `JUDGE_ARGS`, for example `JUDGE_ARGS="--at-once 4"` to score four
+submissions at a time, or `--force` to score everything again. The participants' code runs with
+the LLM key in `.env`, so use a key with a spending cap. A participant's code also runs with the
+app's database role, so look over the top few `my_agent/` folders before you announce winners.
 
 **All data is synthetic.** `scripts/generate_synthetic_data.py` generates every client, trade,
 ledger line and campaign.

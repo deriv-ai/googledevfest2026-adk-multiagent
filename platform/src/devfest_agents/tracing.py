@@ -229,6 +229,21 @@ def on_tool_error(tool, args, tool_context, error) -> dict[str, Any] | None:
                      "Tell the user this part could not be answered."}
 
 
+class _CallCounter:
+    """Counts calls per key, forgetting the oldest keys so it can't grow forever."""
+
+    def __init__(self) -> None:
+        self._counts: OrderedDict[Any, int] = OrderedDict()
+
+    def bump(self, key: Any) -> int:
+        count = self._counts.get(key, 0) + 1
+        self._counts[key] = count
+        self._counts.move_to_end(key)
+        while len(self._counts) > 1000:
+            self._counts.popitem(last=False)
+        return count
+
+
 class DelegationGuard:
     """before_tool_callback capping AgentTool delegations per agent invocation
     (one orchestrator turn) and blocking self-recursion. Returning a dict skips
@@ -236,27 +251,38 @@ class DelegationGuard:
 
     def __init__(self, max_delegations: int):
         self.max_delegations = max_delegations
-        self._counts: OrderedDict[str, int] = OrderedDict()
+        self._counter = _CallCounter()
 
     def __call__(self, tool, args, tool_context) -> dict[str, Any] | None:
         if not isinstance(tool, AgentTool):
             return None
         if tool.name == tool_context.agent_name:
             return {"error": f"{tool.name} cannot delegate to itself."}
-        key = tool_context.invocation_id
-        count = self._counts.get(key, 0) + 1
-        self._counts[key] = count
-        self._counts.move_to_end(key)
-        while len(self._counts) > 1000:
-            self._counts.popitem(last=False)
-        if count > self.max_delegations:
+        if self._counter.bump(tool_context.invocation_id) > self.max_delegations:
             return {"error": f"Delegation limit reached ({self.max_delegations} specialist calls per question). "
                              "Answer with the findings you already have and say what is missing."}
         return None
 
 
-def attach(agent, *, guard: DelegationGuard | None = None) -> None:
-    """Add tracing (and optionally the delegation guard) to an LlmAgent.
+class ToolCallLimit:
+    """before_tool_callback capping how many tools one specialist calls for one
+    request, so a model stuck in a loop answers instead of running for minutes."""
+
+    def __init__(self, max_calls: int):
+        self.max_calls = max_calls
+        self._counter = _CallCounter()
+
+    def __call__(self, tool, args, tool_context) -> dict[str, Any] | None:
+        if isinstance(tool, AgentTool):
+            return None
+        if self._counter.bump((tool_context.invocation_id, tool_context.agent_name)) > self.max_calls:
+            return {"error": f"Tool-call limit reached ({self.max_calls} calls per request). "
+                             "Answer now with the results you already have."}
+        return None
+
+
+def attach(agent, *, guard: DelegationGuard | ToolCallLimit | None = None) -> None:
+    """Add tracing (and optionally a call limit) to an LlmAgent.
 
     Callbacks the agent already has are kept and run after ours.
     """

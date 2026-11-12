@@ -1,21 +1,17 @@
 """Score the agents on a question set.
 
-    python -m devfest_agents.evals evals/practice.yaml [--only ID] [--parallel N] > report.json
-    python -m devfest_agents.evals evals/final.enc --key PASSPHRASE > report.json
-    python -m devfest_agents.evals evals/final.yaml --encrypt --key PASSPHRASE    # writes evals/final.enc
+    python -m devfest_agents.evals evals/practice.yaml [--only ID] [--parallel N] [--timeout S] > report.json
 
 Each question is worth 2 points: one for routing (the orchestrator called exactly
 the expected agents), one for the answer (every check on the question passes).
-The results table goes to stderr and the JSON report to stdout. For an encrypted
-set the questions stay hidden: the table shows only ids, kinds and points.
+The results table goes to stderr and the JSON report to stdout. The competition
+set never leaves the facilitators: devfest_agents.judge scores submissions with it.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
-import base64
-import hashlib
 import json
 import re
 import sys
@@ -25,7 +21,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from cryptography.fernet import Fernet, InvalidToken
 
 from .runtime import AgentRuntime
 from .services import get_services
@@ -34,6 +29,8 @@ NUMBER_RE = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(k|m|bn)?\b", re.IGNORECASE)
 SCALE = {"k": 1e3, "m": 1e6, "bn": 1e9}
 TOLERANCE = 0.01
 OK, NO = "\033[32m✓\033[0m", "\033[31m✗\033[0m"
+PARALLEL = 8     # questions at a time; lower it if your LLM key hits rate limits
+TIMEOUT_S = 90   # a question with no answer by then scores 0, so one slow question can't hold up the run
 
 JUDGE_PROMPT = """You grade one answer from a company's analytics assistant.
 
@@ -47,6 +44,7 @@ Does the answer follow the pass rule? Reply with PASS or FAIL on the first line,
 then one short reason on the second line."""
 
 Judge = Callable[[str, str, str], Awaitable[tuple[bool, str]]]
+Asker = Callable[[dict[str, Any]], Awaitable[list[dict[str, Any]]]]  # question -> the turn's events
 
 
 class EvalSetupError(Exception):
@@ -128,19 +126,31 @@ async def ask(runtime: AgentRuntime, question: dict[str, Any]) -> list[dict[str,
         return [{"type": "error", "message": f"{type(exc).__name__}: {exc}"}]
 
 
-async def run(questions: list[dict[str, Any]], runtime: AgentRuntime, *, parallel: int = 4,
-              judge: Judge = llm_judge, hidden: bool = False) -> dict[str, Any]:
+async def answer_within(asker: Asker, question: dict[str, Any], timeout_s: float) -> list[dict[str, Any]]:
+    try:
+        return await asyncio.wait_for(asker(question), timeout_s)
+    except TimeoutError:
+        return [{"type": "error", "message": f"no answer within {timeout_s:.0f} s"}]
+
+
+async def run(questions: list[dict[str, Any]], asker: Asker, *, parallel: int = PARALLEL,
+              timeout_s: float = TIMEOUT_S, judge: Judge = llm_judge, hidden: bool = False,
+              quiet: bool = False) -> dict[str, Any]:
+    """hidden: the report keeps only ids, kinds and points. quiet: no per-question output."""
     gate = asyncio.Semaphore(parallel)
 
     async def one(question):
         async with gate:
-            result = await grade(question, await ask(runtime, question), judge)
-        log(f"  {OK if result['route_point'] else NO}{OK if result['answer_point'] else NO}  {result['id']}")
+            result = await grade(question, await answer_within(asker, question, timeout_s), judge)
+        if not quiet:
+            log(f"  {OK if result['route_point'] else NO}{OK if result['answer_point'] else NO}  {result['id']}")
         return result
 
-    log(f"Running {len(questions)} question(s), {parallel} at a time...")
+    if not quiet:
+        log(f"Running {len(questions)} question(s), {parallel} at a time...")
     results = await asyncio.gather(*(one(q) for q in questions))
-    print_table(results, hidden)
+    if not quiet:
+        print_table(results, hidden)
     report = {"score": sum(r["route_point"] + r["answer_point"] for r in results), "max_score": 2 * len(results)}
     if hidden:
         results = [{k: r[k] for k in ("id", "kind", "route_point", "answer_point", "called_agents", "error")}
@@ -193,54 +203,35 @@ def build_runtime() -> AgentRuntime:
     return AgentRuntime(root)
 
 
-def fernet(passphrase: str) -> Fernet:
-    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(passphrase.encode()).digest()))
-
-
-def load_questions(path: Path, key: str | None) -> list[dict[str, Any]]:
+def load_questions(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         raise EvalSetupError(f"{path} doesn't exist.")
-    data = path.read_bytes()
-    if path.suffix == ".enc":
-        if not key:
-            raise EvalSetupError("This question set is encrypted. Pass the passphrase: make eval-final KEY=...")
-        try:
-            data = fernet(key).decrypt(data)
-        except InvalidToken:
-            raise EvalSetupError("That passphrase doesn't open this question set. Check it and try again.") from None
-    return yaml.safe_load(data)
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-async def main_async(questions: list[dict[str, Any]], parallel: int, hidden: bool) -> dict[str, Any]:
+async def main_async(questions: list[dict[str, Any]], parallel: int, timeout_s: float) -> dict[str, Any]:
+    runtime = build_runtime()
     try:
-        return await run(questions, build_runtime(), parallel=parallel, hidden=hidden)
+        return await run(questions, lambda question: ask(runtime, question), parallel=parallel, timeout_s=timeout_s)
     finally:
         await get_services().database().close()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score the agents on a question set.")
-    parser.add_argument("questions", type=Path, help="evals/practice.yaml, or an encrypted .enc set")
-    parser.add_argument("--key", help="passphrase of an encrypted set")
+    parser.add_argument("questions", type=Path, help="a question set, e.g. evals/practice.yaml")
     parser.add_argument("--only", help="run only the question with this id")
-    parser.add_argument("--parallel", type=int, default=4, help="questions to run at the same time (default 4)")
-    parser.add_argument("--encrypt", action="store_true", help="write an encrypted copy of the set (needs --key)")
+    parser.add_argument("--parallel", type=int, default=PARALLEL, help=f"questions at the same time (default {PARALLEL})")
+    parser.add_argument("--timeout", type=float, default=TIMEOUT_S, help=f"seconds per question (default {TIMEOUT_S})")
     args = parser.parse_args()
 
     try:
-        if args.encrypt:
-            if not args.key:
-                raise EvalSetupError("--encrypt needs --key.")
-            out = args.questions.with_suffix(".enc")
-            out.write_bytes(fernet(args.key).encrypt(args.questions.read_bytes()))
-            log(f"Wrote {out}")
-            return
-        questions = load_questions(args.questions, args.key)
+        questions = load_questions(args.questions)
         if args.only:
             questions = [q for q in questions if q["id"] == args.only]
             if not questions:
                 raise EvalSetupError(f"No question with id {args.only!r}.")
-        report = asyncio.run(main_async(questions, max(1, args.parallel), hidden=args.questions.suffix == ".enc"))
+        report = asyncio.run(main_async(questions, max(1, args.parallel), args.timeout))
     except EvalSetupError as exc:
         log(f"{NO} {exc}")
         sys.exit(1)

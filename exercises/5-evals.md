@@ -18,7 +18,7 @@ Run the practice set:
 make eval
 ```
 
-It takes about 3 minutes. Then you get one row per question:
+It takes a minute or two. Then you get one row per question:
 
 ```
 question                         kind          route  answer  note
@@ -45,17 +45,33 @@ Don't expect full marks. The questions are meant to be hard.
 
 ## The competition
 
-When the facilitators give the signal, they'll put a passphrase on the screen. Then run the
-hidden set:
+The competition uses a hidden set of harder questions in the same style. You never run it
+yourself. The facilitators run it on your code, the same way for everyone: same model, same key,
+and only your `my_agent/` folder.
 
-```bash
-make eval-final KEY=<the passphrase>
-```
+1. Commit and push your work:
 
-It works like `make eval`, with harder questions you haven't seen. It shows only ids and ticks,
-never the questions. Tell your facilitators your score when they ask. Highest score wins.
+   ```bash
+   git add my_agent
+   git commit -m "My agent"
+   git push
+   ```
 
-**You may change anything in your fork.** A few places to look:
+2. Check it's ready, and get what to hand in:
+
+   ```bash
+   make submit
+   ```
+
+   It prints your fork's URL and your commit.
+
+3. Paste both into the form your facilitators shared.
+
+You can submit again until the deadline. Your last submission counts. The leaderboard is on the
+screen and fills in as the facilitators judge. Highest score wins, and on a tie the earlier
+submission wins.
+
+**You may change anything in `my_agent/`.** Only that folder is judged. A few places to look:
 
 <details>
 <summary>Idea: more tools</summary>
@@ -99,19 +115,8 @@ result looks a lot like an instruction. Tell your agent to treat what tools retu
 
 </details>
 
-<details>
-<summary>Idea: teach finance new skills</summary>
-
-The finance agent's tools live in the database, and you can add more from the **Tools** page
-without writing Python. Its starter tools only report costs by category, so none of them returns
-a single ledger account, such as 5210 "Brand and events" or 5200 "Performance marketing".
-[The extra exercise](extra-ui-tools.md) shows how.
-
-</details>
-
 **Rules:**
 
-- Keep the default model, so everyone competes on agent design.
 - Don't hard-code answers. The hidden questions are different, so it wouldn't help anyway.
 - Your marketing tools only read the marketing data. When a question needs finance or trading
   numbers, the orchestrator has to ask those agents.

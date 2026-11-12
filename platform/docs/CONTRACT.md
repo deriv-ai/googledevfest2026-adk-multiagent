@@ -16,8 +16,9 @@ All ports are published on `127.0.0.1` only (`BIND_ADDRESS` in `.env`); there is
 | `app` | 8080 | FastAPI: `/api/*` + built SPA from `STATIC_DIR`. uvicorn `--reload --reload-dir /app/platform/src --reload-dir /app/my_agent` with `WATCHFILES_FORCE_POLLING=true`. Mounts `./platform/src`, `./my_agent` and `./evals` read-only at `/app/platform/src`, `/app/my_agent` and `/app/evals`. |
 | `adk-web` | 8000 | `adk web --host 0.0.0.0 --port 8000 --reload_agents /app/platform/src/devfest_agents/adk_apps` (same image as app). Mounts `./platform/src` and `./my_agent` like `app`. Discovered via `src/devfest_agents/adk_apps/nimbus/__init__.py` (`from . import agent`) + `agent.py` exporting `root_agent`. |
 
-Compose container names: `nimbus-db`, `nimbus-app`, `nimbus-adk-web` (`make -C platform seed-tools`, `make check-N`, `make eval` and
-`make eval-final` exec into `nimbus-app`).
+Compose container names: `nimbus-db`, `nimbus-app`, `nimbus-adk-web`, `nimbus-news-mcp` (`make -C platform seed-tools`,
+`make check-N` and `make eval` exec into `nimbus-app`). The judge starts one `judge-<name>` container per submission
+on the same network.
 
 ## Environment variables (read by `config.py`, provided via `.env` + compose)
 | var | default | meaning |
@@ -268,16 +269,18 @@ exercise N, with a hint under every ✗, and exits non-zero if anything failed.
 | 3 | `marketing_agent` in `SPECIALISTS`; the orchestrator can call it; `my_agent/prompts/orchestrator.md` mentions it; one live practice question routes to it |
 | 4 | three live practice questions (`spend-per-new-client`, `sg-marketing-booked`, `new-clients-september`) route correctly |
 
-## Evals (`src/devfest_agents/evals.py`, `evals/practice.yaml`, `evals/final.enc`)
+## Evals (`src/devfest_agents/evals.py`, `src/devfest_agents/judge.py`, `evals/practice.yaml`)
 ```
-python -m devfest_agents.evals evals/practice.yaml [--only ID] [--parallel N] > report.json
-python -m devfest_agents.evals evals/final.enc --key PASSPHRASE > report.json
-python -m devfest_agents.evals evals/final.yaml --encrypt --key PASSPHRASE     # writes evals/final.enc
+python -m devfest_agents.evals evals/practice.yaml [--only ID] [--parallel N] [--timeout S] > report.json
+python -m devfest_agents.judge submissions.csv [--questions evals/final.yaml] [--engine podman]    # facilitators
 ```
 - `make eval` runs the practice set (18 questions, every kind) and writes `evals/report.json`. `make eval Q=<id>` runs
   one question.
-- `make eval-final KEY=<passphrase>` runs the hidden competition set.
-- Questions run in parallel, 4 at a time by default (`--parallel`). Each runs as a fresh conversation.
+- `make submit` checks that `my_agent/` is committed and pushed, and prints the fork URL and commit to hand in.
+- Questions run in parallel, 8 at a time by default (`--parallel`, or `make eval P=<n>`). Each runs as a fresh
+  conversation. A question with no answer within 90 s (`--timeout`) scores 0, so one slow question can't hold up
+  the run. Each specialist may call at most `MAX_TOOL_CALLS` (8) tools per request; further calls return an error
+  telling it to answer with what it has.
 - The results table goes to stderr: ✓/✗ for route and answer per question, a note of what was missing (or which agents
   were called, on a wrong route), a score per kind and the total. The JSON report goes to stdout.
 
@@ -302,16 +305,18 @@ Each question scores 2 points:
 Report: `{"score", "max_score", "results": [{id, kind, question, expected_agents, called_agents, route_point,
 answer_point, missing, answer, error, elapsed_ms}]}`.
 
-**The hidden set.** `evals/final.enc` is Fernet-encrypted with a key made from the passphrase (SHA-256, base64url).
-For an `.enc` set the table shows only ids, kinds and ticks, and each report result keeps only `id, kind, route_point,
-answer_point, called_agents, error`: no question text, answers or misses. Facilitators reveal the passphrase on a
-slide when the competition starts, and participants report their score by hand. The plaintext `evals/final.yaml` is
-gitignored and never committed; after editing it, re-encrypt with
-`python -m devfest_agents.evals evals/final.yaml --encrypt --key <passphrase>`.
+**The hidden set and the judge.** `evals/final.yaml` is gitignored and stays with the facilitators. The judge reads
+a submissions CSV with `name` and `repo` columns, plus optional `commit` and timestamp columns; headers are matched
+loosely, so a form export works as it is, and when a name appears twice the last row counts. For each submission it
+checks out only `my_agent/` at the commit (the default branch's latest when none is given), runs the app image with
+that folder mounted on the stack's network, asks every question through `POST /api/chat`, and grades outside the
+participant's code. Each result keeps only `id, kind, route_point, answer_point, called_agents, error`. Results are
+cached per commit in `platform/.judge/results/`; `platform/.judge/leaderboard.html` (self-refreshing) and
+`leaderboard.json` rank by score, then earlier submission.
 
 **Setup errors** stop the run with one ✗ line and exit code 1, instead of a stack trace: no LLM key; `marketing_agent`
 in `SPECIALISTS` while its `build()` still raises `NotImplementedError`; the agents fail to build (e.g. a syntax
-error); a missing question file, missing or wrong passphrase, or unknown `--only` id. If `marketing_agent` is not
+error); a missing question file or an unknown `--only` id. If `marketing_agent` is not
 wired in yet, the run still happens, with a note that marketing questions will fail.
 
 ## SPA build
