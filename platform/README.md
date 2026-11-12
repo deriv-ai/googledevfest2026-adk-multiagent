@@ -13,6 +13,7 @@ the repo root.
 src/            the agents, tools, API, exercise checks and eval runner (Python)
 web/            the app's UI (React)
 db/             database setup and the synthetic data (CSV)
+news_mcp/       the news agent's MCP server (live RSS headlines)
 docker/         the app image
 seed/           the starter finance and trading tools
 scripts/        the synthetic-data generator and the dependency patcher
@@ -26,7 +27,7 @@ Run these from the repo root with `make -C platform <target>`, or from this fold
 
 ```bash
 make test       # Python tests + UI type check
-make dev        # database in a container; prints how to run the API and UI locally
+make dev        # database and news server in containers; prints how to run the API and UI locally
 make data       # regenerate the synthetic data, then run `make reset` from the repo root
 make help       # list every command
 ```

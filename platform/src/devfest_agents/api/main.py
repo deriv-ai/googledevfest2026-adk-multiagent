@@ -68,6 +68,10 @@ def create_app(*, services: Services | None = None, runtime: AgentRuntime | None
                 background.cancel()
                 with contextlib.suppress(BaseException):
                     await background
+            news = services.news_toolset
+            if news is not None and hasattr(news, "shutdown"):
+                with contextlib.suppress(Exception):
+                    await news.shutdown()
             if connect_db:
                 with contextlib.suppress(Exception):
                     await services.database().close()

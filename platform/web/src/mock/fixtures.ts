@@ -242,19 +242,23 @@ export function graph(): Graph {
   return {
     agents: [
       { id: "main_agent", label: "Main agent", role: "root", description: "Nimbus assistant persona. Answers small talk itself; sends data questions to the orchestrator and writes the final answer.", model: health.router_model },
-      { id: "orchestrator", label: "Orchestrator", role: "router", parent: "main_agent", description: "Routes each request to finance, trading and/or marketing specialists — in parallel when independent.", model: health.router_model },
+      { id: "orchestrator", label: "Orchestrator", role: "router", parent: "main_agent", description: "Routes each request to finance, trading, news and/or marketing specialists — in parallel when independent.", model: health.router_model },
       { id: "finance_agent", label: "Finance agent", role: "specialist", parent: "orchestrator", datasource: "finance", description: "General ledger, P&L, budgets, FX and entities.", model: health.model },
       { id: "trading_agent", label: "Trading agent", role: "specialist", parent: "orchestrator", datasource: "trading", description: "Clients, trades, instruments, prices and commissions.", model: health.model },
+      { id: "news_agent", label: "News agent", role: "specialist", parent: "orchestrator", datasource: "internet", description: "Live market headlines through the news MCP server. No Nimbus data.", model: health.model },
       { id: "marketing_agent", label: "Marketing agent", role: "specialist", parent: "orchestrator", datasource: "marketing", description: "Campaigns, spend and sign-ups, through Python function tools.", model: health.model },
     ],
     tools: [
       ...tools.filter((t) => t.enabled).map((t) => ({ name: t.name, agent: `${t.agent}_agent`, tool_type: t.tool_type, title: t.title })),
+      { name: "latest_headlines", agent: "news_agent", tool_type: "mcp" as const, title: "Latest market headlines by topic." },
+      { name: "search_news", agent: "news_agent", tool_type: "mcp" as const, title: "Search recent news for a query." },
       { name: "campaign_performance", agent: "marketing_agent", tool_type: "function" as const, title: "Spend, clicks and sign-ups per campaign for a date range." },
       { name: "channel_summary", agent: "marketing_agent", tool_type: "function" as const, title: "Spend, clicks and sign-ups per ad channel for a date range." },
     ],
     datasources: [
       { id: "finance", label: "finance schema" },
       { id: "trading", label: "trading schema" },
+      { id: "internet", label: "Internet (RSS)" },
       { id: "marketing", label: "marketing schema" },
     ],
   };

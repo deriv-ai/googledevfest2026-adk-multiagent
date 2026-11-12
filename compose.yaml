@@ -37,6 +37,25 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  news-mcp:
+    build:
+      context: .
+      dockerfile: platform/docker/news-mcp.Dockerfile
+    image: nimbus-news-mcp:latest
+    container_name: nimbus-news-mcp
+    environment:
+      NEWS_POLL_SECONDS: ${NEWS_POLL_SECONDS:-300}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
   app:
     build:
       context: .
@@ -52,6 +71,7 @@ services:
       AGENT_DATABASE_URL: postgresql://agent_ro:agent_ro@db:5432/${POSTGRES_DB:-nimbus}
       STATIC_DIR: /app/static
       STARTER_TOOLS_PATH: /app/seed/starter_tools.yaml
+      NEWS_MCP_URL: http://news-mcp:8001/mcp
       WATCHFILES_FORCE_POLLING: "true"  # file events don't always cross the Docker/Podman VM boundary
     volumes:
       - ./platform/src:/app/platform/src:ro
@@ -62,6 +82,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      news-mcp:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=5)"]
       interval: 10s
@@ -84,6 +106,7 @@ services:
       AGENT_DATABASE_URL: postgresql://agent_ro:agent_ro@db:5432/${POSTGRES_DB:-nimbus}
       STATIC_DIR: /app/static
       STARTER_TOOLS_PATH: /app/seed/starter_tools.yaml
+      NEWS_MCP_URL: http://news-mcp:8001/mcp
     volumes:
       - ./platform/src:/app/platform/src:ro
       - ./my_agent:/app/my_agent:ro
@@ -92,6 +115,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      news-mcp:
+        condition: service_started
     restart: unless-stopped
 
 volumes:

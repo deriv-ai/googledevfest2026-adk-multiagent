@@ -23,6 +23,8 @@ export const TOOL_GAP = 68;
 export interface RouteNodeData extends Record<string, unknown> {
   label: string;
   sublabel?: string;
+  /** Datasource nodes: the internet rather than a Postgres schema. */
+  internet?: boolean;
   tone: AgentTone;
   status: NodeStatus;
   steps: number[];
@@ -187,7 +189,7 @@ export function layoutRoute(graph: Graph, state: RouteState): { nodes: LayoutNod
         type: "datasource",
         position: { x: x + TOOL_INDENT, y: DS_Y },
         width: TOOL_W,
-        data: { label, tone, status: st?.status ?? "idle", steps: [], ms: null, dim: running && (st?.status ?? "idle") === "idle", sublabel: `Postgres · ${ds}.*` },
+        data: { label, tone, status: st?.status ?? "idle", steps: [], ms: null, dim: running && (st?.status ?? "idle") === "idle", sublabel: ds === "internet" ? "via the news MCP server" : `Postgres · ${ds}.*`, internet: ds === "internet" },
       });
     }
   });

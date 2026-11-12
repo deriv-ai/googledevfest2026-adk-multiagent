@@ -47,13 +47,17 @@ def test_health(client):
 def test_graph(client):
     body = client.get("/api/graph").json()
     ids = [a["id"] for a in body["agents"]]
-    assert ids == ["main_agent", "orchestrator", "finance_agent", "trading_agent", "marketing_agent"]
+    assert ids == ["main_agent", "orchestrator", "finance_agent", "trading_agent", "news_agent", "marketing_agent"]
     assert body["agents"][2]["datasource"] == "finance" and body["agents"][1]["parent"] == "main_agent"
     tools = {t["name"]: t for t in body["tools"]}
     assert tools["trading_top_instruments"]["agent"] == "trading_agent"
     assert tools["channel_summary"] == {"name": "channel_summary", "agent": "marketing_agent", "tool_type": "function",
                                         "title": "Spend per ad channel for a date range."}
-    assert [d["id"] for d in body["datasources"]] == ["finance", "trading", "marketing"]
+    assert tools["search_news"]["agent"] == "news_agent"
+    assert body["datasources"] == [{"id": "finance", "label": "finance schema"},
+                                   {"id": "trading", "label": "trading schema"},
+                                   {"id": "internet", "label": "Internet (RSS)"},
+                                   {"id": "marketing", "label": "marketing schema"}]
 
 
 def test_examples(client):

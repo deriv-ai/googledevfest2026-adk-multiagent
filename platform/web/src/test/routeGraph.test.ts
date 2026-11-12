@@ -195,4 +195,12 @@ describe("layoutRoute", () => {
     expect(ds?.data).toMatchObject({ label: "marketing schema", sublabel: "Postgres · marketing.*" });
     expect(edges.some((e) => e.source === tool?.id && e.target === ds?.id)).toBe(true);
   });
+
+  it("shows the news agent's MCP tools reading the internet, not a schema", () => {
+    const graph = { ...DEFAULT_GRAPH, tools: [{ name: "search_news", agent: "news_agent", tool_type: "mcp" as const, title: "Search recent news." }] };
+    const { nodes } = layoutRoute(graph, initialRouteState());
+    expect(nodes.find((n) => n.id === "news_agent")?.data).toMatchObject({ label: "News agent", tone: "news" });
+    expect(nodes.find((n) => n.id === toolNodeId("news_agent", "search_news"))?.data).toMatchObject({ toolKind: "mcp", tone: "news" });
+    expect(nodes.find((n) => n.id === dsNodeId("internet"))?.data).toMatchObject({ label: "Internet (RSS)", sublabel: "via the news MCP server", internet: true });
+  });
 });

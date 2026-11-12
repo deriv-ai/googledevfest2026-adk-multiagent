@@ -134,6 +134,7 @@ function Legend() {
     ["orchestrator", "Orchestrator"],
     ["finance", "Finance"],
     ["trading", "Trading"],
+    ["news", "News"],
     ["marketing", "Marketing"],
   ];
   return (

@@ -12,7 +12,7 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react";
-import { AlertCircle, Check, Database, User } from "@/components/icons";
+import { AlertCircle, Check, Database, Globe, User } from "@/components/icons";
 import type { Graph } from "@/api/types";
 import { KIND_ICON, KIND_LABEL, TONE_ICON } from "@/components/Badges";
 import { toneColor } from "@/lib/agents";
@@ -140,7 +140,7 @@ function breakable(name: string) {
 }
 
 const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
-  const kind = data.toolKind === "factual" || data.toolKind === "function" ? data.toolKind : "sql";
+  const kind = data.toolKind === "factual" || data.toolKind === "function" || data.toolKind === "mcp" ? data.toolKind : "sql";
   const Icon = KIND_ICON[kind];
   const chrome = nodeChrome(data);
   return (
@@ -169,11 +169,12 @@ const ToolNode = memo(function ToolNode({ data }: NodeProps<RNode>) {
 
 const DatasourceNode = memo(function DatasourceNode({ data }: NodeProps<RNode>) {
   const chrome = nodeChrome(data);
+  const Icon = data.internet ? Globe : Database;
   return (
     <div className={cn(chrome.className, "w-[232px] border-dashed px-3 py-2.5")} style={{ ...chrome.style, borderStyle: data.status === "idle" ? "dashed" : "solid" }}>
       <Handle type="target" id="side" position={Position.Right} />
       <div className="flex items-center gap-2.5">
-        <Database className="size-4 shrink-0" style={{ color: toneColor(data.tone) }} aria-hidden />
+        <Icon className="size-4 shrink-0" style={{ color: toneColor(data.tone) }} aria-hidden />
         <div className="min-w-0">
           <div className="truncate text-[13px] font-semibold">{data.label}</div>
           <div className="truncate text-[11px] text-muted-foreground">{data.status === "active" ? "reading…" : data.sublabel}</div>

@@ -10,9 +10,11 @@ flowchart LR
     M -- "orchestrator(request)" --> O[orchestrator<br/>router]
     O -- "finance_agent(request)" --> F[finance_agent]
     O -- "trading_agent(request)" --> T[trading_agent]
+    O -- "news_agent(request)" --> N[news_agent]
     O -. "marketing_agent(request)<br/>(added in the workshop)" .-> K[marketing_agent]
     F --> FT[[registry tools<br/>finance_*]]
     T --> TT[[registry tools<br/>trading_*]]
+    N --> NT[[MCP tools<br/>from the news-mcp server]]
     K -.-> KT[[Python tools<br/>wrapping marketing_queries]]
 ```
 
@@ -23,6 +25,7 @@ flowchart LR
 | `main_agent` (root) | `AgentTool(orchestrator)` | Persona. Answers greetings and meta questions itself ("what can you do?"). Every question about Nimbus data or the business goes to the orchestrator, even when it is not sure a specialist covers it. It writes the final user-facing answer. |
 | `orchestrator` | one `AgentTool` per entry in `SPECIALISTS` | Decides **which** specialists are needed, **what** to ask each, and **in which order**. Then it merges and attributes their findings. |
 | `finance_agent` / `trading_agent` | `SqlRegistryToolset("finance")` / `SqlRegistryToolset("trading")` | Answer with tool results only, from their own schema. |
+| `news_agent` | `NewsToolset`, a fail-soft wrapper around ADK's `McpToolset` for the news-mcp server | Live real-world headlines. It has no Nimbus data. If the server is down it has no tools and says news is unavailable. |
 | `marketing_agent` (you add it) | async Python functions that wrap the data team's queries in `marketing_queries.py`, which call `run_sql("marketing", ...)` | Campaign spend, impressions, clicks, sign-ups and cost per sign-up, from the `marketing` schema. |
 
 The orchestrator only knows the specialists in `SPECIALISTS` (`my_agent/team.py`).

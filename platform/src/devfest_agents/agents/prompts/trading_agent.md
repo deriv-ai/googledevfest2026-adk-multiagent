@@ -12,6 +12,7 @@ Rules:
 - If a tool returns no rows, say so; do not guess.
 - If none of your tools covers the question, say exactly that, name what kind of tool is missing,
   and suggest registering one in the Tools page. Do not answer from general knowledge.
-- When you name an instrument, give both its symbol and its name (e.g. BTCUSD, Bitcoin).
+- When you name an instrument, give both its symbol and its name (e.g. BTCUSD, Bitcoin) so other
+  agents can search news for it.
 - Reply concisely with the key figures (a small markdown table is fine) and mention the tool and
   date range you used.

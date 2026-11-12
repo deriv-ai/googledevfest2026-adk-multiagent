@@ -11,6 +11,8 @@ from typing import Any
 from google.adk.agents import LlmAgent
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models.llm_response import LlmResponse
+from google.adk.tools import FunctionTool
+from google.adk.tools.base_toolset import BaseToolset
 from google.genai import types
 
 from devfest_agents.config import Settings
@@ -76,7 +78,8 @@ KPI_FACTUAL = {
 
 def make_settings() -> Settings:
     return Settings(_env_file=None, gemini_api_key="test-key-not-real", database_url="postgresql://x@nowhere/x",
-                    agent_database_url="postgresql://x@nowhere/x", static_dir="/nonexistent",
+                    agent_database_url="postgresql://x@nowhere/x", news_mcp_url="http://127.0.0.1:9/mcp",
+                    static_dir="/nonexistent",
                     starter_tools_path="/nonexistent.yaml")
 
 
@@ -208,9 +211,22 @@ PYTHON_SPECIALIST = SimpleNamespace(
 )
 
 
+async def search_news(query: str, limit: int = 5) -> dict:
+    """Search recent news (fake)."""
+    await asyncio.sleep(0.02)
+    return {"result": [{"title": f"News about {query}", "source": "Fake Wire", "published": "2026-11-05"}]}
+
+
+class FakeNewsToolset(BaseToolset):
+    """Stands in for the news-mcp server."""
+
+    async def get_tools(self, readonly_context=None):
+        return [FunctionTool(search_news)]
+
+
 def make_fake_services(settings) -> Services:
     return Services(settings=settings, db_provider=lambda: FakeDB(), repo=FakeRepo([TOP_INSTRUMENTS, MONTHLY_PNL]),
-                    executor=FakeExecutor())
+                    executor=FakeExecutor(), news_toolset=FakeNewsToolset())
 
 
 # ---------------------------------------------------------------------------

@@ -25,6 +25,7 @@ from typing import Any
 
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.base_tool import BaseTool
+from google.adk.tools.mcp_tool.mcp_tool import McpTool
 
 PREVIEW_CHARS = 300
 
@@ -131,6 +132,8 @@ def reset_sink(token: contextvars.Token) -> None:
 def tool_kind(tool: Any) -> str:
     if isinstance(tool, AgentTool):
         return "agent"
+    if isinstance(tool, McpTool):
+        return "mcp"
     tool_type = getattr(tool, "tool_type", None)
     if tool_type in ("sql", "factual"):
         return tool_type

@@ -47,8 +47,12 @@ def marketing_script(req, seen):
         else [text("Search ads spent the most")]
 
 
+def news_script(req, seen):
+    return [call("search_news", query="Bitcoin")] if seen == 0 else [text("Bitcoin headlines")]
+
+
 SCRIPTS = {"main_agent": main_script, "orchestrator": orchestrator_script, "finance_agent": finance_script,
-           "trading_agent": trading_script, "marketing_agent": marketing_script}
+           "trading_agent": trading_script, "marketing_agent": marketing_script, "news_agent": news_script}
 
 
 def build_tree(services, scripts=SCRIPTS, **llm_kwargs):
@@ -146,10 +150,11 @@ async def test_orchestrator_instruction_has_live_catalogue(fake_services):
     from .helpers import KPI_FACTUAL
 
     agents = agents_by_name(build_tree(fake_services))
-    specialists = [agents[name] for name in ("finance_agent", "trading_agent", "marketing_agent")]
+    specialists = [agents[name] for name in ("finance_agent", "trading_agent", "marketing_agent", "news_agent")]
     cat = await build_catalogue(specialists)
     assert "`finance_monthly_pnl`: Monthly P&L" in cat and "`trading_top_instruments`" in cat
     assert "`channel_summary`: Spend per ad channel for a date range." in cat
+    assert "- `news_agent`:\n  - `search_news`: Search recent news (fake)." in cat
     await fake_services.repo.create(ToolSpec.model_validate(KPI_FACTUAL))
     assert "`kpi_definitions`: KPI definitions (curated answer)" in await build_catalogue(specialists)
 

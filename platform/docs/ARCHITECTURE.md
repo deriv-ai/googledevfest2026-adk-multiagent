@@ -3,7 +3,7 @@
 This repo re-implements a production-style pattern, **agents whose tools live in a database
 registry**, as a small, self-contained Google ADK app. On top of it sits a three-tier multi-agent
 hierarchy. In the workshop you add one more specialist, a marketing agent whose Python tools wrap
-queries the data team already wrote (see [the README](../../README.md)). Everything runs in three
+queries the data team already wrote (see [the README](../../README.md)). Everything runs in four
 containers. All business data is synthetic.
 
 ## Containers
@@ -18,11 +18,16 @@ flowchart TB
         DB[(db<br/>postgres:17-alpine<br/>:5432)]
         APP[app<br/>FastAPI + ADK + SPA<br/>:8080]
         ADKW[adk-web<br/>adk web dev UI<br/>:8000]
+        NEWS[news-mcp<br/>MCP server over RSS<br/>:8001]
     end
+    WEB((Google News RSS))
     B --> APP
     B --> ADKW
     APP --> DB
     ADKW --> DB
+    APP --> NEWS
+    ADKW --> NEWS
+    NEWS --> WEB
     SRC -. "mounted read-only" .-> APP
     SRC -. "my_agent and src mounted read-only" .-> ADKW
 ```
@@ -31,10 +36,11 @@ flowchart TB
 |---|---|---|
 | `db` | `postgres:17-alpine` | `./db/init` → `/docker-entrypoint-initdb.d` (run once on an empty volume), `./db/seed` → `/seed:ro`. Healthcheck: `pg_isready -h 127.0.0.1`. This only passes after init has finished, because the init-time server listens on the unix socket only. |
 | `app` | `docker/app.Dockerfile` (build context: the repo root) | Stage 1 (`node:22`) builds `web/` → `web/dist`. Stage 2 (Python 3.13 + uv) runs `uv sync --frozen --no-dev` in `/app/platform`, and copies `src/`, `seed/`, `my_agent/` and the SPA. `/app` mirrors the repo (`/app/platform/src`, `/app/my_agent`, `/app/evals`) and `PYTHONPATH=/app` makes `my_agent` importable. Runs as non-root. `uvicorn devfest_agents.api.main:app --reload` on 8080, watching `/app/platform/src` and `/app/my_agent`. `./platform/src`, `./my_agent` and `./evals` are mounted read-only at the same paths. |
+| `news-mcp` | `docker/news-mcp.Dockerfile` | `python -m news_mcp.server` on 8001 (`/mcp`, `/healthz`). Installs only the `news` dependency group. A background listener polls Google News RSS topic searches every `NEWS_POLL_SECONDS` into an in-memory buffer. Tools: `latest_headlines`, `search_news`, `list_feeds`. When the internet is unreachable they return a note instead of raising. |
 | `adk-web` | same image as `app` | `adk web --host 0.0.0.0 --port 8000 --reload_agents /app/platform/src/devfest_agents/adk_apps`. The `nimbus` app exports the same `root_agent`. Mounts `./platform/src` and `./my_agent` like `app`. |
 
 `app` and `adk-web` read `.env` (`env_file`) for the LLM key and model. Compose sets the
-service-to-service URLs (`DATABASE_URL`, `AGENT_DATABASE_URL`). They wait for `db` to be healthy, and
+service-to-service URLs (`DATABASE_URL`, `AGENT_DATABASE_URL`, `NEWS_MCP_URL`). They wait for `db` to be healthy, and
 the app also retries its DB connection on its own.
 
 **Live reload.** Because `./platform/src` and `./my_agent` are mounted over the copies in the image, a Python edit on your laptop
@@ -125,18 +131,21 @@ Each specialist is a module in `src/devfest_agents/agents/` with the same small 
 |---|---|
 | `NAME` | Agent name, e.g. `finance_agent`. Also the function name the orchestrator calls. |
 | `LABEL` | Display name for the UI, e.g. `Finance agent`. |
-| `DATASOURCE` | The schema it reads, e.g. `finance`. |
+| `DATASOURCE` | The schema it reads, e.g. `finance`, or `internet` for the news agent. |
 | `DESCRIPTION` | What it answers. Becomes the `AgentTool` description the orchestrator routes on. |
 | `build(services, model)` | Returns the ADK `LlmAgent`. |
 
 `my_agent/team.py` holds the list. At the start of the workshop it is
-`SPECIALISTS = [finance_agent, trading_agent]`, and you add `marketing_agent`. Everything else follows
+`SPECIALISTS = [finance_agent, trading_agent, news_agent]`, and you add `marketing_agent`. Everything else follows
 from that list: `build_root_agent` builds each specialist, attaches tracing to it and hands them all to
 the orchestrator; `graph_agents()` builds the `/api/graph` topology, so the new agent appears on the
 Overview diagram and in the route panel without any frontend change.
 
 The finance and trading agents are built by `build_registry_specialist` (`agents/specialists.py`):
-an `LlmAgent` whose only tool is a `SqlRegistryToolset` for its schema. The marketing agent uses
+an `LlmAgent` whose only tool is a `SqlRegistryToolset` for its schema. The news agent's only tool
+is a `NewsToolset` (`tools/news_toolset.py`), a fail-soft wrapper around ADK's `McpToolset` for the
+news-mcp server: when the server is down, the agent gets no tools for a 30-second back-off and says
+news is unavailable, instead of the whole question failing. The marketing agent uses
 Python function tools instead. `my_agent/marketing_agent.py` starts as a stub with `Exercise 1` and
 `Exercise 2` comments: `DESCRIPTION` is empty and `build()` raises `NotImplementedError` until a
 participant finishes it.

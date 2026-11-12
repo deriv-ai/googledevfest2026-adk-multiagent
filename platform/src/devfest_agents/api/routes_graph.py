@@ -12,6 +12,8 @@ from . import deps
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+DATASOURCE_LABELS = {"internet": "Internet (RSS)"}
+
 
 @router.get("/api/graph")
 async def graph(request: Request):
@@ -34,5 +36,6 @@ async def graph(request: Request):
         tools.extend({"name": t.name, "agent": a["id"], "tool_type": tool_kind(t), "title": tool_title(t)}
                      for t in agent_tools)
 
-    datasources = [{"id": a["datasource"], "label": f"{a['datasource']} schema"} for a in specialists]
+    datasources = [{"id": ds, "label": DATASOURCE_LABELS.get(ds, f"{ds} schema")}
+                   for ds in (a["datasource"] for a in specialists)]
     return {"agents": agents, "tools": tools, "datasources": datasources}

@@ -41,6 +41,7 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql://app:app@db:5432/nimbus"
     agent_database_url: str = "postgresql://agent_ro:agent_ro@db:5432/nimbus"
+    news_mcp_url: str = "http://news-mcp:8001/mcp"
 
     static_dir: str = "/app/static"
     starter_tools_path: str = "/app/seed/starter_tools.yaml"

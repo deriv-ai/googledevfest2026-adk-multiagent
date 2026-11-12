@@ -53,7 +53,8 @@ budget, and the CFO wants to know on Friday whether Nimbus Go was worth the mone
 Open the Overview page and walk the diagram:
 
 > "One main agent with a persona. It delegates to an orchestrator, whose only job is routing. Below it
-> are the specialists. Finance and trading get their tools from **rows in Postgres**. The dashed one,
+> are the specialists. Finance and trading get their tools from **rows in Postgres**. News gets its
+> tools from an **MCP server** that reads live headlines. The dashed one,
 > marketing, doesn't exist yet: that's what you build today. In ADK, every arrow in this diagram is an
 > `AgentTool`."
 

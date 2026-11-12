@@ -1,4 +1,4 @@
-import { Bank, Bot, ChartLineUp, Database, FileText, Megaphone, Orchestrate, Sparkles, SquareFunction, type AppIcon } from "@/components/icons";
+import { Bank, Bot, ChartLineUp, Database, FileText, Megaphone, Newspaper, Orchestrate, Plug, Sparkles, SquareFunction, type AppIcon } from "@/components/icons";
 import type { ToolKind } from "@/api/types";
 import { agentMeta, toneColor, type AgentTone } from "@/lib/agents";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ export const TONE_ICON: Record<AgentTone, AppIcon> = {
   orchestrator: Orchestrate,
   finance: Bank,
   trading: ChartLineUp,
+  news: Newspaper,
   marketing: Megaphone,
   other: Bot,
 };
@@ -16,6 +17,7 @@ export const KIND_ICON: Record<ToolKind, AppIcon> = {
   sql: Database,
   factual: FileText,
   function: SquareFunction,
+  mcp: Plug,
   agent: Bot,
 };
 
@@ -32,7 +34,7 @@ export function AgentBadge({ agent, className, size = "md" }: { agent: string; c
   );
 }
 
-export const KIND_LABEL: Record<ToolKind, string> = { sql: "SQL", factual: "Factual", function: "Python", agent: "Agent" };
+export const KIND_LABEL: Record<ToolKind, string> = { sql: "SQL", factual: "Factual", function: "Python", mcp: "MCP", agent: "Agent" };
 
 export function ToolTypeBadge({ type, className }: { type: ToolKind; className?: string }) {
   const Icon = KIND_ICON[type];

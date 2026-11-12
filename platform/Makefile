@@ -36,13 +36,13 @@ data: ## Regenerate db/seed/*.csv (then `make reset` from the repo root to load 
 seed-tools: ## Force re-upsert seed/starter_tools.yaml into tools.tools
 	$(EXEC) nimbus-app python -m devfest_agents.seed --force
 
-dev: ## db in a container; run the API (uv) and the SPA (vite) locally
-	$(COMPOSE) up -d db
+dev: ## db + news-mcp in containers; run the API (uv) and the SPA (vite) locally
+	$(COMPOSE) up -d --build db news-mcp
 	@echo ""
 	@echo "Now, in two terminals:"
 	@echo "  DATABASE_URL=postgresql://app:app@localhost:5432/nimbus \\"
 	@echo "  AGENT_DATABASE_URL=postgresql://agent_ro:agent_ro@localhost:5432/nimbus \\"
-	@echo "  STARTER_TOOLS_PATH=seed/starter_tools.yaml \\"
+	@echo "  NEWS_MCP_URL=http://localhost:8001/mcp STARTER_TOOLS_PATH=seed/starter_tools.yaml \\"
 	@echo "  PYTHONPATH=.. uv run --env-file ../.env uvicorn devfest_agents.api.main:app --reload --port 8080"
 	@echo "  cd web && npm install && npm run dev      # http://localhost:5173"
 
@@ -61,7 +61,7 @@ endif
 # Needs trivy (https://trivy.dev, e.g. `brew install trivy`).
 TRIVY_SEVERITY ?= HIGH,CRITICAL
 TRIVY_SKIP     := --skip-dirs web/node_modules --skip-dirs .venv --skip-dirs .claude
-TRIVY_IMAGES   := nimbus-app
+TRIVY_IMAGES   := nimbus-app nimbus-news-mcp
 
 trivy-scan: ## Fail on fixable HIGH/CRITICAL vulns in uv.lock + web/package-lock.json
 	trivy fs --scanners vuln --severity $(TRIVY_SEVERITY) --ignore-unfixed --exit-code 1 $(TRIVY_SKIP) .

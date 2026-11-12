@@ -1,8 +1,8 @@
 # The marketing agent workshop
 
 Nimbus Markets is an online broker. It has an AI assistant built with
-[Google ADK](https://google.github.io/adk-docs/) that answers questions about **finance** and
-**trading**. It can't answer questions about **marketing**, and Vernon, who runs marketing, needs
+[Google ADK](https://google.github.io/adk-docs/) that answers questions about **finance**,
+**trading** and the day's **market news**. It can't answer questions about **marketing**, and Vernon, who runs marketing, needs
 answers by Friday.
 
 In this workshop you build the marketing agent and plug it into the assistant. Then you score
@@ -89,7 +89,8 @@ go by short codes: NM-UK, NM-SG, NM-AE and NM-INTL.
 
 A few months ago the AI team shipped an assistant, built with Google ADK. You type a question in
 plain English and it answers from the company's own data. Finance uses it every morning for P&L
-and budgets. The trading desk uses it for volumes and commission. It is the most popular tool in
+and budgets. The trading desk uses it for volumes and commission, and to catch up on the day's
+market news. It is the most popular tool in
 the building.
 
 Then there's Vernon.
@@ -119,7 +120,8 @@ some need real analysis, some cross three teams, and a few are traps. The best a
 
 ## How the assistant works
 
-Today the assistant has a main agent, an orchestrator and two specialists. You add the third.
+Today the assistant has a main agent, an orchestrator and three specialists: finance, trading and
+news. You add the fourth.
 
 ```mermaid
 flowchart LR
@@ -127,9 +129,11 @@ flowchart LR
     MAIN --> ORCH{orchestrator<br/>picks the specialists}
     ORCH --> FIN[finance agent]
     ORCH --> TRD[trading agent]
+    ORCH --> NEWS[news agent]
     ORCH -.-> MKT[marketing agent<br/>you build this]
     FIN --> FDB[(finance data)]
     TRD --> TDB[(trading data)]
+    NEWS --> WEB[(live headlines)]
     MKT -.-> MDB[(marketing data)]
 
     classDef new stroke-dasharray: 5 5

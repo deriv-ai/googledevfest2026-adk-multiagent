@@ -8,8 +8,9 @@ from .helpers import PYTHON_SPECIALIST, make_fake_services, make_settings
 
 @pytest.fixture(autouse=True)
 def specialists(monkeypatch):
-    """Finance, trading and a Python-tool specialist, whatever the workshop state of SPECIALISTS."""
-    monkeypatch.setattr(agents, "SPECIALISTS", [agents.finance_agent, agents.trading_agent, PYTHON_SPECIALIST])
+    """Finance, trading, news and a Python-tool specialist, whatever the workshop state of SPECIALISTS."""
+    monkeypatch.setattr(agents, "SPECIALISTS", [agents.finance_agent, agents.trading_agent, agents.news_agent,
+                                                PYTHON_SPECIALIST])
 
 
 @pytest.fixture

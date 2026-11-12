@@ -3,8 +3,8 @@
 
 /*
  * Nimbus Agents — tokens.
- * Neutral, cool ink surfaces so the five agent colours carry all the meaning:
- * main = violet, orchestrator = slate, finance = blue, trading = rose, marketing = amber.
+ * Neutral, cool ink surfaces so the six agent colours carry all the meaning:
+ * main = violet, orchestrator = slate, finance = blue, trading = rose, news = cyan, marketing = amber.
  * Values are HSL triplets so they compose with alpha: hsl(var(--x) / .2).
  */
 :root {
@@ -30,6 +30,7 @@
   --agent-orchestrator: 216 18% 42%;
   --agent-finance: 217 84% 50%;
   --agent-trading: 347 74% 50%;
+  --agent-news: 190 90% 34%;
   --agent-marketing: 33 92% 44%;
   --agent-other: 174 62% 34%;
   --agent-user: 224 30% 20%;
@@ -78,6 +79,7 @@
   --agent-orchestrator: 215 22% 66%;
   --agent-finance: 213 94% 66%;
   --agent-trading: 349 90% 68%;
+  --agent-news: 188 82% 55%;
   --agent-marketing: 40 96% 58%;
   --agent-other: 172 62% 54%;
   --agent-user: 220 30% 88%;
@@ -123,6 +125,7 @@
   --color-agent-orchestrator: hsl(var(--agent-orchestrator));
   --color-agent-finance: hsl(var(--agent-finance));
   --color-agent-trading: hsl(var(--agent-trading));
+  --color-agent-news: hsl(var(--agent-news));
   --color-agent-marketing: hsl(var(--agent-marketing));
   --color-agent-other: hsl(var(--agent-other));
 

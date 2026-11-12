@@ -1,4 +1,4 @@
-"""Shared runtime services (DB, registry, executor).
+"""Shared runtime services (DB, registry, executor, news toolset).
 
 Everything is created lazily so importing the agent tree (e.g. by `adk web`)
 never touches the network. Tests build their own ``Services`` with fakes.
@@ -12,6 +12,7 @@ from typing import Any
 from .config import Settings, get_settings
 from .db import Database, get_database
 from .tools.executor import ToolExecutor
+from .tools.news_toolset import NewsToolset
 from .tools.registry import RegistryCache, ToolRepository
 from .tools.spec import ToolSpec
 
@@ -22,6 +23,7 @@ class Services:
     db_provider: Any = None          # () -> Database
     repo: Any = None                 # ToolRepository-like
     executor: Any = None             # ToolExecutor-like (run_tool(spec, args))
+    news_toolset: Any = None         # BaseToolset
     caches: dict[str, RegistryCache] = field(default_factory=dict)
 
     def database(self) -> Database:
@@ -45,6 +47,11 @@ class Services:
 
     async def run_tool(self, spec: ToolSpec, args: dict[str, Any]) -> dict[str, Any]:
         return await self.tool_executor().run_tool(spec, args)
+
+    def news(self) -> NewsToolset:
+        if self.news_toolset is None:
+            self.news_toolset = NewsToolset(self.settings.news_mcp_url)
+        return self.news_toolset
 
     def cache(self, agent: str) -> RegistryCache:
         if agent not in self.caches:

@@ -22,10 +22,12 @@ EXAMPLES = [
     {"label": "Finance", "prompt": "What was our operating profit by month last quarter, and which entity was most profitable?"},
     {"label": "Trading", "prompt": "What were the top 5 instruments by commission last month?"},
     {"label": "Marketing", "prompt": "How much did our ad campaigns spend last quarter, and what did each sign-up cost?"},
+    {"label": "News", "prompt": "What's in the news about gold and the US dollar today?"},
     {"label": "Reconciliation (parallel)", "prompt": "Does the commission revenue we booked in Q3 match what the trading desk earned?"},
     {"label": "Budget miss (finance + trading)", "prompt": "Why did we miss revenue budget in August?"},
     {"label": "Driver + budget (sequential)", "prompt": "Which entity earned the most commission last quarter, and did it hit its revenue budget?"},
-    {"label": "Campaign worth it? (all agents)", "prompt": "Was the Nimbus Go campaign worth the money?"},
+    {"label": "Driver + news (sequential)", "prompt": "Which instrument drove the most commission last month, and what's in the news about it?"},
+    {"label": "Campaign worth it? (three agents)", "prompt": "Was the Nimbus Go campaign worth the money?"},
     {"label": "Segment profitability", "prompt": "Are VIP clients worth it? Compare their commission to our total operating profit."},
     {"label": "Factual (register kpi_definitions first)", "prompt": "How does Nimbus define net revenue?"},
 ]

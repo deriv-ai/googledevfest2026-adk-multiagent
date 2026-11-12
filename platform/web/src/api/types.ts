@@ -13,7 +13,7 @@ export interface Health {
 }
 
 export type AgentRole = "root" | "router" | "specialist";
-export type DatasourceId = "finance" | "trading" | "marketing" | (string & {});
+export type DatasourceId = "finance" | "trading" | "marketing" | "internet" | (string & {});
 
 export interface GraphAgent {
   id: string;
@@ -25,7 +25,7 @@ export interface GraphAgent {
   datasource?: DatasourceId;
 }
 
-export type GraphToolType = "sql" | "factual" | "function";
+export type GraphToolType = "sql" | "factual" | "function" | "mcp";
 
 export interface GraphTool {
   name: string;
@@ -47,7 +47,7 @@ export interface Graph {
 
 // ---- Chat SSE -----------------------------------------------------------------------
 
-export type ToolKind = "agent" | "sql" | "factual" | "function";
+export type ToolKind = "agent" | "sql" | "factual" | "function" | "mcp";
 
 interface EventBase {
   ts?: number;

@@ -31,6 +31,8 @@ Compose container names: `nimbus-db`, `nimbus-app`, `nimbus-adk-web` (`make -C p
 | `AGENT_DATABASE_URL` | role `agent_ro` on `db:5432/nimbus` (see compose.yaml) | SELECT-only on finance + trading + marketing |
 | `STATIC_DIR` | `/app/static` | built SPA |
 | `STARTER_TOOLS_PATH` | `/app/seed/starter_tools.yaml` | upserted on startup (insert-if-missing) |
+| `NEWS_MCP_URL` | `http://news-mcp:8001/mcp` | the news agent's MCP server (streamable HTTP) |
+| `NEWS_POLL_SECONDS` | `300` | news-mcp only: how often it polls its RSS feeds |
 | `TOOL_MAX_ROWS` | `200` | row cap for registry tools and `run_sql` |
 | `MAX_DELEGATIONS` | `4` | orchestrator cap per turn |
 | `LOG_LEVEL` | `INFO` | |
@@ -114,7 +116,7 @@ Each specialist module defines:
 | `DESCRIPTION` | str | what it answers; the orchestrator routes on it |
 | `build(services, model)` | → `LlmAgent` | |
 
-`my_agent/team.py`: `SPECIALISTS = [finance_agent, trading_agent]` at the start of the workshop; participants
+`my_agent/team.py`: `SPECIALISTS = [finance_agent, trading_agent, news_agent]` at the start of the workshop; participants
 add `marketing_agent`. `my_agent/marketing_agent.py` starts as a stub: `DESCRIPTION = ""` and `build()` raises
 `NotImplementedError` until exercise 2. `build_root_agent` builds and traces every entry, and `graph_agents()` builds the
 `/api/graph` agents and datasources from it.
@@ -193,13 +195,15 @@ await run_sql(schema: str, sql: str, **params) -> {"row_count": int, "truncated"
    {"id":"orchestrator","label":"Orchestrator","role":"router","parent":"main_agent",...},
    {"id":"finance_agent","label":"Finance agent","role":"specialist","parent":"orchestrator","datasource":"finance"},
    {"id":"trading_agent", ... "datasource":"trading"},
+   {"id":"news_agent", ... "datasource":"internet"},
    {"id":"marketing_agent", ... "datasource":"marketing"}],
  "tools": [{"name":"finance_monthly_pnl","agent":"finance_agent","tool_type":"sql","title":"..."},
+           {"name":"search_news","agent":"news_agent","tool_type":"mcp","title":"Search recent news for a query ..."},
            {"name":"channel_summary","agent":"marketing_agent","tool_type":"function","title":"Spend, clicks and sign-ups per ad channel for a date range."}],
- "datasources": [{"id":"finance","label":"finance schema"},{"id":"trading","label":"trading schema"},{"id":"marketing","label":"marketing schema"}]}
+ "datasources": [{"id":"finance","label":"finance schema"},{"id":"trading","label":"trading schema"},{"id":"internet","label":"Internet (RSS)"},{"id":"marketing","label":"marketing schema"}]}
 ```
 Specialists, tools and datasources come from `SPECIALISTS`: `marketing_agent` and its tools appear only once it is
-in the list. `tool_type`: `sql` | `factual` (registry) | `function` (Python tool). Tool titles: the registry `title`
+in the list. `tool_type`: `sql` | `factual` (registry) | `function` (Python tool) | `mcp` (news-mcp server). Tool titles: the registry `title`
 for registry tools, the first docstring line for Python tools. The SPA draws the marketing agent dashed
 ("built in the workshop") until it appears here.
 
@@ -210,7 +214,7 @@ Each frame: `data: <json>\n\n`; keepalive comments `: ping\n\n`. Event JSON (`ts
 {"type":"start","conversation_id":"..."}
 {"type":"agent_start","agent":"orchestrator","invocation_id":"..."}
 {"type":"agent_end","agent":"orchestrator","invocation_id":"...","ms":1234}
-{"type":"tool_call","agent":"orchestrator","tool":"trading_agent","call_id":"c1","args":{"request":"..."},"kind":"agent"}   // kind: agent | sql | factual | function
+{"type":"tool_call","agent":"orchestrator","tool":"trading_agent","call_id":"c1","args":{"request":"..."},"kind":"agent"}   // kind: agent | sql | factual | function | mcp
 {"type":"tool_result","agent":"orchestrator","tool":"trading_agent","call_id":"c1","ms":2100,"kind":"agent","ok":true,"row_count":null,"error":null,"preview":"first ~300 chars / rows"}
 {"type":"answer_delta","text":"next chunk of the main agent's answer"}
 {"type":"answer","text":"markdown","route":["main_agent","orchestrator","trading_agent","trading_top_instruments"],"elapsed_ms":5400}

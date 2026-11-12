@@ -1,7 +1,8 @@
 """Agent tree:
 
     main_agent ──AgentTool──> orchestrator ──AgentTool──> finance_agent  (SqlRegistryToolset: finance)
-                                           └─AgentTool──> trading_agent  (SqlRegistryToolset: trading)
+                                           ├─AgentTool──> trading_agent  (SqlRegistryToolset: trading)
+                                           └─AgentTool──> news_agent     (McpToolset: news-mcp)
 
 Every specialist module has NAME, LABEL, DATASOURCE, DESCRIPTION and build(services, model).
 The team list, SPECIALISTS, lives in my_agent/team.py so workshop participants can add to it.

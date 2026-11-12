@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { BaseEdge, Controls, Handle, MarkerType, Position, ReactFlow, ReactFlowProvider, type Edge, type EdgeProps, type Node, type NodeProps } from "@xyflow/react";
-import { Code2, Database, LayoutPanelLeft, Table2, Users, Wand2, type AppIcon } from "@/components/icons";
+import { Code2, Database, Globe, LayoutPanelLeft, Table2, Users, Wand2, type AppIcon } from "@/components/icons";
 import { TONE_ICON } from "@/components/Badges";
 import type { Graph } from "@/api/types";
 import { toneColor, type AgentTone } from "@/lib/agents";
@@ -93,10 +93,12 @@ export const ARCH_NODES: (ArchNodeInfo & { icon: AppIcon; tone: AgentTone | null
   { id: "factory", title: "ADK wraps as tools", subtitle: "rows → FunctionTool", icon: Wand2, tone: null, x: 810, y: 40, body: "A toolset per agent turns each enabled row into a typed ADK FunctionTool (signature + docstring from the row). It re-checks the registry every question, so new tools work without a restart." },
   { id: "finance_agent", title: "Finance agent", subtitle: "GL, P&L, budgets, FX", icon: TONE_ICON.finance, tone: "finance", x: 810, y: 200, body: "Specialist LlmAgent. Its tools may only read the finance schema, as the read-only agent_ro role." },
   { id: "trading_agent", title: "Trading agent", subtitle: "clients, trades, prices", icon: TONE_ICON.trading, tone: "trading", x: 810, y: 330, body: "Specialist LlmAgent. Its tools may only read the trading schema, as the read-only agent_ro role." },
-  { id: "marketing_agent", title: "Marketing agent", subtitle: "campaigns, sign-ups", icon: TONE_ICON.marketing, tone: "marketing", x: 810, y: 460, workshop: true, body: "Specialist LlmAgent with plain Python function tools that read the marketing schema. You build it in the workshop; it appears here once the orchestrator knows about it." },
+  { id: "news_agent", title: "News agent", subtitle: "live market headlines", icon: TONE_ICON.news, tone: "news", x: 810, y: 460, body: "Specialist LlmAgent whose tools come from an MCP server (ADK's McpToolset). It has no Nimbus data, only real-world headlines. If the server is down, it says news is unavailable instead of failing the question." },
+  { id: "marketing_agent", title: "Marketing agent", subtitle: "campaigns, sign-ups", icon: TONE_ICON.marketing, tone: "marketing", x: 810, y: 590, workshop: true, body: "Specialist LlmAgent with plain Python function tools that read the marketing schema. You build it in the workshop; it appears here once the orchestrator knows about it." },
   { id: "finance_ds", title: "finance schema", subtitle: "synthetic ledger", icon: Database, tone: null, x: 1080, y: 200, body: "Entities, chart of accounts, FX rates, GL entries and budgets for the fictional Nimbus Markets.", link: { to: "/schema/finance", label: "Browse the finance schema" } },
   { id: "trading_ds", title: "trading schema", subtitle: "synthetic trades", icon: Database, tone: null, x: 1080, y: 330, body: "Clients, instruments, trades and daily prices. Commission reconciles with the finance GL.", link: { to: "/schema/trading", label: "Browse the trading schema" } },
-  { id: "marketing_ds", title: "marketing schema", subtitle: "synthetic campaigns", icon: Database, tone: null, x: 1080, y: 460, body: "Campaigns, daily spend and sign-ups. Campaign spend reconciles with the finance GL; sign-ups point at trading clients.", link: { to: "/schema/marketing", label: "Browse the marketing schema" } },
+  { id: "news_ds", title: "Internet (RSS)", subtitle: "via the news MCP server", icon: Globe, tone: null, x: 1080, y: 460, body: "A small MCP server in its own container. It polls Google News RSS feeds every few minutes and offers latest_headlines, search_news and list_feeds as tools." },
+  { id: "marketing_ds", title: "marketing schema", subtitle: "synthetic campaigns", icon: Database, tone: null, x: 1080, y: 590, body: "Campaigns, daily spend and sign-ups. Campaign spend reconciles with the finance GL; sign-ups point at trading clients.", link: { to: "/schema/marketing", label: "Browse the marketing schema" } },
   { id: "orchestrator", title: "Orchestrator", subtitle: "routes to specialists", icon: TONE_ICON.orchestrator, tone: "orchestrator", x: 540, y: 330, body: "Sees each specialist as a function (AgentTool). The LLM picks which to call: several at once when they're independent (parallel), one after another when one answer feeds the next." },
   { id: "main_agent", title: "Main agent", subtitle: "persona · final answer", icon: TONE_ICON.main, tone: "main", x: 270, y: 330, body: "The root agent users talk to. Handles small talk itself, sends data questions to the orchestrator, and writes the final answer.", link: { to: "/chat", label: "Open the chat" } },
   { id: "users", title: "Users", subtitle: "ask in plain English", icon: Users, tone: null, x: 0, y: 330, body: "Chat on the Chat page and watch the live route panel light up the agents and tools that answer.", link: { to: "/chat", label: "Ask a question" } },
@@ -112,11 +114,13 @@ const E: [string, string, string?, { sh?: string; th?: string; dashed?: boolean;
   ["factory", "trading_agent", "", { sh: "bottom", th: "upper", dashed: true, route: "lane" }],
   ["finance_agent", "finance_ds", "SQL", { tone: "finance" }],
   ["trading_agent", "trading_ds", "SQL", { tone: "trading" }],
+  ["news_agent", "news_ds", "MCP", { tone: "news" }],
   ["marketing_agent", "marketing_ds", "Python", { tone: "marketing" }],
   ["users", "main_agent", "", { both: true }],
   ["main_agent", "orchestrator", "AgentTool", { tone: "orchestrator" }],
   ["orchestrator", "finance_agent", "", { tone: "finance", route: "trunk" }],
   ["orchestrator", "trading_agent", "", { tone: "trading" }],
+  ["orchestrator", "news_agent", "", { tone: "news", route: "trunk" }],
   ["orchestrator", "marketing_agent", "", { tone: "marketing", route: "trunk" }],
 ];
 
@@ -158,7 +162,7 @@ function Inner({ selected, onSelect, pending }: Props) {
   const { nodes: nextNodes, edges } = useMemo(() => {
     const lanes: LNode[] = [
       { id: "lane-build", type: "lane", position: { x: -20, y: 0 }, data: { label: "Build time", width: 1070, height: 124 }, selectable: false, draggable: false, zIndex: -1 },
-      { id: "lane-run", type: "lane", position: { x: -20, y: 156 }, data: { label: "Run time", width: 1330, height: 380 }, selectable: false, draggable: false, zIndex: -1 },
+      { id: "lane-run", type: "lane", position: { x: -20, y: 156 }, data: { label: "Run time", width: 1330, height: 510 }, selectable: false, draggable: false, zIndex: -1 },
     ];
     const nodes: (ANode | LNode)[] = [
       ...lanes,
@@ -194,7 +198,7 @@ function Inner({ selected, onSelect, pending }: Props) {
   return (
     <div ref={wrapRef} className="h-full w-full">
     <ReactFlow nodes={nodes} onNodesChange={onNodesChange} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} colorMode={resolved} fitView fitViewOptions={{ padding: 0.06 }} minZoom={0.2} maxZoom={1.4} nodesConnectable={false} elementsSelectable={false} zoomOnScroll={false} panOnScroll preventScrolling={false}>
-      <Controls showInteractive={false} position="bottom-right" />
+      <Controls showInteractive={false} position="top-right" />
     </ReactFlow>
     </div>
   );

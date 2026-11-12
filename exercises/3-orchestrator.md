@@ -58,7 +58,7 @@ list.
 <details>
 <summary>Hint: what should the line say?</summary>
 
-Write it in the same style as the finance and trading lines. Below that list, the orchestrator
+Write it in the same style as the other specialists' lines. Below that list, the orchestrator
 also gets a live list of every specialist's tools, built from the first line of each docstring.
 Your tools appear there on their own.
 
@@ -70,11 +70,11 @@ Your tools appear there on their own.
 In `my_agent/team.py`:
 
 ```python
-from devfest_agents.agents import finance_agent, trading_agent
+from devfest_agents.agents import finance_agent, news_agent, trading_agent
 
 from . import marketing_agent
 
-SPECIALISTS = [finance_agent, trading_agent, marketing_agent]
+SPECIALISTS = [finance_agent, trading_agent, news_agent, marketing_agent]
 ```
 
 In `my_agent/prompts/orchestrator.md`, under `## Specialists`:

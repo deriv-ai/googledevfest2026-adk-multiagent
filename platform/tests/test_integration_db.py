@@ -144,7 +144,7 @@ def test_api_against_real_db(monkeypatch):
     from devfest_agents.api.main import create_app
 
     settings = Settings(_env_file=None, database_url=APP_URL, agent_database_url=AGENT_URL,
-                        starter_tools_path=str(STARTER))
+                        starter_tools_path=str(STARTER), news_mcp_url="http://127.0.0.1:9/mcp")
     holder = {}
 
     def db_provider():
