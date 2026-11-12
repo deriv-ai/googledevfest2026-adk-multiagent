@@ -32,10 +32,16 @@ YOUR_QUERIES = {"fetch_campaign_performance": "one row per campaign",
 SMOKE_QUESTION = {"id": "check-2", "question": "Which campaign brought in the most new clients in August 2026, and how many?",
                   "agents": [], "numbers": [6], "words": ["NM-INTL", "social"]}
 
-# Exercise 4: the two kinds of teamwork, and a tie-break. The sequential question's second
-# request has to use what the first answer found: the entity with the most sign-ups.
+# Exercise 4: the two kinds of teamwork, and a tie-break. In the sequential question the second
+# request can't be written until the first answer is in: it needs the month marketing finds.
+# (Questions like "which entity ..., and its commission?" don't prove this: with four entities,
+# asking both agents for every entity at once is just as good.)
 PARALLEL = ("spend-per-new-client", "marketing_agent", "trading_agent")
-SEQUENTIAL = ("top-signup-entity-commission", "marketing_agent", "trading_agent", ("NM-INTL", "International"))
+SEQUENTIAL = ({"id": "check-4-sequential", "agents": ["marketing_agent", "finance_agent"],
+               "question": "When did the Nimbus Go launch campaigns first spend money, "
+                           "and what was NM-SG's operating profit in that month?",
+               "numbers": [18916.96], "words": ["June"]},
+              "marketing_agent", "finance_agent", ("June", "2026-06"))
 TIE_BREAK = "sg-marketing-booked"
 
 
@@ -199,12 +205,14 @@ async def exercise_4(c: Checklist) -> None:
     if not get_services().settings.llm_key_configured:
         c.fail("Live questions", "Add an LLM key to .env first.")
         return
-    questions = practice_questions()
-    ids = [PARALLEL[0], SEQUENTIAL[0], TIE_BREAK]
+    practice = practice_questions()
+    questions = {PARALLEL[0]: practice[PARALLEL[0]], SEQUENTIAL[0]["id"]: SEQUENTIAL[0],
+                 TIE_BREAK: practice[TIE_BREAK]}
     runtime = AgentRuntime(root)
     print("  Asking three questions (about a minute)...")
-    events_by_id = dict(zip(ids, await asyncio.gather(*(ask(runtime, questions[i]) for i in ids))))
-    results = {i: await grade(questions[i], events_by_id[i]) for i in ids}
+    answers = await asyncio.gather(*(ask(runtime, q) for q in questions.values()))
+    events_by_id = dict(zip(questions, answers))
+    results = {i: await grade(questions[i], events_by_id[i]) for i in questions}
 
     question_id, first, second = PARALLEL
     if check_result(c, results[question_id], "in parallel"):
@@ -212,12 +220,13 @@ async def exercise_4(c: Checklist) -> None:
                 f"{first} and {second} were asked in the same step",
                 "They don't depend on each other, so the orchestrator should ask both at once.")
 
-    question_id, first, second, handoff = SEQUENTIAL
+    question, first, second, handoff = SEQUENTIAL
+    question_id = question["id"]
     if check_result(c, results[question_id], "one after the other"):
         request = first_call(events_by_id[question_id], second)
         c.check(ran_in_order(events_by_id[question_id], first, second)
                 and any(word in json.dumps(request) for word in handoff),
-                f"{second} was asked only after {first} answered, about the entity {first} found",
+                f"{second} was asked only after {first} answered, about what {first} found",
                 "The second question depends on the first answer. Ask one, read it, then ask the other.")
 
     check_result(c, results[TIE_BREAK], "")

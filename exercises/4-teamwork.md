@@ -22,9 +22,9 @@ The orchestrator makes two kinds of calls:
 
 - **Parallel**: when two sub-questions don't depend on each other, the model asks for both in
   the same step and ADK runs them at the same time.
-- **Sequential**: when the second question needs the first answer ("which entity got the most
-  sign-ups, and how much commission did *that* entity earn?"), it asks one, reads the answer,
-  then asks the other.
+- **Sequential**: when the second question needs the first answer ("when did the Nimbus Go
+  campaigns first spend money, and what was NM-SG's operating profit in *that* month?"), it asks
+  one, reads the answer, then asks the other.
 
 Each specialist gets a rewritten, self-contained question with explicit dates. Specialists never
 see the chat, so "last quarter" has to become "1 July to 30 September 2026".
@@ -50,7 +50,7 @@ Then try these in the chat, and watch the route panel:
 | What did each new client cost us in Q3 2026, counting every client who signed up? | marketing and trading, in parallel |
 | What was NM-SG's total Marketing expense booked in the ledger in September 2026? | finance only |
 | How many new clients signed up in September 2026, whether or not a campaign brought them in? | trading only |
-| Which entity's campaigns brought in the most sign-ups in Q3 2026, and how much commission did that entity's clients generate? | marketing, then trading |
+| When did the Nimbus Go launch campaigns first spend money, and what was NM-SG's operating profit in that month? | marketing, then finance |
 
 <details>
 <summary>Hint: show me rules that work</summary>
