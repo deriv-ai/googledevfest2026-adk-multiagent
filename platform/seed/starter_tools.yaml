@@ -1,4 +1,4 @@
-# Starter tools for the Nimbus Markets demo (3 finance + 3 trading).
+# Starter tools for the Nimbus Markets demo (4 finance + 3 trading).
 #
 # Upserted into tools.tools at app startup with INSERT ... ON CONFLICT (name) DO NOTHING,
 # so edits made in the UI are never overwritten (`make seed-tools` forces a re-upsert).
@@ -213,6 +213,44 @@ tools:
              END AS status
       FROM all_rows
       ORDER BY entity_id, sort_group, account_type DESC, category
+
+  - name: finance_expense_by_account
+    agent: finance
+    tool_type: sql
+    title: Expenses per ledger account - single cost lines such as brand and events
+    description: >
+      Booked expenses from the general ledger, one row per expense account, biggest first.
+      Columns: account_code, account_name, category (e.g. Marketing) and expenses_usd. Use it
+      when a question names a single cost line rather than a whole category: "brand and events"
+      (5210), "performance marketing" (5200), "introducing-partner commissions" (5220), salaries,
+      cloud hosting, and so on. For whole categories against budget, use finance_budget_vs_actual.
+      Entities: NM-UK, NM-SG, NM-AE, NM-INTL.
+    params:
+      - name: start_month
+        type: date
+        required: true
+        description: First month to include, YYYY-MM-DD (any day in that month, e.g. 2026-07-01)
+        example: "2026-07-01"
+      - name: end_month
+        type: date
+        required: true
+        description: Last month to include, YYYY-MM-DD (any day in that month, inclusive)
+        example: "2026-09-30"
+      - name: entity_id
+        type: string
+        required: false
+        description: Restrict to one legal entity; omit for the whole group
+        enum: [NM-UK, NM-SG, NM-AE, NM-INTL]
+    sql: |
+      SELECT a.account_code, a.account_name, a.category, ROUND(SUM(g.amount_usd), 2) AS expenses_usd
+      FROM finance.gl_entries g
+      JOIN finance.accounts a ON a.account_code = g.account_code
+      WHERE a.account_type = 'expense'
+        AND g.entry_date >= date_trunc('month', :start_month::date)
+        AND g.entry_date <  date_trunc('month', :end_month::date) + interval '1 month'
+        AND (:entity_id IS NULL OR g.entity_id = :entity_id)
+      GROUP BY 1, 2, 3
+      ORDER BY expenses_usd DESC
 
   # ===================================================================== trading
   - name: trading_activity_summary

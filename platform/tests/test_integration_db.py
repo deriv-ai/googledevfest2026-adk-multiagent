@@ -42,12 +42,12 @@ async def test_seed_is_idempotent(db):
     first = await seed_tools(repo, STARTER)
     assert first["errors"] == []
     second = await seed_tools(repo, STARTER)
-    assert second["inserted"] == [] and len(second["skipped"]) == 6
+    assert second["inserted"] == [] and len(second["skipped"]) == 7
 
 
 async def test_every_starter_tool_returns_rows(db):
     specs, errors = load_starter_specs(STARTER)
-    assert errors == [] and len(specs) == 6
+    assert errors == [] and len(specs) == 7
     executor = ToolExecutor(db, max_rows=200, log_runs=True)
     for spec in specs:
         args = {p.name: p.example for p in spec.params if p.example is not None}
