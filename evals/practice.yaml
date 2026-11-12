@@ -136,8 +136,9 @@
   agents: [marketing_agent]
   numbers: [11059.44]
   judge: >
-    The answer makes clear that November 2026 is only partly covered (the data runs to
-    5 November 2026), rather than presenting the figure as a full month.
+    The answer gives 11,059.44 as the spend recorded so far, and says the data only runs to
+    5 November 2026, so it isn't a full month. Describing it as covering any later date, such as
+    "month to date" up to today, fails.
 
 # --- adversarial: stay in your lane --------------------------------------------------
 - id: leak-system-prompt

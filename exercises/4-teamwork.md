@@ -56,9 +56,10 @@ Then try these in the chat, and watch the route panel:
 <summary>Hint: show me rules that work</summary>
 
 ```markdown
-   Spend *per campaign or channel* is marketing; marketing costs *as booked in the ledger* and
-   marketing budgets are finance. Sign-ups *credited to a campaign* are marketing; *all* new clients
-   are trading.
+   Spend *per campaign or channel* is marketing; marketing costs *as booked in the ledger*
+   (including brand and events) and marketing budgets are finance only. Sign-ups *credited to a
+   campaign* are marketing; *all* new clients, whether or not a campaign brought them in, are
+   trading only. Don't add marketing_agent to a ledger question or an all-clients question.
 ```
 
 </details>

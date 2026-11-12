@@ -30,7 +30,7 @@ SCALE = {"k": 1e3, "m": 1e6, "bn": 1e9}
 TOLERANCE = 0.01
 OK, NO = "\033[32m✓\033[0m", "\033[31m✗\033[0m"
 PARALLEL = 8     # questions at a time; lower it if your LLM key hits rate limits
-TIMEOUT_S = 90   # a question with no answer by then scores 0, so one slow question can't hold up the run
+TIMEOUT_S = 120  # a question with no answer by then scores 0, so one slow question can't hold up the run
 
 JUDGE_PROMPT = """You grade one answer from a company's analytics assistant.
 

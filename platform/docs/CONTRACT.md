@@ -278,7 +278,7 @@ python -m devfest_agents.judge submissions.csv [--questions evals/final.yaml] [-
   one question.
 - `make submit` checks that `my_agent/` is committed and pushed, and prints the fork URL and commit to hand in.
 - Questions run in parallel, 8 at a time by default (`--parallel`, or `make eval P=<n>`). Each runs as a fresh
-  conversation. A question with no answer within 90 s (`--timeout`) scores 0, so one slow question can't hold up
+  conversation. A question with no answer within 120 s (`--timeout`) scores 0, so one slow question can't hold up
   the run. Each specialist may call at most `MAX_TOOL_CALLS` (8) tools per request; further calls return an error
   telling it to answer with what it has.
 - The results table goes to stderr: ✓/✗ for route and answer per question, a note of what was missing (or which agents
