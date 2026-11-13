@@ -19,10 +19,11 @@ answers. At the end you run your agent on questions you haven't seen, and hand i
 | [Exercise 3: Adding an agent to the orchestrator](exercises/3-orchestrator.md) | Let the orchestrator send marketing questions to it |
 | [Exercise 4: Routing across agents](exercises/4-routing.md) | Ask several agents, in parallel or in order. **On your own**, about 8 minutes |
 | [The competition](exercises/5-competition.md) | Practise with `make eval`, then answer the secret questions and upload the answers |
-| Wrap up | The leaderboard, and the answer to the final question |
+| Wrap up | The top 3, and the winner's answer to the final question |
 
-The facilitators walk you through exercises 0 to 3 on screen, and you type along. You do exercise 4
-on your own. Each exercise ends with a check, like `make check-1`, and a link to the next one.
+The session is 60 minutes: about 10 minutes of slides, 35 minutes of building, and 15 minutes for
+the competition. The facilitators introduce each exercise in a minute or two, then you build it.
+Each exercise ends with a check, like `make check-1`, and a link to the next one.
 
 ## Before the session
 

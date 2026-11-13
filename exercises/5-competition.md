@@ -86,8 +86,8 @@ One question in the hidden set is one you already know:
 
 > Was the Nimbus Go launch campaign worth the money?
 
-A good answer gives the figures *and* says what the data can't show. The facilitators go
-through the answer at the wrap-up.
+A good answer gives the figures *and* says what the data can't show. When the facilitators
+announce the top 3, they read out the winner's answer to it.
 
 ## Read more
 
