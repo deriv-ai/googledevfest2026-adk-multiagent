@@ -60,7 +60,7 @@ check-engine:
 up: check-env check-engine ## Build and start the app
 	$(COMPOSE) up -d --build $(UP_FLAGS)
 	@echo ""
-	@echo "Ready: http://localhost:8080. Next: exercise 0 in exercises/0-meet-nimbus.md."
+	@echo "Ready: http://localhost:8080. Next: exercise 0 in exercises/0-explore.md."
 
 down: ## Stop the app (keeps the data)
 	$(COMPOSE) down

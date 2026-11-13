@@ -1,6 +1,6 @@
-# Exercise 4: Teamwork
+# Exercise 4: Routing across agents
 
-[Back to the workshop](../README.md) · [Previous: Join the team](3-orchestrator.md)
+[Back to the workshop](../README.md) · [Previous: Adding an agent to the orchestrator](3-orchestrator.md)
 ## The problem
 
 Most real questions cross teams:

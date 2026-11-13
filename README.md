@@ -13,12 +13,12 @@ answers. You submit your `my_agent/` folder, and it's scored on questions you ha
 | Step | What you do |
 |---|---|
 | Set up | [Set up](#set-up), and read [the task](#the-task) while it builds |
-| [Exercise 0: Meet Nimbus](exercises/0-meet-nimbus.md) | See the problem |
-| [Exercise 1: Give the data a voice](exercises/1-tools.md) | Write two tools |
-| [Exercise 2: Hire the marketing agent](exercises/2-agent.md) | Build the agent |
-| [Exercise 3: Join the team](exercises/3-orchestrator.md) | Plug it in |
-| [Exercise 4: Teamwork](exercises/4-teamwork.md) | Route questions that cross teams |
-| [Exercise 5: Prove it](exercises/5-evals.md) | Score it, fix one failure, score again |
+| [Exercise 0: Exploring the app](exercises/0-explore.md) | See what the assistant can't answer yet |
+| [Exercise 1: Creating tools](exercises/1-tools.md) | Wrap two marketing queries as tools |
+| [Exercise 2: Creating an agent](exercises/2-agent.md) | Give the tools to a marketing agent |
+| [Exercise 3: Adding an agent to the orchestrator](exercises/3-orchestrator.md) | Let the orchestrator send marketing questions to it |
+| [Exercise 4: Routing across agents](exercises/4-routing.md) | Ask several agents, in parallel or in order |
+| [Exercise 5: Evaluating agents](exercises/5-evals.md) | Score it, fix one failure, score again |
 | [Submit](exercises/5-evals.md#the-competition) | Upload your `my_agent/` folder |
 | Wrap up | The leaderboard, and the answer to the final question |
 
@@ -122,7 +122,7 @@ The first start takes a few minutes: it downloads about 1 GB, builds the app and
 Read [the task](#the-task) while it runs.
 
 **4. Open http://localhost:8080.** You should see the Overview page. Then start
-[exercise 0](exercises/0-meet-nimbus.md).
+[exercise 0](exercises/0-explore.md).
 
 ## The task
 

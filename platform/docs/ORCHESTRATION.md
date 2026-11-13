@@ -51,7 +51,7 @@ marketing costs as booked in the ledger) or gets a "no specialist covers this" a
        [exercise 3](../../exercises/3-orchestrator.md);
    - **routing rules** with tie-breakers. The starter prompt has one: *commission booked as revenue is
      finance, commission earned per trade/instrument/client is trading*. In
-     [exercise 4](../../exercises/4-teamwork.md) participants add the marketing ones, for example *spend
+     [exercise 4](../../exercises/4-routing.md) participants add the marketing ones, for example *spend
      per campaign or channel is marketing, marketing costs as booked in the ledger and marketing
      budgets are finance*; *sign-ups credited to a campaign are marketing, all new clients are
      trading*;

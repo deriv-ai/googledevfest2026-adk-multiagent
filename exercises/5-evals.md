@@ -1,6 +1,6 @@
-# Exercise 5: Prove it
+# Exercise 5: Evaluating agents
 
-[Back to the workshop](../README.md) · [Previous: Teamwork](4-teamwork.md)
+[Back to the workshop](../README.md) · [Previous: Routing across agents](4-routing.md)
 
 ## The problem
 

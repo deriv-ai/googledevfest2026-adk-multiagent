@@ -1,6 +1,6 @@
-# Exercise 1: Give the data a voice
+# Exercise 1: Creating tools
 
-[Back to the workshop](../README.md) · [Previous: Meet Nimbus](0-meet-nimbus.md)
+[Back to the workshop](../README.md) · [Previous: Exploring the app](0-explore.md)
 ## The problem
 
 The query functions work, but a model can't use them well. They have names like

@@ -1,6 +1,6 @@
-# Exercise 3: Join the team
+# Exercise 3: Adding an agent to the orchestrator
 
-[Back to the workshop](../README.md) · [Previous: Hire the marketing agent](2-agent.md)
+[Back to the workshop](../README.md) · [Previous: Creating an agent](2-agent.md)
 ## The problem
 
 The orchestrator only sends work to the specialists it knows about. Right now that's finance,
@@ -117,4 +117,4 @@ Refresh the Overview page too: your agent is no longer dashed.
 
 Simple marketing questions work. Many questions aren't simple: they need marketing
 and finance and trading at once, and some of them *sound* like marketing but aren't. That's
-**[exercise 4](4-teamwork.md)**.
+**[exercise 4](4-routing.md)**.

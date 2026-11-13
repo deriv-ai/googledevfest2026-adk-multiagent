@@ -62,7 +62,7 @@ Other facts that are handy on stage:
 - Q3 2026: campaigns spent $117,844.95 and brought in 58 of the 113 new clients. App-store ads had the
   lowest cost per sign-up ($1,635.34). NM-INTL's campaigns brought in the most sign-ups (29).
 
-## 1. Meet Nimbus: the task and the architecture (exercise 0, 3 min)
+## 1. The task and the architecture (exercise 0, 3 min)
 
 Present the task from [the README](../../README.md): the assistant answers finance, trading and
 news questions, but not marketing ones. NM-SG launched the Nimbus Go app in June 2026 with ad
@@ -132,7 +132,7 @@ dates. Specialists don't see the chat, so every sub-question is self-contained."
 - First trading finds the entity, **then** finance checks that entity's budget.
 - Point out that the second call could only be made after the first returned.
 
-## 4. Give the data a voice (exercise 1, 3 min)
+## 4. Creating tools (exercise 1, 3 min)
 
 Switch to the finished checkout. Show `my_agent/marketing_agent.py` next to `marketing_queries.py`:
 
@@ -158,7 +158,7 @@ Show `DESCRIPTION` and `build()`:
 
 Participants run `make check-2`.
 
-## 6. Join the team (exercise 3, 2 min)
+## 6. Adding an agent to the orchestrator (exercise 3, 2 min)
 
 1. One line in `my_agent/team.py` adds `marketing_agent` to `SPECIALISTS`. `./src` is mounted and
    the app reloads, so there is no rebuild.
@@ -170,7 +170,7 @@ Participants run `make check-2`.
 
 Participants run `make check-3`. It asks one live question, so it takes a few seconds.
 
-## 7. Teamwork (exercise 4, 4 min)
+## 7. Routing across agents (exercise 4, 4 min)
 
 Words mean different things to different teams. Show the tie-break rules participants add under
 `## Routing rules` in `my_agent/prompts/orchestrator.md`: *spend per campaign or channel is marketing, marketing
@@ -231,7 +231,7 @@ Participants run `make check-4`. It asks three live questions and checks the age
 and the order: parallel means both calls before either answer; sequential means the second call
 comes after the first answer and uses what it found.
 
-## 8. Prove it: evals and the competition (exercise 5, 3 min)
+## 8. Evaluating agents, and the competition (exercise 5, 3 min)
 
 Run `make eval` (or `make eval Q=worst-channel-chain` for one question). Show the table on screen:
 

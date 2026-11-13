@@ -1,6 +1,6 @@
-# Exercise 2: Hire the marketing agent
+# Exercise 2: Creating an agent
 
-[Back to the workshop](../README.md) · [Previous: Give the data a voice](1-tools.md)
+[Back to the workshop](../README.md) · [Previous: Creating tools](1-tools.md)
 ## The problem
 
 Tools don't run themselves. Something has to read the question, choose a tool, fill in the

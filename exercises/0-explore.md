@@ -1,4 +1,4 @@
-# Exercise 0: Meet Nimbus
+# Exercise 0: Exploring the app
 
 [Back to the workshop](../README.md)
 ## The problem
