@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
@@ -88,3 +89,23 @@ def tool_title(tool: BaseTool) -> str:
     if spec is not None:
         return spec.title + (" (curated answer)" if spec.tool_type == "factual" else "")
     return (tool.description or "").strip().split("\n")[0]
+
+
+CATALOGUE_LABEL_MAX = 120
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]+")
+# Characters that could close our quoting, start markdown structure, or fake a [[MARKER]].
+_MARKUP = re.compile(r"[`*_#>|<\[\]{}\\]")
+
+
+def catalogue_label(text: str) -> str:
+    """A tool title made safe to quote inside a system prompt.
+
+    Titles come from the tools UI/API, i.e. from users. One line, no markdown, no quote
+    characters, bounded length; the prompt then presents it as a quoted label, not as
+    instructions. Defence in depth: write access to the registry is the primary control."""
+    text = _CONTROL.sub(" ", text or "")
+    text = _MARKUP.sub("", text).replace('"', "'")
+    text = " ".join(text.split())
+    if len(text) > CATALOGUE_LABEL_MAX:
+        text = text[: CATALOGUE_LABEL_MAX - 1].rstrip() + "\u2026"
+    return text
