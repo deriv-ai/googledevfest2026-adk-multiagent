@@ -51,7 +51,7 @@ HIGH/CRITICAL issues. `make trivy-audit` patches, tests and scans in one go.
 gitignored, so it only exists on the facilitators' machines.
 
 1. Make a Google Drive folder that anyone with the link can upload to. Put its link in place of
-   `DRIVE_FOLDER_ID` in `exercises/5-evals.md` and in `DRIVE_URL` at the top of the root
+   `DRIVE_FOLDER_ID` in `exercises/5-competition.md` and in `DRIVE_URL` at the top of the root
    `Makefile`, and push. Participants run `make submit NAME="<name>"` and upload the zip it makes.
 2. Download the Drive folder (Drive gives you a zip), and with the stack running (`make up`),
    score it. The judge takes the zip or the unzipped folder:

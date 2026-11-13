@@ -1,6 +1,7 @@
 # Exercise 1: Creating tools
 
 [Back to the workshop](../README.md) · [Previous: Exploring the app](0-explore.md)
+
 ## The problem
 
 The query functions work, but a model can't use them well. They have names like
@@ -43,62 +44,19 @@ back, when to use the tool, and what each argument looks like.
 Open **`my_agent/marketing_agent.py`** and find the comment `# Exercise 1`.
 Write **two tools** there:
 
-1. one that shows how each **campaign** did over a date range;
-2. one that shows how each **ad channel** did over a date range.
+1. one that shows how each **campaign** did over a date range, using
+   `queries.fetch_campaign_performance`;
+2. one that shows how each **ad channel** did over a date range, using
+   `queries.fetch_channel_summary`.
 
-Each tool calls one of the queries and returns its result. `marketing_queries.py` is already
-imported as `queries`.
+Each tool calls its query and returns the result. `marketing_queries.py` is already imported as
+`queries`, and has the queries' signatures.
 
 Further down the file are three **ready-made tools** that wrap the other queries, so
 you don't have to type them all. Read one first: yours follow the same pattern.
 
 Put real effort into the docstrings. Later, a model that has never seen this code will pick
 between all five tools using only what's written there.
-
-<details>
-<summary>Hint: which queries?</summary>
-
-`queries.fetch_campaign_performance(...)` and `queries.fetch_channel_summary(...)`. Their
-signatures are in `my_agent/marketing_queries.py`.
-
-</details>
-
-<details>
-<summary>Hint: what goes in the docstring?</summary>
-
-Look at what the query returns: open the Data Schema page, or call the tool once and look at the
-rows in the route panel later. Then write:
-
-- one line on what the tool returns;
-- the columns, with units (`spend_usd` is US dollars);
-- an example question it answers;
-- the format of every argument, especially dates (`YYYY-MM-DD`) and entity ids (`NM-UK`, `NM-SG`,
-  `NM-AE`, `NM-INTL`).
-
-</details>
-
-<details>
-<summary>Hint: show me one finished tool</summary>
-
-```python
-async def campaign_performance(start_date: str, end_date: str, entity_id: str | None = None) -> dict:
-    """Spend, clicks and sign-ups per campaign for a date range.
-
-    One row per campaign: campaign_id, name, entity_id, channel, spend_usd, impressions,
-    clicks, signups (new clients the campaign brought in) and cost_per_signup_usd.
-    Use it for "how did our campaigns do last quarter?" or "how did the Nimbus Go campaigns do?".
-
-    Args:
-        start_date: First day, YYYY-MM-DD.
-        end_date: Last day (inclusive), YYYY-MM-DD.
-        entity_id: Only campaigns of this entity: NM-UK, NM-SG, NM-AE or NM-INTL. Omit for all.
-    """
-    return await queries.fetch_campaign_performance(start_date, end_date, entity_id)
-```
-
-The channel tool follows the same pattern with `queries.fetch_channel_summary`.
-
-</details>
 
 ## Check it
 

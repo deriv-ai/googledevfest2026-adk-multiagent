@@ -15,7 +15,13 @@ FROM python:3.13-slim AS runtime
 
 COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /usr/local/bin/uv
 
+# OpenSSL probes the CPU at startup. Some Linux VMs on Apple Silicon (seen on an M4 with
+# Podman) report SVE but trap SVE instructions, so that probe kills Python with
+# "Illegal instruction" (exit 132) as soon as anything loads OpenSSL (cryptography, psycopg,
+# aiohttp). A fixed capability mask skips the probe. 0x1 = NEON only, which every 64-bit ARM
+# CPU has; x86 builds ignore this variable.
 ENV PYTHONDONTWRITEBYTECODE=1 \
+    OPENSSL_armcap=0x1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \

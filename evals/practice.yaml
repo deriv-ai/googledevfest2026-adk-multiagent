@@ -1,4 +1,5 @@
-# Practice questions. `make eval` runs each one through your agents and scores it.
+# Practice questions. `make check-3` and `make check-4` ask a few of them; facilitators can run
+# the whole set with `python -m devfest_agents.evals evals/practice.yaml` inside nimbus-app.
 #
 # Every question is worth 2 points:
 #   route   the orchestrator called exactly the agents in `agents` ([] = none at all)

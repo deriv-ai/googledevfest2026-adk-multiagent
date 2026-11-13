@@ -6,6 +6,44 @@ hierarchy. In the workshop you add one more specialist, a marketing agent whose 
 marketing queries the repo provides (see [the README](../../README.md)). Everything runs in four
 containers. All business data is synthetic.
 
+## The agents
+
+The assistant has a main agent, an orchestrator and three specialists: finance, trading and
+news. You add the fourth.
+
+```mermaid
+flowchart LR
+    U([you]) --> MAIN[main agent<br/>talks to people]
+    MAIN --> ORCH{orchestrator<br/>picks the specialists}
+    ORCH --> FIN[finance agent]
+    ORCH --> TRD[trading agent]
+    ORCH --> NEWS[news agent]
+    ORCH -.-> MKT[marketing agent<br/>you build this]
+    FIN --> FDB[(finance data)]
+    TRD --> TDB[(trading data)]
+    NEWS --> WEB[(live headlines)]
+    MKT -.-> MDB[(marketing data)]
+
+    classDef new stroke-dasharray: 5 5
+    class MKT,MDB new
+```
+
+The main agent talks to people. The orchestrator reads each question, decides which specialists
+it needs, asks them, and merges what they say. Each specialist reads only its own data.
+
+The final question needs three of them at once:
+
+```mermaid
+flowchart LR
+    Q["Was Nimbus Go worth it?"] --> ORCH{orchestrator}
+    ORCH -->|what did it spend,<br/>who signed up?| MKT[marketing agent]
+    ORCH -->|what do Singapore's<br/>clients earn us?| TRD[trading agent]
+    ORCH -->|how far over budget?| FIN[finance agent]
+    MKT --> A[one answer]
+    TRD --> A
+    FIN --> A
+```
+
 ## Containers
 
 ```mermaid

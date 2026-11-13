@@ -1,6 +1,7 @@
 # Exercise 4: Routing across agents
 
 [Back to the workshop](../README.md) · [Previous: Adding an agent to the orchestrator](3-orchestrator.md)
+
 ## The problem
 
 Most real questions cross teams:
@@ -55,20 +56,6 @@ Then try these in the chat, and watch the route panel:
 | How many new clients signed up in September 2026, whether or not a campaign brought them in? | trading only |
 | When did the Nimbus Go launch campaigns first spend money, and what was NM-SG's operating profit in that month? | marketing, then finance |
 
-<details>
-<summary>Hint: show me rules that work</summary>
-
-```markdown
-   Spend *per campaign or channel* is marketing; marketing costs *as booked in the ledger*
-   (including brand and events) and marketing budgets are finance. Sign-ups *credited to a
-   campaign* are marketing; *all* new clients, whether or not a campaign brought them in, are
-   trading. A question only about ledger costs, or only about all new clients, doesn't need
-   marketing_agent. One that divides campaign spend by all new clients needs marketing_agent and
-   trading_agent, in parallel.
-```
-
-</details>
-
 ## Check it
 
 ```bash
@@ -91,4 +78,4 @@ Calling the right agents in the wrong order doesn't pass.
 ## Next
 
 It works on the questions you tried. Does it work on the ones you didn't? In
-**[exercise 5](5-evals.md)** you find out, and the competition starts.
+**[the competition](5-competition.md)** you find out.

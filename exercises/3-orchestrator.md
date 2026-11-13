@@ -1,6 +1,7 @@
 # Exercise 3: Adding an agent to the orchestrator
 
 [Back to the workshop](../README.md) · [Previous: Creating an agent](2-agent.md)
+
 ## The problem
 
 The orchestrator only sends work to the specialists it knows about. Right now that's finance,
@@ -43,11 +44,12 @@ concierge = LlmAgent(
 
 Two small edits, in two files:
 
-1. **`my_agent/team.py`**: add your agent to `SPECIALISTS`, the team list.
-   Every agent in that list becomes a tool for the orchestrator.
+1. **`my_agent/team.py`**: import your module (`from . import marketing_agent`) and add it to
+   `SPECIALISTS`, the team list. Every agent in that list becomes a tool for the orchestrator.
 2. **`my_agent/prompts/orchestrator.md`**: this is the orchestrator's
-   instruction. It lists every specialist under `## Specialists`. Add a line for yours. Then
-   delete the `## Not covered yet` section you saw in exercise 0: campaigns are covered now.
+   instruction. It lists every specialist under `## Specialists`. Add a line for yours, in the
+   same style: what it covers and which data it reads. Then delete the `## Not covered yet`
+   section you saw in exercise 0, heading included: campaigns are covered now.
 
 Then ask the question from exercise 0 again, in a new chat:
 
@@ -56,47 +58,6 @@ Then ask the question from exercise 0 again, in a new chat:
 Last time the orchestrator refused. Now the route panel should show it calling
 `marketing_agent`, and your tools doing the work. Give it 20 seconds or so: three agents think in
 turn.
-
-<details>
-<summary>Hint: how does the team list work?</summary>
-
-Import your module at the top of `team.py` (`from . import marketing_agent`), then add it to the
-list.
-`build_root_agent()` builds every module in the list and wraps each one in an `AgentTool`.
-
-</details>
-
-<details>
-<summary>Hint: what should the line say?</summary>
-
-Write it in the same style as the other specialists' lines: what the agent covers and which data
-it reads. The live tool list below it fills itself in.
-
-</details>
-
-<details>
-<summary>Hint: show me the changes</summary>
-
-In `my_agent/team.py`:
-
-```python
-from devfest_agents.agents import finance_agent, news_agent, trading_agent
-
-from . import marketing_agent
-
-SPECIALISTS = [finance_agent, trading_agent, news_agent, marketing_agent]
-```
-
-In `my_agent/prompts/orchestrator.md`, under `## Specialists`:
-
-```markdown
-- `marketing_agent` - ad campaigns: spend per campaign or channel, impressions, clicks, the new
-  clients each campaign brought in, cost per sign-up. Data: the `marketing` schema.
-```
-
-And delete the whole `## Not covered yet` section, heading included.
-
-</details>
 
 ## Check it
 

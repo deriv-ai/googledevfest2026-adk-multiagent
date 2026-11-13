@@ -13,13 +13,13 @@ COMPOSE ?= docker compose -f compose.yaml
 endif
 EXEC ?= $(ENGINE) exec
 
-# The competition's Google Drive folder. Facilitators: put the real link here and in exercises/5-evals.md.
+# The competition's Google Drive folder. Facilitators: put the real link here and in exercises/5-competition.md.
 DRIVE_URL := https://drive.google.com/drive/folders/DRIVE_FOLDER_ID
 
 ENV_MSG := add your LLM key to .env (see .env.example), then run make up again
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env check-engine up down logs reset eval submit check
+.PHONY: help check-env check-engine up down logs reset submit check
 
 help: ## Show this help
 	@echo "The marketing agent workshop. Start with README.md."
@@ -53,7 +53,7 @@ check-engine:
 	@if ! $(ENGINE) info >/dev/null 2>&1; then \
 		if [ "$(ENGINE)" = podman ]; then echo "Podman isn't running. Run: podman machine start"; \
 		else echo "Docker is installed but not running. Start Docker Desktop (on Linux: sudo systemctl start docker),"; \
-			echo "then run make up again. See 'If something goes wrong' in README.md if it still fails."; fi; \
+			echo "then run make up again."; fi; \
 		exit 1; \
 	fi
 
@@ -78,10 +78,6 @@ check: ## Check an exercise: make check-0, make check-1 ... make check-4
 # `|| true`: a check with things to fix is normal progress, not a make error.
 check-%:
 	@$(EXEC) nimbus-app python -m devfest_agents.check $* || true
-
-eval: ## Score your agents on the practice questions (one question: Q=<id>)
-	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) \
-		$(if $(P),--parallel $(P)) > evals/report.json && echo "Full report: evals/report.json" || true
 
 submit: ## Zip my_agent/ for the competition: make submit NAME="your name or team"
 	@if [ -z "$(NAME)" ]; then echo 'Add your name or team: make submit NAME="Ada Lovelace"'; exit 1; fi
