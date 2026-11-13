@@ -3,7 +3,7 @@
 [Back to the workshop](../README.md) · [Previous: Join the team](3-orchestrator.md)
 ## The problem
 
-Vernon's real questions cross teams:
+Most real questions cross teams:
 
 > What did each new client cost us in Q3 2026, counting every client who signed up?
 

@@ -1,6 +1,6 @@
-"""marketing_agent: answers Vernon's campaign questions.
+"""marketing_agent: answers questions about ad campaigns.
 
-The data team's queries are in marketing_queries.py. You turn them into tools,
+The marketing queries are in marketing_queries.py. You turn them into tools,
 give the tools to an agent, and plug the agent into the orchestrator.
 The exercises in exercises/ walk you through it.
 """
@@ -26,7 +26,7 @@ DESCRIPTION = ""
 
 
 # ---------------------------------------------------------------------------
-# Ready-made tools. They wrap the data team's other queries the same way yours do,
+# Ready-made tools. They wrap the other queries the same way yours do,
 # so you don't have to type them out. Give them to your agent in exercise 2.
 # ---------------------------------------------------------------------------
 async def monthly_spend(start_date: str, end_date: str, entity_id: str | None = None,

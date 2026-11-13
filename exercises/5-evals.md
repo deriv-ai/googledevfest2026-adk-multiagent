@@ -74,7 +74,7 @@ yourself: how would your agent know when the data starts and ends? Look at the b
 <details>
 <summary>Hint: "Was the Nimbus Go launch campaign worth the money?" fails the judge</summary>
 
-Read its judge rule in `evals/practice.yaml`, then [Back to Vernon](#back-to-vernon) below. A
+Read its judge rule in `evals/practice.yaml`, then [The final question](#the-final-question) below. A
 good answer says what the data shows *and* what it can't show. Which agent writes the joined-up
 answer, and whose instruction would you change?
 
@@ -106,9 +106,9 @@ Don't hard-code answers: the hidden questions are different, so it wouldn't help
 marketing tools read only the marketing data; when a question needs finance or trading numbers,
 the orchestrator has to ask those agents.
 
-## Back to Vernon
+## The final question
 
-Ask the question from the start one last time:
+Ask it one last time:
 
 > Was the Nimbus Go launch campaign worth the money?
 
@@ -126,11 +126,10 @@ What it can't show is the one thing that would settle it: how much the 18 new cl
 Commission is reported for the whole entity, not per client, and no agent connects a campaign's
 sign-ups to their trades. So the commission figure can't show the campaign paid for itself.
 
-An honest answer for Friday: *Nimbus Go bought 18 clients at about $3,568 each, about 76% more
-than the average campaign client, in a quarter when Singapore's marketing ran 43% over budget.
-Whether it was worth it depends on what those 18 clients trade, and our data can't show that
-yet. Before Friday, ask the data team for commission per client, by the campaign that brought
-them in.*
+A good answer: *Nimbus Go bought 18 clients at about $3,568 each, about 76% more than the
+average campaign client, in a quarter when Singapore's marketing ran 43% over budget. Whether it
+was worth it depends on what those 18 clients trade, and the data can't show that yet. Answering
+it needs commission per client, by the campaign that brought them in.*
 
 If your assistant says something like that, it did its job: it answered with evidence, and it
 said where the evidence stops.

@@ -3,7 +3,7 @@
 This repo re-implements a production-style pattern, **agents whose tools live in a database
 registry**, as a small, self-contained Google ADK app. On top of it sits a three-tier multi-agent
 hierarchy. In the workshop you add one more specialist, a marketing agent whose Python tools wrap
-queries the data team already wrote (see [the README](../../README.md)). Everything runs in four
+marketing queries the repo provides (see [the README](../../README.md)). Everything runs in four
 containers. All business data is synthetic.
 
 ## Containers
@@ -151,7 +151,7 @@ Python function tools instead. `my_agent/marketing_agent.py` starts as a stub wi
 participant finishes it.
 
 **What participants edit.** Everything a participant touches is in `my_agent/` at the repo root:
-the marketing agent and the data team's queries, `team.py` (the `SPECIALISTS` list, imported by
+the marketing agent and the marketing queries, `team.py` (the `SPECIALISTS` list, imported by
 `agents/__init__.py`), and the prompts for the main agent, the orchestrator and the marketing
 agent. `load_prompt` looks in `my_agent/prompts/` first, then in `agents/prompts/` for the finance
 and trading prompts.
@@ -196,8 +196,8 @@ The registry and the UI tool editor cover **finance and trading only** (`tools.a
 The marketing agent's tools are plain async Python functions. ADK wraps each one in a `FunctionTool`:
 the function name, the typed signature and the docstring become the declaration the LLM sees.
 
-Participants don't write SQL. In the story, the data team has already written and tested six queries
-in `my_agent/marketing_queries.py`:
+Participants don't write SQL. The repo gives them six tested queries in
+`my_agent/marketing_queries.py`:
 
 | Function | Returns |
 |---|---|
@@ -306,7 +306,7 @@ See the Evals section of [CONTRACT.md](CONTRACT.md) for the formats.
 ## Safety summary
 
 - The LLM never writes SQL at question time. It can only call registered, reviewed and tested queries
-  or Python tools that wrap the data team's fixed queries, with validated arguments.
+  or Python tools that wrap the fixed marketing queries, with validated arguments.
 - Defence in depth: the SQL guard (single SELECT, own schema only), the read-only `agent_ro` role
   with no access to the registry, read-only transactions, a 5 s statement timeout and a row cap. These
   apply to registry tools and to `run_sql` alike.

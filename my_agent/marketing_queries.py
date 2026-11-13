@@ -1,4 +1,4 @@
-"""Marketing queries, from the Nimbus data team.
+"""Marketing queries, tested and ready to use.
 
 Each function runs one read-only query on the marketing schema. It returns
 {"row_count", "truncated", "rows"}, or {"error": "..."} if something is wrong.

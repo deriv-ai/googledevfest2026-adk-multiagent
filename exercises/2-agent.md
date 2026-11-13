@@ -3,7 +3,7 @@
 [Back to the workshop](../README.md) · [Previous: Give the data a voice](1-tools.md)
 ## The problem
 
-Tools don't run themselves. Something has to read Vernon's question, choose a tool, fill in the
+Tools don't run themselves. Something has to read the question, choose a tool, fill in the
 arguments, read the rows that come back and write an answer. In ADK that something is an agent.
 
 ## What helps

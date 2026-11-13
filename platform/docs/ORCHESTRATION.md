@@ -26,7 +26,7 @@ flowchart LR
 | `orchestrator` | one `AgentTool` per entry in `SPECIALISTS` | Decides **which** specialists are needed, **what** to ask each, and **in which order**. Then it merges and attributes their findings. |
 | `finance_agent` / `trading_agent` | `SqlRegistryToolset("finance")` / `SqlRegistryToolset("trading")` | Answer with tool results only, from their own schema. |
 | `news_agent` | `NewsToolset`, a fail-soft wrapper around ADK's `McpToolset` for the news-mcp server | Live real-world headlines. It has no Nimbus data. If the server is down it has no tools and says news is unavailable. |
-| `marketing_agent` (you add it) | async Python functions that wrap the data team's queries in `marketing_queries.py`, which call `run_sql("marketing", ...)` | Campaign spend, impressions, clicks, sign-ups and cost per sign-up, from the `marketing` schema. |
+| `marketing_agent` (you add it) | async Python functions that wrap the marketing queries in `marketing_queries.py`, which call `run_sql("marketing", ...)` | Campaign spend, impressions, clicks, sign-ups and cost per sign-up, from the `marketing` schema. |
 
 The orchestrator only knows the specialists in `SPECIALISTS` (`my_agent/team.py`).
 Until `marketing_agent` is in that list, a campaign question either goes to finance (which only sees

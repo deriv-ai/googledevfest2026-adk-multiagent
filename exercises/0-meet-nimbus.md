@@ -3,7 +3,7 @@
 [Back to the workshop](../README.md)
 ## The problem
 
-Before fixing anything, see it break the way Vernon did.
+Before you build anything, see what the assistant can't do yet.
 
 ## Look around
 
@@ -12,7 +12,7 @@ Open http://localhost:8080.
 1. **Overview** shows the agents. The marketing agent is drawn with a dashed line, because it
    doesn't exist yet.
 
-2. On the **Chat** page, ask what Vernon asked:
+2. On the **Chat** page, ask a marketing question:
 
    > How did the Nimbus Go campaigns do?
 
@@ -25,7 +25,7 @@ Open http://localhost:8080.
    section, the orchestrator would stitch their partial answers together and present them as if
    they answered the question. You'll delete it in exercise 3, once a real marketing agent exists.
 
-3. Open `my_agent/marketing_queries.py`, the data team's handover. Skim the `fetch_...` functions
+3. Open `my_agent/marketing_queries.py`, the queries you're given. Skim the `fetch_...` functions
    at the bottom: their names, their parameters, and the comment under each one. Your tools will
    call them. You won't change this file, and you can skip the SQL.
 
@@ -39,5 +39,5 @@ It checks that your LLM key is set and the marketing data is loaded.
 
 ## Next
 
-The data team's queries return the right numbers, but Gemini can't use them yet. In
+The queries return the right numbers, but the model can't call them yet. In
 **[exercise 1](1-tools.md)** you turn two of them into tools.

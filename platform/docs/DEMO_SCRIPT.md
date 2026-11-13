@@ -8,7 +8,7 @@ about a minute. The demos in sections 2, 3 and 7 are optional: use them only if 
 
 | Time | Participants | You |
 |---|---|---|
-| 0:00 | Clone, add key, `make up`, read the story | Tell the story (section 1). Walk the room for setup problems. |
+| 0:00 | Clone, add key, `make up`, read the task | Present the task (section 1). Walk the room for setup problems. |
 | 0:10 | Exercise 0 | Show the refusal and the `## Not covered yet` section. |
 | 0:14 | Exercise 1 | Introduce tools and docstrings (section 4). |
 | 0:23 | Exercise 2 | Description vs instruction (section 5). |
@@ -17,7 +17,7 @@ about a minute. The demos in sections 2, 3 and 7 are optional: use them only if 
 | 0:42 | Exercise 5: score, fix one failure, rerun | Show one improvement cycle (section 8). Put the Drive folder link on screen. |
 | 0:45 | | Start judging: download the Drive folder and run `make -C platform judge` on it. Repeat every few minutes as uploads arrive. |
 | 0:52 | `make submit NAME=...`, upload the zip | Stop accepting uploads at 0:54. |
-| 0:54 | | Final download and judge run, leaderboard on screen, Vernon's answer (section 9). |
+| 0:54 | | Final download and judge run, leaderboard on screen, the final question (section 9). |
 
 Which improvements separate a finished workshop from full marks, and what the reference
 solutions score, is in [CHALLENGES.md](CHALLENGES.md).
@@ -62,11 +62,12 @@ Other facts that are handy on stage:
 - Q3 2026: campaigns spent $117,844.95 and brought in 58 of the 113 new clients. App-store ads had the
   lowest cost per sign-up ($1,635.34). NM-INTL's campaigns brought in the most sign-ups (29).
 
-## 1. Meet Nimbus: the story and the architecture (exercise 0, 3 min)
+## 1. Meet Nimbus: the task and the architecture (exercise 0, 3 min)
 
-Tell the story from [the README](../../README.md): Vernon runs marketing at Nimbus Markets. NM-SG
-launched the Nimbus Go app in June and backed it with ad campaigns. Marketing costs ran far over
-budget, and the CFO wants to know on Friday whether Nimbus Go was worth the money.
+Present the task from [the README](../../README.md): the assistant answers finance, trading and
+news questions, but not marketing ones. NM-SG launched the Nimbus Go app in June 2026 with ad
+campaigns. Participants add a marketing agent, and the final question is whether Nimbus Go was
+worth the money.
 
 Open the Overview page and walk the diagram:
 
@@ -80,8 +81,8 @@ Then:
 
 1. Ask *"How did the Nimbus Go campaigns do?"* The orchestrator has nobody to send it to.
 2. Point at the `marketing` tab on the Schema page: the data is already there, no agent reads it yet.
-3. Open `my_agent/marketing_queries.py`: the data team's handover, five tested
-   queries. *"Nobody writes SQL today. Your job is to make these usable by a model."*
+3. Open `my_agent/marketing_queries.py`: the tested queries they're
+   given. *"Nobody writes SQL today. Your job is to make these usable by a model."*
 
 Participants run `make check-0` (LLM key and marketing data). Tell them `make eval` already works and
 the score starts low.
@@ -135,7 +136,7 @@ dates. Specialists don't see the chat, so every sub-question is self-contained."
 
 Switch to the finished checkout. Show `my_agent/marketing_agent.py` next to `marketing_queries.py`:
 
-1. A tool is a plain async function that calls one of the data team's queries, for example
+1. A tool is a plain async function that calls one of the marketing queries, for example
    `queries.fetch_channel_summary(...)`.
 2. ADK turns the name, the type hints and the docstring into the declaration the model sees. The
    model never sees the body. *"The docstring is the prompt."*
@@ -212,7 +213,7 @@ clients are trading.*
 - Trading: NM-SG earned $87,235.84 in commission in Q3 2026, from all its clients.
 - Talking point: *"The data can't settle it. Commission is per entity, not per client, so nothing
   shows what the 18 new clients trade. A good answer says that."* This is the closing question of
-  the session; exercise 5's "Back to Vernon" has the full answer.
+  the session; exercise 5's "The final question" has the full answer.
 
 **e) Routing traps**
 
@@ -260,10 +261,10 @@ make submit NAME="your name or team"
 - Put `platform/.judge/leaderboard.html` on the projector. It refreshes itself as results come in.
 - Rules: don't hard-code answers, and marketing tools only read marketing data.
 
-## 9. Wrap-up: Vernon's answer (3 min)
+## 9. Wrap-up: the final question (3 min)
 
 Ask *"Was the Nimbus Go launch campaign worth the money?"* on screen. Read the answer with the
-room against exercise 5's "Back to Vernon" table: it should give the spend, the 18 sign-ups and
+room against exercise 5's "The final question" table: it should give the spend, the 18 sign-ups and
 the cost per sign-up, and say the data can't show what those clients trade.
 
 - Agents as tools: `AgentTool` gives you hierarchy, parallelism and sequencing from plain function

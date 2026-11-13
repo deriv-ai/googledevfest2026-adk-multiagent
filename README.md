@@ -1,18 +1,18 @@
 # The marketing agent workshop
 
-Nimbus Markets is an online broker with an AI assistant built with
+Nimbus Markets is a fictional online broker with an AI assistant built with
 [Google ADK](https://google.github.io/adk-docs/). It answers questions about **finance**,
-**trading** and the day's **market news**, but not about **marketing**. Vernon, who runs
-marketing, needs answers by Friday.
+**trading** and the day's **market news**, but not about **marketing**.
 
-In one hour you build the marketing agent, plug it into the assistant, score it on hard
-questions, improve it, and submit it to a competition.
+Your task is to add a marketing agent, connect it to the assistant, and measure how well it
+answers. You submit your `my_agent/` folder, and it's scored on questions you haven't seen.
+[The task](#the-task) has the details.
 
 ## How the session runs
 
 | Step | What you do |
 |---|---|
-| Set up | [Set up](#set-up), and read [the story](#the-story) while it builds |
+| Set up | [Set up](#set-up), and read [the task](#the-task) while it builds |
 | [Exercise 0: Meet Nimbus](exercises/0-meet-nimbus.md) | See the problem |
 | [Exercise 1: Give the data a voice](exercises/1-tools.md) | Write two tools |
 | [Exercise 2: Hire the marketing agent](exercises/2-agent.md) | Build the agent |
@@ -20,7 +20,7 @@ questions, improve it, and submit it to a competition.
 | [Exercise 4: Teamwork](exercises/4-teamwork.md) | Route questions that cross teams |
 | [Exercise 5: Prove it](exercises/5-evals.md) | Score it, fix one failure, score again |
 | [Submit](exercises/5-evals.md#the-competition) | Upload your `my_agent/` folder |
-| Wrap up | The leaderboard, and Vernon's answer |
+| Wrap up | The leaderboard, and the answer to the final question |
 
 Each exercise ends with a check, like `make check-1`, and a link to the next one. If you fall
 behind, open the hints: every exercise has one that shows the finished code.
@@ -119,29 +119,36 @@ make up
 ```
 
 The first start takes a few minutes: it downloads about 1 GB, builds the app and loads the data.
-Read [the story](#the-story) while it runs.
+Read [the task](#the-task) while it runs.
 
 **4. Open http://localhost:8080.** You should see the Overview page. Then start
 [exercise 0](exercises/0-meet-nimbus.md).
 
-## The story
+## The task
 
-Nimbus Markets is a fictional online broker with four companies: NM-UK, NM-SG (Singapore),
-NM-AE (Dubai) and NM-INTL. Its AI assistant answers questions from the company's own data, and
-finance and the trading desk use it every day.
+**Background.** Nimbus Markets has four companies: NM-UK, NM-SG (Singapore), NM-AE (Dubai) and
+NM-INTL. In June 2026, NM-SG launched a mobile app, **Nimbus Go**, with paid ad campaigns. The
+database holds the marketing data: campaigns, daily ad spend and sign-ups. No agent reads it yet.
 
-In June, the Singapore team launched **Nimbus Go**, a new mobile app, and backed it with ad
-campaigns. They spent fast. Singapore's marketing costs ran far over budget, and the CFO booked
-a review for Friday with one question on the agenda: *was Nimbus Go worth the money?*
+**What you're given:**
 
-Vernon, who runs marketing, asked the assistant. It said no part of it knows about marketing.
+- a working assistant with a main agent, an orchestrator and three specialists: finance, trading
+  and news;
+- `my_agent/marketing_queries.py`, tested queries over the marketing data, as Python functions;
+- a starter `my_agent/` folder, a check for each exercise, and practice questions.
 
-The data team has done their part. They wrote and tested the queries over the marketing data
-and left them in `my_agent/marketing_queries.py`, with a note: *"These return the right numbers.
-We don't do agents. Over to you."*
+**What you build:**
 
-You've just joined the AI team. Your job: give the assistant a marketing agent, so that by
-Friday it can answer Vernon honestly.
+1. tools that wrap the marketing queries;
+2. a marketing agent that uses them;
+3. the routing that sends marketing questions to it, alone or together with the other agents.
+
+**How it's scored.** Every question earns one point for asking the right agents and one for a
+correct answer. `make eval` runs the practice questions; the hidden ones are in the same style.
+The final question is *"Was the Nimbus Go launch campaign worth the money?"* A good answer gives
+the figures and says what the data can't show.
+
+**What you hand in.** Your `my_agent/` folder, zipped by `make submit`.
 
 ## How the assistant works
 
@@ -150,7 +157,7 @@ news. You add the fourth.
 
 ```mermaid
 flowchart LR
-    V([Vernon]) --> MAIN[main agent<br/>talks to people]
+    U([you]) --> MAIN[main agent<br/>talks to people]
     MAIN --> ORCH{orchestrator<br/>picks the specialists}
     ORCH --> FIN[finance agent]
     ORCH --> TRD[trading agent]
@@ -170,7 +177,7 @@ it needs, asks them, and merges what they say. Each specialist knows one part of
 reads only its own data. The news agent reads live headlines. No exercise uses it, but the
 orchestrator still sends it news questions.
 
-Vernon's question needs three of them at once:
+The final question needs three of them at once:
 
 ```mermaid
 flowchart LR
@@ -178,7 +185,7 @@ flowchart LR
     ORCH -->|what did it spend,<br/>who signed up?| MKT[marketing agent]
     ORCH -->|what do Singapore's<br/>clients earn us?| TRD[trading agent]
     ORCH -->|how far over budget?| FIN[finance agent]
-    MKT --> A[one answer for Vernon]
+    MKT --> A[one answer]
     TRD --> A
     FIN --> A
 ```
@@ -190,7 +197,7 @@ Everything you write goes in one folder, `my_agent/`:
 ```
 my_agent/
   marketing_agent.py      your two tools and your agent       exercises 1 and 2
-  marketing_queries.py    the data team's queries; your tools call these
+  marketing_queries.py    the marketing queries; your tools call these
   team.py                 the agents the orchestrator can call    exercise 3
   prompts/
     marketing_agent.md    how your agent behaves                exercise 5
@@ -229,7 +236,7 @@ http://localhost:8000.
 | `permission denied` on Linux | Run `sudo usermod -aG docker $USER`, log out and back in, then `make up` again. |
 | `make up` stops and asks for a key | Add your key to `.env`, then `make up` again. |
 | "port 5432 is already in use" | Another database is running. In `.env`, set `POSTGRES_PORT=5433`, then `make up` again. |
-| The first `make up` is very slow | It downloads about 1 GB. Keep going with the story and exercise 0's reading. |
+| The first `make up` is very slow | It downloads about 1 GB. Keep going with the task and exercise 0's reading. |
 | Every chat answer is an error about the model or the key | Check `AGENT_MODEL` and `LLM_API_KEY` in `.env`, then `make up` again. If it mentions `reasoning_effort`, add `LLM_REASONING_EFFORT=` to `.env`. |
 | The chat stops answering after you save a file | You have a Python error. Run `make logs`, fix it, save again. |
 | On Windows, saving a file changes nothing | The repo is under `/mnt/c`. Clone it again from `cd ~` in the Ubuntu window. |

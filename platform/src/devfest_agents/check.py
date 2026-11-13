@@ -122,7 +122,7 @@ async def check_tool_runs(c: Checklist, tool) -> None:
         c.ok(f"{tool.__name__} returns data ({result['row_count']} rows for Q3 2026)")
     else:
         error = result.get("error") if isinstance(result, dict) else f"it returned a {type(result).__name__}"
-        c.fail(f"{tool.__name__} returns data", f"{error}. Return what the data team's query returns.")
+        c.fail(f"{tool.__name__} returns data", f"{error}. Return what the query returns.")
 
 
 async def exercise_2(c: Checklist) -> None:

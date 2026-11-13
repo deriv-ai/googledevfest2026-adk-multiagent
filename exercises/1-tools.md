@@ -3,7 +3,7 @@
 [Back to the workshop](../README.md) · [Previous: Meet Nimbus](0-meet-nimbus.md)
 ## The problem
 
-The data team's functions work, but a model can't use them well. They have names like
+The query functions work, but a model can't use them well. They have names like
 `fetch_campaign_performance` and a one-line comment for developers. Nothing tells Gemini what
 they return, when to call them, or what format the dates need.
 
@@ -46,10 +46,10 @@ Write **two tools** there:
 1. one that shows how each **campaign** did over a date range;
 2. one that shows how each **ad channel** did over a date range.
 
-Each tool calls one of the data team's queries and returns its result. The data team's file is
-already imported as `queries`.
+Each tool calls one of the queries and returns its result. `marketing_queries.py` is already
+imported as `queries`.
 
-Further down the file are three **ready-made tools** that wrap the data team's other queries, so
+Further down the file are three **ready-made tools** that wrap the other queries, so
 you don't have to type them all. Read one first: yours follow the same pattern.
 
 Put real effort into the docstrings. Later, a model that has never seen this code will pick

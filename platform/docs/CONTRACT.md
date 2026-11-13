@@ -163,7 +163,7 @@ Starter tools (the 6 seeded on first start): `finance_monthly_pnl`, `finance_rev
 Plain async functions passed in `LlmAgent(tools=[...])`. ADK wraps each in a `FunctionTool`: name, typed signature
 and docstring become the declaration the LLM sees (the first docstring line is also its title in the catalogue and graph).
 
-The marketing data team's queries live in `my_agent/marketing_queries.py`. Participants wrap them as
+The marketing queries live in `my_agent/marketing_queries.py`. Participants wrap them as
 tools in `my_agent/marketing_agent.py` and don't write SQL. Dates are `YYYY-MM-DD` strings, both ends inclusive; entity ids
 are `NM-UK`, `NM-SG`, `NM-AE`, `NM-INTL`; each returns what `run_sql` returns.
 ```python

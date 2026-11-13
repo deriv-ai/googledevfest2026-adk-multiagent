@@ -15,7 +15,7 @@ Two branches hold reference solutions, separate from the participant starter:
 ## Challenge 1: know where the data ends
 
 **What the starter leaves out.** Nothing tells the marketing agent when the data starts and
-ends. The data team's `fetch_data_coverage()` query in `my_agent/marketing_queries.py` answers
+ends. The `fetch_data_coverage()` query in `my_agent/marketing_queries.py` answers
 exactly that, but the starter doesn't wrap it as a tool, and the agent's instruction doesn't
 mention coverage. So the agent treats "no rows" as zero, and a month the data only partly covers
 as a whole month. It often fills the gap with today's date ("month to date, up to 12 November"),
@@ -60,12 +60,12 @@ connects a campaign's sign-ups to their trades.
 
 **Which questions expose it.**
 
-- Practice: `nimbus-go-worth-it`, Vernon's own question.
+- Practice: `nimbus-go-worth-it`, the final question.
 - Hidden: `f-intl-paid-off`, the same question about another entity's campaigns.
 
 **What the participant sees.** The route is right, the figures are right, and the judge fails it
 with something like "does not state that client-level revenue cannot be determined". Exercise
-5's "Back to Vernon" section lays out what the data can and can't show, with every figure.
+5's "The final question" section lays out what the data can and can't show, with every figure.
 
 **The smallest general fix.** One sentence in `## Your reply` of
 `my_agent/prompts/orchestrator.md`:
@@ -107,4 +107,4 @@ LLM answers vary. Expect the guided solution to land between 33 and 37, and the 
 miss a point now and then.
 
 **If you change the data**, regenerate the figures in `evals/practice.yaml`, `evals/final.yaml`
-and exercise 5's "Back to Vernon" table, and re-run both branches.
+and exercise 5's "The final question" table, and re-run both branches.

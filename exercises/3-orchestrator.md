@@ -115,6 +115,6 @@ Refresh the Overview page too: your agent is no longer dashed.
 
 ## Next
 
-Simple marketing questions work. Vernon's Friday questions aren't simple: they need marketing
+Simple marketing questions work. Many questions aren't simple: they need marketing
 and finance and trading at once, and some of them *sound* like marketing but aren't. That's
 **[exercise 4](4-teamwork.md)**.
