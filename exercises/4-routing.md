@@ -68,7 +68,8 @@ Name the overlaps and say who owns each side, in one or two sentences next to ru
 ```markdown
 Ad campaign spend, per campaign or channel, is marketing; marketing costs as booked in the ledger,
 and marketing budgets, are finance. Sign-ups credited to a campaign are marketing; all new clients
-are trading.
+are trading. A question about all new clients goes to trading_agent only, even when it mentions
+campaigns ("whether or not a campaign brought them in"): don't also ask marketing_agent.
 ```
 
 </details>

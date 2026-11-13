@@ -56,7 +56,7 @@ Then ask the question from exercise 0 again, in a new chat:
 > How did the Nimbus Go campaigns do?
 
 Last time the orchestrator refused. Now the route panel should show it calling
-`marketing_agent`, and your tools doing the work. Give it 20 seconds or so: three agents think in
+`marketing_agent`, and your tools doing the work. Give it up to a minute: three agents think in
 turn.
 
 ## Check it
