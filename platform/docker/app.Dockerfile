@@ -49,4 +49,4 @@ ENV STATIC_DIR=/app/static \
     HOME=/tmp
 EXPOSE 8080 8000
 
-CMD ["uvicorn", "devfest_agents.api.main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]
+CMD ["uvicorn", "devfest_agents.api.main:app", "--host", "0.0.0.0", "--port", "8080"]

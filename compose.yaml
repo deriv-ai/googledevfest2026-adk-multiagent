@@ -62,7 +62,7 @@ services:
       dockerfile: platform/docker/app.Dockerfile
     image: nimbus-app:latest
     container_name: nimbus-app
-    command: ["uvicorn", "devfest_agents.api.main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers",
+    command: ["uvicorn", "devfest_agents.api.main:app", "--host", "0.0.0.0", "--port", "8080",
               "--reload", "--reload-dir", "/app/platform/src", "--reload-dir", "/app/my_agent",
               "--reload-include", "*.md"]
     env_file: .env

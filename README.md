@@ -235,6 +235,24 @@ http://localhost:8000.
 | `make eval` shows "rate limit" or many timeouts | Run `make eval P=2`. |
 | The data looks wrong | Run `make reset`. |
 
+## Security: for your own machine only
+
+This repo is a workshop template. It is built to run on one laptop, for one person, with made-up
+data, so it has no logins.
+
+- **Every port listens on `127.0.0.1` only** (`BIND_ADDRESS` in `.env`). Nobody else on your
+  network can reach the app, the ADK dev UI or Postgres. Don't change it to `0.0.0.0`, especially
+  on shared or conference Wi-Fi.
+- **There is no authentication.** Anyone who can reach port 8080 can chat, read the data and
+  create, edit or delete tools. The ADK dev UI on port 8000 has no login either.
+- **The database passwords are fixed defaults** (`postgres`, `app`, `agent_ro`). They protect a
+  throwaway local container.
+- **All data is synthetic.** There are no real clients, trades or ledgers.
+- **Tool SQL is read-only.** It runs as `agent_ro`: SELECT on finance, trading and marketing only,
+  in a read-only transaction with a 5-second timeout.
+- **Tool titles and descriptions go into the agents' prompts.** That is how routing works, so only
+  add tools you wrote or trust.
+
 ## Going deeper
 
 - [How the orchestrator picks agents](platform/docs/ORCHESTRATION.md)
