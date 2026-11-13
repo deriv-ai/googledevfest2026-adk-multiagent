@@ -10,7 +10,8 @@ works in the competition: it just picks the right specialists less often.
 
 Most real questions cross teams:
 
-> What did each new client cost us in Q3 2026, counting every client who signed up?
+> What was our ad campaign spend per new client in Q3 2026, counting all new clients, not only
+> those a campaign brought in?
 
 The campaign spend is marketing's. The count of *every* new client is trading's, because many
 clients sign up without any campaign. The orchestrator has to ask both and combine the answers.
@@ -51,11 +52,11 @@ Teach the orchestrator where marketing ends and finance and trading begin. Open
 **`my_agent/prompts/orchestrator.md`** again and add tie-break rules under
 `## Routing rules`. Rule 1 already has one for finance and trading. Put yours next to it.
 
-Then try these in the chat, and watch the route panel:
+Questions like these should now go to the right specialists:
 
 | Question | Should go to |
 |---|---|
-| What did each new client cost us in Q3 2026, counting every client who signed up? | marketing and trading, in parallel |
+| What was our ad campaign spend per new client in Q3 2026, counting all new clients, not only those a campaign brought in? | marketing and trading, in parallel |
 | What was NM-SG's total Marketing expense booked in the ledger in September 2026? | finance only |
 | How many new clients signed up in September 2026, whether or not a campaign brought them in? | trading only |
 | When did the Nimbus Go launch campaigns first spend money, and what was NM-SG's operating profit in that month? | marketing, then finance |
@@ -76,14 +77,7 @@ campaigns ("whether or not a campaign brought them in"): don't also ask marketin
 
 ## Check it
 
-Ask each question in the table in the chat. In the **Agent route** panel, check that exactly the
-specialists in the right-hand column were called, and for the first and last rows, *how*:
-
-- **Parallel**: both specialists were asked in the same step, before either answered.
-- **Sequential**: the second specialist was asked only after the first answered, about what the
-  first one found (here, the month).
-
-Then score the two practice questions that test this routing:
+Score the two practice questions that test this routing:
 
 ```bash
 make eval Q=spend-per-new-client
@@ -91,8 +85,16 @@ make eval Q=sg-marketing-booked
 ```
 
 Each one is marked out of 5: 1 for calling exactly the right agents, 4 for the answer. They run on
-your key, a couple of cents each. A ✗ in the route column means the orchestrator called the wrong
-agents: the note says which.
+your key, a couple of cents each, and take under a minute each. A ✗ in the route column means the
+orchestrator called the wrong agents: the note says which.
+
+If you have time, also ask the questions in the table in the chat. Each takes up to a minute. In
+the **Agent route** panel, check that exactly the specialists in the right-hand column were called,
+and for the first and last rows, *how*:
+
+- **Parallel**: both specialists were asked in the same step, before either answered.
+- **Sequential**: the second specialist was asked only after the first answered, about what the
+  first one found (here, the month).
 
 ## Read more
 

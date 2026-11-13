@@ -40,8 +40,8 @@ KEEPALIVE_SECONDS = 15.0
 STREAMING = RunConfig(streaming_mode=StreamingMode.SSE)
 
 MISSING_KEY_MESSAGE = (
-    "No LLM key is configured. Add LLM_API_KEY (and AGENT_MODEL) to .env "
-    "as step 2 of Set up in README.md shows, then run make up again."
+    "No LLM key is configured. Put your LLM key in .env as LLM_API_KEY (`later` is only a "
+    "placeholder), as step 2 of Set up in README.md shows, then run make up again."
 )
 
 

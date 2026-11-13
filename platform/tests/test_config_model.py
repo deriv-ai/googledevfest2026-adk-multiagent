@@ -1,3 +1,5 @@
+import pytest
+
 from devfest_agents.agents.model import make_model
 from devfest_agents.config import Settings
 
@@ -31,3 +33,11 @@ def test_secrets_never_in_repr_and_scrubbed():
 def test_blank_values_are_unset():
     s = Settings(_env_file=None, gemini_api_key="", openai_base_url="  ", agent_model="")
     assert not s.llm_key_configured and s.llm_mode == "direct" and s.agent_model is None
+
+
+@pytest.mark.parametrize("placeholder", ["later", " Later ", "LATER"])
+def test_the_pre_session_placeholder_key_is_not_configured(placeholder):
+    # README: build before the session with LLM_API_KEY=later, then paste the real key.
+    s = Settings(_env_file=None, litellm_gemini_api_key=placeholder)
+    assert not s.llm_key_configured
+    assert Settings(_env_file=None, litellm_gemini_api_key="sk-real-key").llm_key_configured

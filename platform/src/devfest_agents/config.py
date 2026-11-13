@@ -16,6 +16,9 @@ PLATFORM_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = PLATFORM_ROOT.parent  # also holds my_agent/ and evals/
 
 
+PLACEHOLDER_KEY = "later"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
 
@@ -87,7 +90,9 @@ class Settings(BaseSettings):
 
     @property
     def llm_key_configured(self) -> bool:
-        return self.llm_api_key is not None
+        # "later" is the README's stand-in for building before the session: not a key.
+        key = self.llm_api_key
+        return key is not None and key.lower() != PLACEHOLDER_KEY
 
     def secret_values(self) -> list[str]:
         """Values that must be scrubbed from any error text sent to a client."""

@@ -60,7 +60,8 @@ def your_tools(module) -> list[Any]:
 # ---------------------------------------------------------------------------
 async def exercise_0(c: Checklist) -> None:
     c.check(get_services().settings.llm_key_configured, "An LLM key is set",
-            "Add LLM_API_KEY (and AGENT_MODEL) to .env, then run `make up` again. See step 2 of Set up in README.md.")
+            "Put your LLM key in .env as LLM_API_KEY (`later` is only a placeholder), then run `make up` "
+            "again. See step 2 of Set up in README.md.")
     result = await run_sql("marketing", "SELECT COUNT(*) AS n FROM marketing.campaigns")
     c.check("rows" in result and result["rows"][0]["n"] > 0, "The database has the marketing data",
             result.get("error", "Run `make reset` to reload the data."))
