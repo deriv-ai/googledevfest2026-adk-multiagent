@@ -33,7 +33,8 @@ Have these ready on your laptop:
 - **`git`** and **`make`**.
 - **An LLM API key** from any provider, for a model that supports tool calling. Gemini, OpenAI
   and Anthropic keys all work, as does any provider [LiteLLM](https://docs.litellm.ai/docs/providers)
-  supports.
+  supports. At the session, every participant can claim free Google credits: the slides show
+  the QR code. Use them for a Gemini key, with `AGENT_MODEL=gemini/gemini-3.7-flash`.
 - **Some Python.** You'll write two short `async def` functions with type hints and docstrings,
   and fill in one function call. You don't need Python installed: everything runs in Docker.
 

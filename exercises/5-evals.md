@@ -98,8 +98,8 @@ To enter, zip your folder with your name or your team's name:
 make submit NAME="Ada Lovelace"
 ```
 
-That makes `submission/Ada Lovelace.zip`. Upload it to the Google Drive folder your facilitators
-shared. You can upload again until the deadline: run `make submit` again and upload the new zip,
+That makes `submission/Ada Lovelace.zip`. Upload it to the
+[competition's Google Drive folder](https://drive.google.com/drive/folders/DRIVE_FOLDER_ID). You can upload again until the deadline: run `make submit` again and upload the new zip,
 and your newest upload counts. Highest score wins; on a tie, the earlier upload wins.
 
 Don't hard-code answers: the hidden questions are different, so it wouldn't help anyway. Your

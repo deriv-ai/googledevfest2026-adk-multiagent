@@ -13,6 +13,9 @@ COMPOSE ?= docker compose -f compose.yaml
 endif
 EXEC ?= $(ENGINE) exec
 
+# The competition's Google Drive folder. Facilitators: put the real link here and in exercises/5-evals.md.
+DRIVE_URL := https://drive.google.com/drive/folders/DRIVE_FOLDER_ID
+
 ENV_MSG := add your LLM key to .env (see .env.example), then run make up again
 
 .DEFAULT_GOAL := help
@@ -90,5 +93,6 @@ submit: ## Zip my_agent/ for the competition: make submit NAME="your name or tea
 	else \
 		echo "Can't zip here. Copy the my_agent folder, rename the copy to your name, and upload that."; exit 1; \
 	fi
-	@echo "Made submission/$(NAME).zip. Upload it to the Google Drive folder your facilitators shared."
+	@echo "Made submission/$(NAME).zip. Upload it to the competition's Google Drive folder:"
+	@echo "  $(DRIVE_URL)"
 	@echo "Changed something? Run this again and upload the new zip: the newest upload counts."
