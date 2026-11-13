@@ -6,7 +6,7 @@
 .venv
 venv
 **/node_modules
-web/dist
+platform/web/dist
 **/__pycache__
 **/*.pyc
 .pytest_cache
@@ -16,9 +16,11 @@ web/dist
 .idea
 .vscode
 # not needed inside images (db/ is bind-mounted into the postgres container)
-db
-docs
+platform/db
+platform/docs
+platform/tests
+platform/scripts
 evals
-tests
-scripts
+exercises
+README.md
 .trivy-*.tar

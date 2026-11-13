@@ -1,21 +1,32 @@
-# Exercise 3: Join the team
+# Exercise 3: Adding an agent to the orchestrator
 
-[Back to the workshop](../WORKSHOP.md) · [Previous: Hire the marketing agent](2-agent.md)
+[Back to the workshop](../README.md) · [Previous: Creating an agent](2-agent.md)
 
 ## The problem
 
-The orchestrator only sends work to the specialists it knows about. Right now that's finance and
-trading. Your agent needs to be on the list, and the orchestrator needs to know what it's for.
+The orchestrator only sends work to the specialists it knows about. Right now that's finance,
+trading and news. Your agent needs to be on the list, and the orchestrator needs to know what
+it's for.
 
 ## What helps
 
 ADK can wrap a whole agent as a tool, with `AgentTool`. To the orchestrator, each specialist then
-looks like one more function it can call, such as `marketing_agent(request="...")`. The
-specialist's description becomes the function's description.
+looks like one more function it can call, such as `marketing_agent(request="...")`.
 
 That means there's no separate classifier deciding where a question goes. **Routing is function
-calling.** The orchestrator's model reads the descriptions, reads its own instruction, and picks
-which functions to call.
+calling.** When the orchestrator's model picks which functions to call, it reads three things
+about each specialist:
+
+1. **Its `DESCRIPTION`**, which ADK turns into the function's description. You wrote this in
+   exercise 2. It's the specialist's own pitch.
+2. **Its line in the orchestrator's instruction**, under `## Specialists`. This is the
+   orchestrator's own view of the team: who covers what, and later, who wins when two overlap.
+3. **A live list of the specialist's tools**, under `## What each specialist can do right now`.
+   The app builds it from the first line of each tool's docstring every time a question comes
+   in, so your tools show up there on their own.
+
+The description says what an agent offers. The orchestrator's instruction says how to choose
+between agents. You'll write the second kind in this exercise and the next.
 
 ```python
 flights = LlmAgent(name="flights_agent", description="Finds and prices flights.", ...)
@@ -31,56 +42,22 @@ concierge = LlmAgent(
 
 ## Your task
 
-Two small edits, in two files you haven't opened yet:
+Two small edits, in two files:
 
-1. **`src/devfest_agents/agents/__init__.py`**: add your agent to `SPECIALISTS`, the team list.
-   Every agent in that list becomes a tool for the orchestrator.
-2. **`src/devfest_agents/agents/prompts/orchestrator.md`**: this is the orchestrator's
-   instruction. It lists every specialist under `## Specialists`. Add a line for yours.
+1. **`my_agent/team.py`**: import your module (`from . import marketing_agent`) and add it to
+   `SPECIALISTS`, the team list. Every agent in that list becomes a tool for the orchestrator.
+2. **`my_agent/prompts/orchestrator.md`**: this is the orchestrator's
+   instruction. It lists every specialist under `## Specialists`. Add a line for yours, in the
+   same style: what it covers and which data it reads. Then delete the `## Not covered yet`
+   section you saw in exercise 0, heading included: campaigns are covered now.
 
-Then ask in the chat:
+Then ask the question from exercise 0 again, in a new chat:
 
-> How much did our ad campaigns spend in Q3 2026?
+> How did the Nimbus Go campaigns do?
 
-The route panel should show the orchestrator calling `marketing_agent`, and your tool doing the
-work. Give it 20 seconds or so: three agents think in turn.
-
-<details>
-<summary>Hint: how does the team list work?</summary>
-
-Import your module next to the others at the top of `__init__.py`, then add it to the list.
-`build_root_agent()` builds every module in the list and wraps each one in an `AgentTool`.
-
-</details>
-
-<details>
-<summary>Hint: what should the line say?</summary>
-
-Write it in the same style as the finance and trading lines. Below that list, the orchestrator
-also gets a live list of every specialist's tools, built from the first line of each docstring.
-Your tools appear there on their own.
-
-</details>
-
-<details>
-<summary>Hint: show me the changes</summary>
-
-In `agents/__init__.py`:
-
-```python
-from . import finance_agent, main_agent, marketing_agent, orchestrator, trading_agent
-
-SPECIALISTS = [finance_agent, trading_agent, marketing_agent]
-```
-
-In `prompts/orchestrator.md`, under `## Specialists`:
-
-```markdown
-- `marketing_agent` - ad campaigns: spend per campaign or channel, impressions, clicks, the new
-  clients each campaign brought in, cost per sign-up. Data: the `marketing` schema.
-```
-
-</details>
+Last time the orchestrator refused. Now the route panel should show it calling
+`marketing_agent`, and your tools doing the work. Give it 20 seconds or so: three agents think in
+turn.
 
 ## Check it
 
@@ -88,8 +65,9 @@ In `prompts/orchestrator.md`, under `## Specialists`:
 make check-3
 ```
 
-This one asks the agents a real question, so it takes about 30 seconds. Refresh the Overview page
-too. Your agent is no longer dashed.
+It checks the team list and the orchestrator's instruction, then asks the assistant a different
+marketing question from the one you tried, for extra coverage. It takes about 30 seconds.
+Refresh the Overview page too: your agent is no longer dashed.
 
 ## Read more
 
@@ -98,6 +76,6 @@ too. Your agent is no longer dashed.
 
 ## Next
 
-Simple marketing questions work. Vernon's Friday questions aren't simple: they need marketing
+Simple marketing questions work. Many questions aren't simple: they need marketing
 and finance and trading at once, and some of them *sound* like marketing but aren't. That's
-**[exercise 4](4-teamwork.md)**.
+**[exercise 4](4-routing.md)**.

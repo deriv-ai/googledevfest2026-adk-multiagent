@@ -17,7 +17,7 @@ htmlcov/
 
 # --- node / SPA ---------------------------------------------------------------
 node_modules/
-web/dist/
+platform/web/dist/
 *.tsbuildinfo
 npm-debug.log*
 
@@ -37,3 +37,7 @@ Thumbs.db
 # --- evals --------------------------------------------------------------------
 evals/report.json
 evals/final.yaml
+platform/.judge/
+
+# make submit's zips
+submission/

@@ -1,0 +1,453 @@
+# Starter tools for the Nimbus Markets demo (4 finance + 3 trading).
+#
+# Upserted into tools.tools at app startup with INSERT ... ON CONFLICT (name) DO NOTHING,
+# so edits made in the UI are never overwritten (`make seed-tools` forces a re-upsert).
+# Format: see docs/CONTRACT.md "Tool spec". Placeholders are :name (::casts are not
+# placeholders); optional params without a default arrive as SQL NULL.
+#
+# Deliberate gaps for the workshop (see the README at the repo root): there is no FX-rate tool, no
+# client risk-level tool and no factual (definitions) tool - attendees build those.
+# All data is synthetic (fictional company "Nimbus Markets").
+
+tools:
+  # ===================================================================== finance
+  - name: finance_monthly_pnl
+    agent: finance
+    tool_type: sql
+    title: Monthly P&L - revenue, expenses, operating profit and margin
+    description: >
+      Profit and loss from the general ledger, one row per month (or per month and entity
+      when breakdown = "entity"). Columns: month (first day), entity_id ("ALL" for the group
+      total), revenue_usd, expenses_usd, operating_profit_usd (= revenue - expenses) and
+      margin_pct (operating profit / revenue x 100). All money in USD.
+      Use it for "what was our profit last quarter?", "how did margins trend this year?",
+      "which entity is most profitable?" (breakdown = "entity"), or to put a trading-desk
+      number (e.g. commission from VIP clients) in context of total operating profit.
+      Months are calendar months; the current month is month-to-date. Entities: NM-UK,
+      NM-SG, NM-AE, NM-INTL. For WHY revenue or costs moved, follow up with
+      finance_revenue_breakdown or finance_budget_vs_actual.
+    params:
+      - name: start_month
+        type: date
+        required: true
+        description: First month to include, YYYY-MM-DD (any day in that month, e.g. 2026-07-01)
+        example: "2026-07-01"
+      - name: end_month
+        type: date
+        required: true
+        description: Last month to include, YYYY-MM-DD (any day in that month, inclusive)
+        example: "2026-09-30"
+      - name: entity_id
+        type: string
+        required: false
+        description: Restrict to one legal entity; omit for the whole group
+        enum: [NM-UK, NM-SG, NM-AE, NM-INTL]
+      - name: breakdown
+        type: string
+        required: false
+        default: total
+        description: '"total" = one row per month; "entity" = one row per month and entity'
+        enum: [total, entity]
+    sql: |
+      SELECT date_trunc('month', g.entry_date)::date AS month,
+             CASE WHEN :breakdown = 'entity' THEN g.entity_id ELSE COALESCE(:entity_id, 'ALL') END AS entity_id,
+             ROUND(SUM(g.amount_usd) FILTER (WHERE a.account_type = 'revenue'), 2) AS revenue_usd,
+             ROUND(SUM(g.amount_usd) FILTER (WHERE a.account_type = 'expense'), 2) AS expenses_usd,
+             ROUND(COALESCE(SUM(g.amount_usd) FILTER (WHERE a.account_type = 'revenue'), 0)
+                 - COALESCE(SUM(g.amount_usd) FILTER (WHERE a.account_type = 'expense'), 0), 2) AS operating_profit_usd,
+             ROUND(100 * (COALESCE(SUM(g.amount_usd) FILTER (WHERE a.account_type = 'revenue'), 0)
+                        - COALESCE(SUM(g.amount_usd) FILTER (WHERE a.account_type = 'expense'), 0))
+                   / NULLIF(SUM(g.amount_usd) FILTER (WHERE a.account_type = 'revenue'), 0), 1) AS margin_pct
+      FROM finance.gl_entries g
+      JOIN finance.accounts a ON a.account_code = g.account_code
+      WHERE a.account_type IN ('revenue', 'expense')
+        AND g.entry_date >= date_trunc('month', :start_month::date)
+        AND g.entry_date <  date_trunc('month', :end_month::date) + interval '1 month'
+        AND (:entity_id IS NULL OR g.entity_id = :entity_id)
+      GROUP BY 1, 2
+      ORDER BY 1, 2
+
+  - name: finance_revenue_breakdown
+    agent: finance
+    tool_type: sql
+    title: Revenue breakdown by category, account, entity or month
+    description: >
+      Booked revenue (general ledger, USD) for a date range, grouped by revenue category
+      (Trading commission, Spread revenue, Subscription fees, Interest income), by GL account,
+      by entity, or by month. Columns: revenue_line, revenue_usd, share_pct (of the total in
+      this result), total_revenue_usd, gl_lines.
+      Use it for "where does our revenue come from?", "how much commission revenue did we
+      book in March?" (category = "Trading commission"), or month-by-month revenue trends
+      (group_by = "month"). For reconciliation with the trading desk, call it with
+      category = "Trading commission" and group_by = "month" (optionally per entity_id): the
+      result should equal SUM(commission_usd) from trading_activity_summary for the same
+      months, within cents of FX rounding.
+    params:
+      - name: start_date
+        type: date
+        required: true
+        description: Inclusive start date, YYYY-MM-DD
+        example: "2026-07-01"
+      - name: end_date
+        type: date
+        required: true
+        description: Inclusive end date, YYYY-MM-DD
+        example: "2026-09-30"
+      - name: group_by
+        type: string
+        required: false
+        default: category
+        description: How to group revenue lines
+        enum: [category, account, entity, month]
+      - name: category
+        type: string
+        required: false
+        description: Only this revenue category; omit for all revenue
+        enum: [Trading commission, Spread revenue, Subscription fees, Interest income]
+      - name: entity_id
+        type: string
+        required: false
+        description: Restrict to one legal entity; omit for the whole group
+        enum: [NM-UK, NM-SG, NM-AE, NM-INTL]
+    sql: |
+      WITH rev AS (
+          SELECT CASE :group_by
+                     WHEN 'account' THEN a.account_code || ' ' || a.account_name
+                     WHEN 'entity'  THEN g.entity_id
+                     WHEN 'month'   THEN to_char(date_trunc('month', g.entry_date), 'YYYY-MM')
+                     ELSE a.category
+                 END AS revenue_line,
+                 SUM(g.amount_usd) AS revenue_usd,
+                 COUNT(*) AS gl_lines
+          FROM finance.gl_entries g
+          JOIN finance.accounts a ON a.account_code = g.account_code
+          WHERE a.account_type = 'revenue'
+            AND g.entry_date BETWEEN :start_date AND :end_date
+            AND (:category IS NULL OR a.category = :category)
+            AND (:entity_id IS NULL OR g.entity_id = :entity_id)
+          GROUP BY 1
+      )
+      SELECT revenue_line,
+             ROUND(revenue_usd, 2) AS revenue_usd,
+             ROUND(100 * revenue_usd / NULLIF(SUM(revenue_usd) OVER (), 0), 1) AS share_pct,
+             ROUND(SUM(revenue_usd) OVER (), 2) AS total_revenue_usd,
+             gl_lines
+      FROM rev
+      ORDER BY CASE WHEN :group_by = 'month' THEN revenue_line END, revenue_usd DESC
+
+  - name: finance_budget_vs_actual
+    agent: finance
+    tool_type: sql
+    title: Budget vs actual by category for one month
+    description: >
+      Compares the monthly budget with general-ledger actuals for one month, per P&L
+      category, plus TOTAL revenue, TOTAL expenses and OPERATING PROFIT rows. Columns:
+      entity_id ("ALL" unless by_entity = true or entity_id is given), account_type,
+      category, budget_usd, actual_usd, variance_usd (actual - budget), variance_pct and
+      status: for revenue "above budget"/"below budget", for expenses "within budget"/"overrun".
+      Use it for "did we hit budget in June?", "which costs overran?" (try by_entity = true to
+      see which entity overspent), and as the first step of "why did we miss budget?" - if
+      trading commission or spread revenue is below budget, ask the trading agent about
+      volumes that month.
+      The current month's budget is a full-month figure while actuals are month-to-date.
+    params:
+      - name: month
+        type: date
+        required: true
+        description: The month to analyse, YYYY-MM-DD (any day in that month)
+        example: "2026-08-01"
+      - name: entity_id
+        type: string
+        required: false
+        description: Restrict to one legal entity; omit for the whole group
+        enum: [NM-UK, NM-SG, NM-AE, NM-INTL]
+      - name: by_entity
+        type: boolean
+        required: false
+        default: false
+        description: true = one set of rows per entity (find which entity over/under-shot)
+    sql: |
+      WITH bud AS (
+          SELECT CASE WHEN :by_entity THEN b.entity_id ELSE COALESCE(:entity_id, 'ALL') END AS entity_id,
+                 a.account_type, a.category, SUM(b.budget_usd) AS budget_usd
+          FROM finance.budgets b
+          JOIN finance.accounts a ON a.account_code = b.account_code
+          WHERE b.month = date_trunc('month', :month::date)::date
+            AND (:entity_id IS NULL OR b.entity_id = :entity_id)
+          GROUP BY 1, 2, 3
+      ), act AS (
+          SELECT CASE WHEN :by_entity THEN g.entity_id ELSE COALESCE(:entity_id, 'ALL') END AS entity_id,
+                 a.account_type, a.category, SUM(g.amount_usd) AS actual_usd
+          FROM finance.gl_entries g
+          JOIN finance.accounts a ON a.account_code = g.account_code
+          WHERE a.account_type IN ('revenue', 'expense')
+            AND g.entry_date >= date_trunc('month', :month::date)
+            AND g.entry_date <  date_trunc('month', :month::date) + interval '1 month'
+            AND (:entity_id IS NULL OR g.entity_id = :entity_id)
+          GROUP BY 1, 2, 3
+      ), lines AS (
+          SELECT entity_id, account_type, category,
+                 COALESCE(bud.budget_usd, 0) AS budget_usd, COALESCE(act.actual_usd, 0) AS actual_usd, 1 AS sort_group
+          FROM bud FULL JOIN act USING (entity_id, account_type, category)
+      ), totals AS (
+          SELECT entity_id, account_type,
+                 CASE account_type WHEN 'revenue' THEN 'TOTAL revenue' ELSE 'TOTAL expenses' END AS category,
+                 SUM(budget_usd) AS budget_usd, SUM(actual_usd) AS actual_usd, 2 AS sort_group
+          FROM lines GROUP BY entity_id, account_type
+          UNION ALL
+          SELECT entity_id, 'revenue', 'OPERATING PROFIT',
+                 SUM(CASE WHEN account_type = 'revenue' THEN budget_usd ELSE -budget_usd END),
+                 SUM(CASE WHEN account_type = 'revenue' THEN actual_usd ELSE -actual_usd END), 3
+          FROM lines GROUP BY entity_id
+      ), all_rows AS (
+          SELECT * FROM lines UNION ALL SELECT * FROM totals
+      )
+      SELECT entity_id, account_type, category,
+             ROUND(budget_usd, 2) AS budget_usd,
+             ROUND(actual_usd, 2) AS actual_usd,
+             ROUND(actual_usd - budget_usd, 2) AS variance_usd,
+             ROUND(100 * (actual_usd - budget_usd) / NULLIF(ABS(budget_usd), 0), 1) AS variance_pct,
+             CASE WHEN account_type = 'revenue'
+                  THEN CASE WHEN actual_usd >= budget_usd THEN 'above budget' ELSE 'below budget' END
+                  ELSE CASE WHEN actual_usd > budget_usd THEN 'overrun' ELSE 'within budget' END
+             END AS status
+      FROM all_rows
+      ORDER BY entity_id, sort_group, account_type DESC, category
+
+  - name: finance_expense_by_account
+    agent: finance
+    tool_type: sql
+    title: Expenses per ledger account - single cost lines such as brand and events
+    description: >
+      Booked expenses from the general ledger, one row per expense account, biggest first.
+      Columns: account_code, account_name, category (e.g. Marketing) and expenses_usd. Use it
+      when a question names a single cost line rather than a whole category: "brand and events"
+      (5210), "performance marketing" (5200), "introducing-partner commissions" (5220), salaries,
+      cloud hosting, and so on. For whole categories against budget, use finance_budget_vs_actual.
+      Entities: NM-UK, NM-SG, NM-AE, NM-INTL.
+    params:
+      - name: start_month
+        type: date
+        required: true
+        description: First month to include, YYYY-MM-DD (any day in that month, e.g. 2026-07-01)
+        example: "2026-07-01"
+      - name: end_month
+        type: date
+        required: true
+        description: Last month to include, YYYY-MM-DD (any day in that month, inclusive)
+        example: "2026-09-30"
+      - name: entity_id
+        type: string
+        required: false
+        description: Restrict to one legal entity; omit for the whole group
+        enum: [NM-UK, NM-SG, NM-AE, NM-INTL]
+    sql: |
+      SELECT a.account_code, a.account_name, a.category, ROUND(SUM(g.amount_usd), 2) AS expenses_usd
+      FROM finance.gl_entries g
+      JOIN finance.accounts a ON a.account_code = g.account_code
+      WHERE a.account_type = 'expense'
+        AND g.entry_date >= date_trunc('month', :start_month::date)
+        AND g.entry_date <  date_trunc('month', :end_month::date) + interval '1 month'
+        AND (:entity_id IS NULL OR g.entity_id = :entity_id)
+      GROUP BY 1, 2, 3
+      ORDER BY expenses_usd DESC
+
+  # ===================================================================== trading
+  - name: trading_activity_summary
+    agent: trading
+    tool_type: sql
+    title: Monthly trading activity - trades, volume, commission, client PnL, clients
+    description: >
+      Brokerage activity per month from closed trades (bucketed by close_time, the same
+      basis the finance ledger uses to book commission). Columns: month, asset_class ("all"
+      unless by_asset_class = true or asset_class is given), trades, notional_usd (trading
+      volume), commission_usd (Nimbus revenue from commission), client_pnl_usd (clients'
+      aggregate profit, negative = clients lost), active_clients (distinct clients who
+      traded), new_clients (sign-ups that month; only on asset_class = "all" rows).
+      Use it for "how busy was trading last month?", "is crypto activity growing?"
+      (asset_class = "crypto" or by_asset_class = true), to explain a revenue miss (volume
+      drop) or beat (volume spike), and to reconcile with finance: SUM(commission_usd) for a
+      month should equal the "Trading commission" revenue in finance_revenue_breakdown.
+    params:
+      - name: start_date
+        type: date
+        required: true
+        description: Inclusive start date, YYYY-MM-DD
+        example: "2026-07-01"
+      - name: end_date
+        type: date
+        required: true
+        description: Inclusive end date, YYYY-MM-DD
+        example: "2026-10-31"
+      - name: asset_class
+        type: string
+        required: false
+        description: Only one asset class; omit for all
+        enum: [forex, crypto, commodities, indices]
+      - name: by_asset_class
+        type: boolean
+        required: false
+        default: false
+        description: true = one row per month and asset class
+    sql: |
+      WITH t AS (
+          SELECT date_trunc('month', t.close_time)::date AS month,
+                 CASE WHEN :by_asset_class THEN i.asset_class ELSE COALESCE(:asset_class, 'all') END AS asset_class,
+                 COUNT(*) AS trades,
+                 ROUND(SUM(t.notional_usd), 2) AS notional_usd,
+                 ROUND(SUM(t.commission_usd), 2) AS commission_usd,
+                 ROUND(SUM(t.pnl_usd), 2) AS client_pnl_usd,
+                 COUNT(DISTINCT t.client_id) AS active_clients
+          FROM trading.trades t
+          JOIN trading.instruments i ON i.symbol = t.symbol
+          WHERE t.status = 'closed'
+            AND t.close_time >= :start_date::date
+            AND t.close_time <  :end_date::date + 1
+            AND (:asset_class IS NULL OR i.asset_class = :asset_class)
+          GROUP BY 1, 2
+      ), n AS (
+          SELECT date_trunc('month', c.signup_date)::date AS month, 'all' AS asset_class, COUNT(*) AS new_clients
+          FROM trading.clients c
+          WHERE c.signup_date BETWEEN :start_date AND :end_date
+          GROUP BY 1
+      )
+      SELECT t.month, t.asset_class, t.trades, t.notional_usd, t.commission_usd, t.client_pnl_usd,
+             t.active_clients, n.new_clients
+      FROM t LEFT JOIN n ON n.month = t.month AND n.asset_class = t.asset_class
+      ORDER BY t.month, t.commission_usd DESC
+
+  - name: trading_top_instruments
+    agent: trading
+    tool_type: sql
+    title: Top instruments by commission, volume or client PnL
+    description: >
+      Ranks instruments for a date range (closed trades, by close_time) by commission earned,
+      notional volume, or client PnL. Columns: symbol, name (plain English, e.g. "Bitcoin",
+      "Gold"), asset_class, trades, notional_usd, commission_usd, commission_share_pct (of all
+      commission in the range), client_pnl_usd (clients' profit; negative = clients lost
+      money), win_rate_pct (share of trades where the client made money).
+      Use it for "what were the most traded instruments?" or "which instrument earned us the
+      most last month?".
+    params:
+      - name: start_date
+        type: date
+        required: true
+        description: Inclusive start date, YYYY-MM-DD
+        example: "2026-10-01"
+      - name: end_date
+        type: date
+        required: true
+        description: Inclusive end date, YYYY-MM-DD
+        example: "2026-10-31"
+      - name: metric
+        type: string
+        required: false
+        default: commission
+        description: Ranking metric
+        enum: [commission, volume, client_pnl]
+      - name: limit
+        type: integer
+        required: false
+        default: 10
+        min: 1
+        max: 50
+        description: Number of instruments to return
+    sql: |
+      SELECT i.symbol, i.name, i.asset_class,
+             COUNT(*) AS trades,
+             ROUND(SUM(t.notional_usd), 2) AS notional_usd,
+             ROUND(SUM(t.commission_usd), 2) AS commission_usd,
+             ROUND(100 * SUM(t.commission_usd) / NULLIF(SUM(SUM(t.commission_usd)) OVER (), 0), 1) AS commission_share_pct,
+             ROUND(SUM(t.pnl_usd), 2) AS client_pnl_usd,
+             ROUND(100.0 * AVG(CASE WHEN t.pnl_usd > 0 THEN 1 ELSE 0 END), 1) AS win_rate_pct
+      FROM trading.trades t
+      JOIN trading.instruments i ON i.symbol = t.symbol
+      WHERE t.status = 'closed'
+        AND t.close_time >= :start_date::date
+        AND t.close_time <  :end_date::date + 1
+      GROUP BY i.symbol, i.name, i.asset_class
+      ORDER BY CASE :metric
+                   WHEN 'volume' THEN SUM(t.notional_usd)
+                   WHEN 'client_pnl' THEN SUM(t.pnl_usd)
+                   ELSE SUM(t.commission_usd)
+               END DESC
+      LIMIT :limit
+
+  - name: trading_client_segment_performance
+    agent: trading
+    tool_type: sql
+    title: Client performance by segment, country or booking entity
+    description: >
+      Client economics for a date range (closed trades, by close_time), grouped by segment
+      (retail / pro / vip), country, booking entity (NM-UK, NM-SG, NM-AE, NM-INTL - mapped
+      from client country exactly as finance books it) or segment x country. Columns: segment,
+      country, entity_id ("all" when not grouped by it), active_clients, trades, notional_usd,
+      commission_usd, commission_share_pct, avg_commission_per_client_usd,
+      avg_client_pnl_usd (per active client; negative = clients lost), win_rate_pct, and the
+      risk mix of active clients: high_risk_clients, medium_risk_clients, low_risk_clients.
+      Use it for "how are VIP clients performing?", "which countries generate the most
+      commission?", "are VIP clients worth it?" (compare their commission_usd with
+      finance_monthly_pnl operating profit), or per-entity commission to set against the
+      finance agent's entity numbers.
+    params:
+      - name: start_date
+        type: date
+        required: true
+        description: Inclusive start date, YYYY-MM-DD
+        example: "2026-07-01"
+      - name: end_date
+        type: date
+        required: true
+        description: Inclusive end date, YYYY-MM-DD
+        example: "2026-09-30"
+      - name: group_by
+        type: string
+        required: false
+        default: segment
+        description: Grouping of the result rows
+        enum: [segment, country, entity, segment_country]
+      - name: segment
+        type: string
+        required: false
+        description: Only clients of this segment; omit for all
+        enum: [retail, pro, vip]
+      - name: country
+        type: string
+        required: false
+        description: Only clients from this ISO 3166-1 alpha-2 country, e.g. GB, SG, AE, DE
+    sql: |
+      WITH c AS (
+          SELECT c.client_id, c.segment, c.country, c.risk_level,
+                 CASE WHEN c.country = 'GB' THEN 'NM-UK'
+                      WHEN c.country IN ('SG', 'MY', 'TH', 'ID', 'VN', 'PH') THEN 'NM-SG'
+                      WHEN c.country IN ('AE', 'SA', 'QA', 'KW', 'BH', 'OM') THEN 'NM-AE'
+                      ELSE 'NM-INTL' END AS entity_id
+          FROM trading.clients c
+          WHERE (:segment IS NULL OR c.segment = :segment)
+            AND (:country IS NULL OR c.country = upper(:country))
+      ), g AS (
+          SELECT CASE WHEN :group_by IN ('segment', 'segment_country') THEN c.segment ELSE 'all' END AS segment,
+                 CASE WHEN :group_by IN ('country', 'segment_country') THEN c.country ELSE 'all' END AS country,
+                 CASE WHEN :group_by = 'entity' THEN c.entity_id ELSE 'all' END AS entity_id,
+                 t.client_id, c.risk_level, t.notional_usd, t.commission_usd, t.pnl_usd
+          FROM trading.trades t
+          JOIN c ON c.client_id = t.client_id
+          WHERE t.status = 'closed'
+            AND t.close_time >= :start_date::date
+            AND t.close_time <  :end_date::date + 1
+      )
+      SELECT segment, country, entity_id,
+             COUNT(DISTINCT client_id) AS active_clients,
+             COUNT(*) AS trades,
+             ROUND(SUM(notional_usd), 2) AS notional_usd,
+             ROUND(SUM(commission_usd), 2) AS commission_usd,
+             ROUND(100 * SUM(commission_usd) / NULLIF(SUM(SUM(commission_usd)) OVER (), 0), 1) AS commission_share_pct,
+             ROUND(SUM(commission_usd) / COUNT(DISTINCT client_id), 2) AS avg_commission_per_client_usd,
+             ROUND(SUM(pnl_usd) / COUNT(DISTINCT client_id), 2) AS avg_client_pnl_usd,
+             ROUND(100.0 * AVG(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END), 1) AS win_rate_pct,
+             COUNT(DISTINCT client_id) FILTER (WHERE risk_level = 'high') AS high_risk_clients,
+             COUNT(DISTINCT client_id) FILTER (WHERE risk_level = 'medium') AS medium_risk_clients,
+             COUNT(DISTINCT client_id) FILTER (WHERE risk_level = 'low') AS low_risk_clients
+      FROM g
+      GROUP BY segment, country, entity_id
+      ORDER BY commission_usd DESC

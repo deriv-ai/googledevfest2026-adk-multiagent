@@ -1,180 +1,187 @@
-# Build a marketing agent with Google ADK
+# The marketing agent workshop
 
-Nimbus Markets is an online broker. It has an AI assistant built with
-[Google ADK](https://google.github.io/adk-docs/) that answers questions about **finance** and
-**trading**. It cannot answer questions about **marketing**, and Vernon, who runs marketing,
-needs answers by Friday.
+Nimbus Markets is a fictional online broker with an AI assistant built with
+[Google ADK](https://google.github.io/adk-docs/). It answers questions about **finance**,
+**trading** and the day's **market news**, but not about **marketing**.
 
-In this workshop you build the marketing agent and plug it into the assistant. Then you score your
-agent on a set of hard questions, and compete for the best score.
+Your task is to add a marketing agent, connect it to the assistant, and measure how well it
+answers. You submit your `my_agent/` folder, and it's scored on questions you haven't seen.
+[The task](#the-task) has the details.
 
-**The workshop is in [WORKSHOP.md](WORKSHOP.md).** This page only gets the app running.
+## How the session runs
 
----
+| Step | What you do |
+|---|---|
+| Set up | [Set up](#set-up), and read [the task](#the-task) while it builds |
+| [Exercise 0: Exploring the app](exercises/0-explore.md) | See what the assistant can't answer yet |
+| [Exercise 1: Creating tools](exercises/1-tools.md) | Wrap two marketing queries as tools |
+| [Exercise 2: Creating an agent](exercises/2-agent.md) | Give the tools to a marketing agent |
+| [Exercise 3: Adding an agent to the orchestrator](exercises/3-orchestrator.md) | Let the orchestrator send marketing questions to it |
+| [Exercise 4: Routing across agents](exercises/4-routing.md) | Ask several agents, in parallel or in order |
+| [The competition](exercises/5-competition.md) | Submit your `my_agent/` folder to be scored on secret questions |
+| Wrap up | The leaderboard, and the answer to the final question |
 
-## Setup
+Each exercise ends with a check, like `make check-1`, and a link to the next one.
 
-You need:
+## Before the session
 
-- Docker (with Compose)
-- `make` and `git`
-- a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
+Have these ready on your laptop:
 
-Then run these steps.
+- **Docker**, installed and running. [Install Docker](#install-docker) shows how.
+- **`git`** and **`make`**.
+- **An LLM API key** from any provider, for a model that supports tool calling. Gemini, OpenAI
+  and Anthropic keys all work, as does any provider [LiteLLM](https://docs.litellm.ai/docs/providers)
+  supports. At the session, every participant can claim free Google credits: the slides show
+  the QR code. Use them for a Gemini key, with `AGENT_MODEL=gemini/gemini-3.7-flash`.
+- **Some Python.** You'll write two short `async def` functions with type hints and docstrings,
+  and fill in one function call. You don't need Python installed: everything runs in Docker.
 
-**1. Get the code.** Fork this repo on GitHub, then clone your fork:
+### Install Docker
+
+**macOS.** Install [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
+and open it. For `git` and `make`, run:
 
 ```bash
-git clone <your fork's URL>
-cd devfest_adk_multiagent
+xcode-select --install
 ```
 
-**2. Create your settings file.**
+**Windows.** You'll work inside WSL, the Linux that comes with Windows.
+
+1. Open PowerShell as administrator, run `wsl --install`, and restart. Then open **Ubuntu** from
+   the Start menu and choose a username and password.
+2. Install [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/).
+   In its settings, under **Resources > WSL integration**, turn on Ubuntu.
+3. In the Ubuntu window, install `git`, `make` and `zip`:
+
+   ```bash
+   sudo apt update && sudo apt install -y git make zip
+   ```
+
+Run every command in this workshop in the Ubuntu window. Clone the repo into your Linux home
+folder (`cd ~` first), not under `/mnt/c`: from there, the app doesn't see the files you save.
+
+**Linux.** Install [Docker Engine](https://docs.docker.com/engine/install/) with the Compose
+plugin, then let your user run Docker without `sudo`, and log out and back in:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Install `git` and `make` with your package manager.
+
+**Check it works.** Both of these should succeed:
+
+```bash
+docker run --rm hello-world
+```
+
+```bash
+docker compose version
+```
+
+## Set up
+
+**1. Get the code.**
+
+```bash
+git clone <this repo's URL>
+cd googledevfest2026-adk-multiagent
+```
+
+**2. Add your key.** Copy the settings file:
 
 ```bash
 cp .env.example .env
 ```
 
-**3. Add your key.** Open `.env` and paste your key after `GEMINI_API_KEY=`.
+Then open `.env` and fill in two lines:
 
-**4. Start the app.**
+```bash
+LLM_API_KEY=<your key>
+AGENT_MODEL=<provider>/<model>
+```
+
+`AGENT_MODEL` is the provider, a slash and the model, for example `gemini/gemini-3.7-flash` or
+`anthropic/claude-sonnet-5-5`. [LiteLLM's provider list](https://docs.litellm.ai/docs/providers)
+has the names for the others. If your key is for an OpenAI-compatible endpoint, such as a LiteLLM
+proxy or OpenRouter, also set `LLM_BASE_URL=<its URL>` and use `openai/<model>`.
+
+The exercises were tested on `gemini/gemini-3.7-flash`. The competition runs everyone's agent
+on the same model, so the key you use here doesn't change your competition score.
+
+**3. Start the app.**
 
 ```bash
 make up
 ```
 
-The first start takes a few minutes. It builds the app and loads the data.
+The first start takes a few minutes: it downloads about 1 GB, builds the app and loads the data.
+Read [the task](#the-task) while it runs.
 
-**5. Open http://localhost:8080.** You should see the Overview page.
+**4. Open http://localhost:8080.** You should see the Overview page. Then start
+[exercise 0](exercises/0-explore.md).
 
-Now go to **[WORKSHOP.md](WORKSHOP.md)**.
+## The task
 
----
+**Background.** Nimbus Markets has four companies: NM-UK, NM-SG (Singapore), NM-AE (Dubai) and
+NM-INTL. In June 2026, NM-SG launched a mobile app, **Nimbus Go**, with paid ad campaigns. The
+database holds the marketing data: campaigns, daily ad spend and sign-ups. No agent reads it yet.
 
-## What is running
+**What you're given:**
 
-| Address | What it is |
-|---|---|
-| http://localhost:8080 | The app: chat, live agent route, tools, data schema |
-| http://localhost:8000 | ADK's own developer UI, showing the same agents |
-| `localhost:5432` | The Postgres database (user `postgres`, password `postgres`, database `nimbus`) |
+- a working assistant with a main agent, an orchestrator and three specialists: finance, trading
+  and news;
+- `my_agent/marketing_queries.py`, tested queries over the marketing data, as Python functions;
+- a starter `my_agent/` folder and a check for each exercise.
 
-Everything runs on your machine only.
+**What you build:**
 
----
+1. tools that wrap the marketing queries;
+2. a marketing agent that uses them;
+3. the routing that sends marketing questions to it, alone or together with the other agents.
 
-## How the system works
+**How it's scored.** Every question earns one point for asking the right agents and one for a
+correct answer. The final question is *"Was the Nimbus Go launch campaign worth the money?"*
+A good answer gives the figures and says what the data can't show.
+
+**What you hand in.** Your `my_agent/` folder, zipped by `make submit`.
+
+## How the assistant works
+
+[ARCHITECTURE.md](platform/docs/ARCHITECTURE.md#the-agents) shows the agents and how a question
+moves between them.
+
+## Where your work goes
+
+Everything you write goes in one folder, `my_agent/`:
 
 ```
-You ──> main_agent ──> orchestrator ──> finance_agent    reads the finance tables
-                                    ├─> trading_agent    reads the trading tables
-                                    └─> marketing_agent  reads the marketing tables  <- you build this
+my_agent/
+  marketing_agent.py      your two tools and your agent       exercises 1 and 2
+  marketing_queries.py    the marketing queries; your tools call these
+  team.py                 the agents the orchestrator can call    exercise 3
+  prompts/
+    marketing_agent.md    how your agent behaves
+    orchestrator.md       how questions get routed              exercises 3 and 4
+    main_agent.md         the assistant's persona
 ```
 
-- **main_agent** talks to you. It passes every business question to the orchestrator.
-- **orchestrator** picks which agents a question needs. It calls them and merges their answers.
-- **finance_agent** and **trading_agent** already exist.
-- **marketing_agent** is what you add in the workshop.
+The rest of the app is in `platform/`. You never need to edit it.
 
-When you save a Python file, the app reloads by itself. You never need to restart it.
+**How your changes show up.** You never restart anything. Save a file, and the app restarts
+itself in about 2 seconds. Ask a question on the **Chat** page, and the **Agent route** panel
+shows which agents and tools answered.
 
----
-
-## Useful commands
+## Commands
 
 | Command | What it does |
 |---|---|
-| `make up` | Start everything |
+| `make up` | Start the app |
 | `make check-1` | Check exercise 1 (or 0, 2, 3, 4) |
-| `make eval` | Score your agents on the practice questions |
-| `make eval-final KEY=...` | Score your agents on the hidden competition questions |
-| `make logs` | Show the logs. Use it when something breaks. |
-| `make reset` | Wipe the database and load the data again |
-| `make down` | Stop everything |
+| `make submit NAME="<you>"` | Zip your `my_agent/` folder for the competition |
+| `make logs` | Show the app's logs. Use it when something breaks |
+| `make reset` | Reload the database from scratch |
+| `make down` | Stop the app |
 
----
-
-## If something goes wrong
-
-| Problem | Fix |
-|---|---|
-| `make up` stops and asks for a key | Add your key to `.env`, then run it again. |
-| "port 5432 is already in use" | Another database is running. In `.env`, change `POSTGRES_PORT=5432` to `POSTGRES_PORT=5433`, then start again. |
-| The chat stops answering after you save a file | You have a Python error. Run `make logs`, fix the error, save again. |
-| The data looks wrong | Run `make reset`. |
-
-To use a LiteLLM proxy instead of a Gemini key (for example the key your facilitators give you),
-set `LLM_API_KEY` and `LLM_BASE_URL` in `.env`. The comments in `.env.example` explain both options.
-
----
-
-## Security: for your own machine only
-
-This repo is a workshop template. It is built to run on one laptop, for one person, with made-up
-data, so it has no logins.
-
-- **Every port listens on `127.0.0.1` only** (`BIND_ADDRESS` in `.env`). Nobody else on your
-  network can reach the app, the ADK dev UI or Postgres. Don't change it to `0.0.0.0`, especially
-  on shared or conference Wi-Fi.
-- **There is no authentication.** Anyone who can reach port 8080 can chat, read the data and
-  create, edit or delete tools. The ADK dev UI on port 8000 has no login either.
-- **The database passwords are fixed defaults** (`postgres`, `app`, `agent_ro`). They protect a
-  throwaway local container.
-- **All data is synthetic.** There are no real clients, trades or ledgers.
-- **Tool SQL is read-only.** It runs as `agent_ro`: SELECT on finance, trading and marketing only,
-  in a read-only transaction with a 5-second timeout.
-- **Tool titles and descriptions go into the agents' prompts.** That is how routing works, so only
-  add tools you wrote or trust.
-
----
-
-## More docs
-
-- [WORKSHOP.md](WORKSHOP.md): the workshop. **Start here.**
-- [docs/ORCHESTRATION.md](docs/ORCHESTRATION.md): how the orchestrator picks agents.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): containers, data model, tools and safety.
-- [docs/CONTRACT.md](docs/CONTRACT.md): API, settings, database schema and eval format.
-- [docs/EXTRA_UI_TOOLS.md](docs/EXTRA_UI_TOOLS.md): extra exercise, add finance and trading tools from the UI.
-- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): talk track for the presenters.
-
----
-
-## For maintainers
-
-**Repo layout**
-
-```
-WORKSHOP.md     the workshop: story, architecture, exercise list
-exercises/      one file per exercise
-src/            the agents, tools, API and eval runner (Python)
-web/            the app's UI (React)
-db/             database setup and the synthetic data (CSV)
-evals/          practice questions, and the encrypted competition set
-seed/           the starter finance and trading tools
-scripts/        the synthetic-data generator
-tests/          the test suite
-docs/           detailed docs
-```
-
-**Other commands**
-
-```bash
-make test       # Python tests + UI type check
-make dev        # database in a container; prints how to run the API and UI locally
-make data       # regenerate the synthetic data, then run `make reset` to load it
-make help       # list every command
-```
-
-**Security scanning** needs [trivy](https://trivy.dev). `make trivy-scan` fails on fixable
-HIGH/CRITICAL issues. `make trivy-audit` patches, tests and scans in one go. Run `make help` for
-the rest.
-
-**The hidden competition set** is `evals/final.enc`. The readable `evals/final.yaml` is
-gitignored and stays with the facilitators. After editing it, encrypt it again:
-
-```bash
-uv run python -m devfest_agents.evals evals/final.yaml --encrypt --key "<passphrase>"
-```
-
-**All data is synthetic.** `scripts/generate_synthetic_data.py` generates every client, trade,
-ledger line and campaign.
+The app is at http://localhost:8080. ADK's own developer UI, with the same agents, is at
+http://localhost:8000.
