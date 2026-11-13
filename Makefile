@@ -13,13 +13,13 @@ COMPOSE ?= docker compose -f compose.yaml
 endif
 EXEC ?= $(ENGINE) exec
 
-# The competition's Google Drive folder. Facilitators: put the real link here and in exercises/5-competition.md.
-DRIVE_URL := https://drive.google.com/drive/folders/DRIVE_FOLDER_ID
+# The competition's Google Form. Facilitators: put the real link here and in exercises/5-competition.md.
+FORM_URL := https://forms.gle/ZuaxdysyoGR57Knz6
 
 ENV_MSG := add your LLM key to .env (see .env.example), then run make up again
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env check-engine up down logs reset submit check
+.PHONY: help check-env check-engine up down logs reset check eval eval-final
 
 help: ## Show this help
 	@echo "The marketing agent workshop. Start with README.md."
@@ -72,23 +72,20 @@ reset: ## Reload the database from scratch, then start again
 	$(COMPOSE) down -v
 	$(MAKE) up
 
-check: ## Check an exercise: make check-0, make check-1 ... make check-4
-	@echo "Run make check-N, where N is the exercise number (0 to 4)."
+check: ## Check an exercise: make check-0, make check-1 ... make check-3
+	@echo "Run make check-N, where N is the exercise number (0 to 3)."
 
 # `|| true`: a check with things to fix is normal progress, not a make error.
 check-%:
 	@$(EXEC) nimbus-app python -m devfest_agents.check $* || true
 
-submit: ## Zip my_agent/ for the competition: make submit NAME="your name or team"
-	@if [ -z "$(NAME)" ]; then echo 'Add your name or team: make submit NAME="Ada Lovelace"'; exit 1; fi
-	@mkdir -p submission && rm -f "submission/$(NAME).zip"
-	@if command -v zip >/dev/null 2>&1; then \
-		zip -qr "submission/$(NAME).zip" my_agent -x '*__pycache__*' '*.pyc' '*.DS_Store'; \
-	elif command -v python3 >/dev/null 2>&1; then \
-		python3 -m zipfile -c "submission/$(NAME).zip" my_agent; \
-	else \
-		echo "Can't zip here. Copy the my_agent folder, rename the copy to your name, and upload that."; exit 1; \
-	fi
-	@echo "Made submission/$(NAME).zip. Upload it to the competition's Google Drive folder:"
-	@echo "  $(DRIVE_URL)"
-	@echo "Changed something? Run this again and upload the new zip: the newest upload counts."
+eval: ## Score your agent on the 5 practice questions (one question: Q=<id>)
+	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json \
+		&& echo "Full report: evals/report.json" || true
+
+eval-final: ## Run the competition questions and write your answers file (KEY=<passphrase> NAME="<your name>")
+	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --key "$(KEY)" --name "$(NAME)" \
+		--commit "$$(git rev-parse --short HEAD 2>/dev/null)" --previous /app/evals/submission.json \
+		> evals/.submission.tmp && mv evals/.submission.tmp evals/submission.json \
+		&& echo "Your file: evals/submission.json. Upload it here: $(FORM_URL)" \
+		|| rm -f evals/.submission.tmp

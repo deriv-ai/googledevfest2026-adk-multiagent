@@ -1,6 +1,6 @@
 """LiteLlm model factory.
 
-Two modes (see docs/CONTRACT.md "LLM notes"):
+Two modes:
 * proxy  - OPENAI_BASE_URL is set: an OpenAI-compatible LiteLLM proxy; model
            strings use the ``openai/`` prefix and we pass api_base + api_key.
 * direct - Gemini via LiteLLM's ``gemini/`` provider; api_key passed explicitly.

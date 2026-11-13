@@ -45,6 +45,9 @@ MISSING_KEY_MESSAGE = (
 )
 
 
+NO_ANSWER_TEXT = "_(The agent did not produce an answer. Try rephrasing the question.)_"
+
+
 class AgentRuntime:
     def __init__(self, root_agent=None, *, settings: Settings | None = None, require_key: bool = True,
                  agent_factory=None):
@@ -171,7 +174,7 @@ class AgentRuntime:
             return
         yield {
             "type": "answer",
-            "text": answer or "_(The agent did not produce an answer. Try rephrasing the question.)_",
+            "text": answer or NO_ANSWER_TEXT,
             "route": list(sink.route),
             "elapsed_ms": elapsed,
             "ts": sink.ts(),

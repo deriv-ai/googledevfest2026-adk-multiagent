@@ -11,19 +11,43 @@ asks questions you haven't seen.
 
 The facilitators keep a secret set of questions about Nimbus Markets, in the same style as the
 exercises: marketing lookups, some maths, questions that need marketing together with finance or
-trading, questions that sound like marketing but aren't, and a few traps. You never run it
-yourself. The facilitators run it on your `my_agent/` folder, with the same model and key for
-everyone.
+trading, questions that sound like marketing but aren't, and a few traps. Each question is worth
+5 marks:
 
-Each question is worth two points:
+- **1 for the route**: the orchestrator called exactly the right specialists. A missing one costs
+  the mark, and so does an extra one.
+- **4 for the answer**: an LLM judge checks the answer against 4 criteria, one mark each. The
+  criteria ask for the right figures (within 1%) and the figures behind them, the right period
+  and entity, and for traps, saying there's no data instead of making a number up.
 
-- **route**: the orchestrator called exactly the right specialists. A missing one costs the
-  point, and so does an extra one.
-- **answer**: the answer is right. That means the right numbers (within 1%), the right words,
-  and for some questions a one-line rule that an LLM judge applies.
+Answers are marked on what they show, so ask your agent for exact figures, and for the figures
+behind any result it works out.
 
-Finishing exercises 1 to 4 gets you most of the points, not all of them. To get the rest, ask
-the chat questions you think the hidden set might ask, and watch the **Agent route** panel:
+## Practise
+
+Five practice questions in the same style are in `evals/practice.yaml`, each with its 4 criteria.
+Score your agent on them:
+
+```bash
+make eval
+```
+
+It takes about a minute. You get one row per question:
+
+```
+question                         kind          route  answer  note
+cps-drop-q2-q3                   analysis        ✓     3/4    It names social but gives the fall as $1,203.40.
+sg-marketing-booked              routing         ✗     4/4    called ['finance_agent', 'marketing_agent']
+...
+Score: 19 / 25   (an example)
+```
+
+`evals/report.json` has every answer, each criterion's verdict, and every tool call. `make eval`
+runs on your own key, which has a $5 limit, so while you fix one question, run just that one:
+`make eval Q=cps-drop-q2-q3`. Run the full set to confirm.
+
+Then ask the chat questions you think the hidden set might ask, and watch the **Agent route**
+panel:
 
 - The wrong specialists were called: sharpen the routing rules in
   `my_agent/prompts/orchestrator.md`.
@@ -35,25 +59,30 @@ the chat questions you think the hidden set might ask, and watch the **Agent rou
 
 Don't hard-code answers: the hidden questions are different, so it wouldn't help. Your marketing
 tools read only the marketing data. When a question needs finance or trading numbers, the
-orchestrator has to ask those agents.
+orchestrator has to ask those agents. Use the key and model the facilitators gave you.
 
-## Submit
+## Run the competition
 
-Zip your folder with your name or your team's name:
+At the end of the session, the facilitators show a passphrase and a link to a form. Run:
 
 ```bash
-make submit NAME="Ada Lovelace"
+make eval-final KEY="<the passphrase>" NAME="Ada Lovelace"
 ```
 
-That makes `submission/Ada Lovelace.zip`. Upload it to the
-[competition's Google Drive folder](https://drive.google.com/drive/folders/DRIVE_FOLDER_ID).
+It asks your agents every hidden question and writes their answers to `evals/submission.json`.
+It shows no score: the facilitators score every file the same way, after the deadline. Upload
+`evals/submission.json` to the [competition's form](https://forms.gle/ZuaxdysyoGR57Knz6).
 
-You can upload again until the deadline: run `make submit` again and upload the new zip. Your
-newest upload counts. Highest score wins; on a tie, the earlier upload wins.
+- **One run.** Once you have the passphrase, the questions are out, so don't change your agent and
+  run again. If some questions failed (a timeout, say), running the same command again re-runs
+  only those and keeps the rest.
+- **If your key runs out of budget**, the run stops and still writes the file. Upload it as it is.
+
+Highest score wins, and the top 3 win a prize. On a tie, the earlier upload wins.
 
 ## The final question
 
-The last question in the hidden set is one you already know:
+One question in the hidden set is one you already know:
 
 > Was the Nimbus Go launch campaign worth the money?
 

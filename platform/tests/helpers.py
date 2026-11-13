@@ -273,3 +273,10 @@ def text(t: str) -> types.Part:
 
 def today_iso() -> str:
     return dt.date.today().isoformat()
+
+
+def events(answer: str, *specialists: str) -> list[dict]:
+    """One chat turn's events: the orchestrator calls these specialists, then answers."""
+    calls = [{"type": "tool_call", "agent": "orchestrator", "tool": name, "kind": "agent"} for name in specialists]
+    leaf = {"type": "tool_call", "agent": "marketing_agent", "tool": "channel_summary", "kind": "function"}
+    return [{"type": "start"}, *calls, leaf, {"type": "answer", "text": answer, "elapsed_ms": 900}]

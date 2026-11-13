@@ -1,6 +1,6 @@
 """Consistency checks for the committed synthetic CSVs in db/seed/.
 
-Headers must match the columns in docs/CONTRACT.md / db/init (COPY uses explicit
+Headers must match the columns in db/init (COPY uses explicit
 column lists), foreign keys must resolve, sizes must stay in the expected ranges,
 and the finance <-> trading and finance <-> marketing reconciliations must hold.
 """

@@ -1,5 +1,6 @@
 """`make check-N`: the per-exercise checklist works on a half-done and a finished agent."""
 
+import inspect
 from types import ModuleType
 
 import pytest
@@ -8,8 +9,6 @@ from google.adk.agents import LlmAgent
 from devfest_agents import check
 from my_agent import marketing_agent
 from my_agent import marketing_queries as queries
-
-from .helpers import ScriptedLlm, call, text
 
 
 async def campaign_tool(start_date: str, end_date: str, entity_id: str | None = None) -> dict:
@@ -61,23 +60,19 @@ async def test_exercise_1_explains_each_problem(fake_services, monkeypatch, caps
     assert failed == 2
 
 
-async def test_exercise_2_wants_every_tool_then_asks_the_agent_alone(fake_services, monkeypatch, capsys):
+async def test_exercise_2_passes_a_finished_agent_without_the_llm(fake_services, monkeypatch, capsys):
     pitch = "Answers questions about ad campaigns and their sign-ups."
     tools_only_yours = fake_module(campaign_tool, description=pitch, build=lambda s, m: LlmAgent(
         name="marketing_agent", model=m, description=pitch, instruction="Answer.", tools=[campaign_tool]))
     failed, out = await run_exercise(2, monkeypatch, tools_only_yours, capsys)
-    assert failed == 1 and "Missing: ready_tool" in out and "Asking your agent" not in out
+    assert failed == 1 and "Missing: ready_tool" in out
 
-    def respond(request, seen):
-        if seen == 0:
-            return [call("campaign_tool", start_date="2026-08-01", end_date="2026-08-31")]
-        return [text("NM-INTL Q3 2026 - social ads brought in the most: 6 new clients.")]
+    def no_llm(*args, **kwargs):
+        raise AssertionError("check-2 called the LLM")
 
-    monkeypatch.setattr("devfest_agents.agents.model.agent_model", lambda settings: ScriptedLlm(model="x", responder=respond))
+    monkeypatch.setattr("devfest_agents.agents.model.agent_model", no_llm)
     failed, out = await run_exercise(2, monkeypatch, fake_module(campaign_tool), capsys)
     assert failed == 0, out
-    assert "It picked a tool: campaign_tool(start_date='2026-08-01', end_date='2026-08-31')" in out
-    assert "It found the right answer" in out and "can't reach it until exercise 3" in out
 
 
 async def test_exercise_3_needs_the_agent_in_specialists(fake_services, monkeypatch, capsys):
@@ -88,30 +83,16 @@ async def test_exercise_3_needs_the_agent_in_specialists(fake_services, monkeypa
     assert failed == 1 and "marketing_agent is in SPECIALISTS" in out
 
 
-def events(*steps):
-    """("call"|"result", agent) pairs as the orchestrator's tool events."""
-    kind = {"call": "tool_call", "result": "tool_result"}
-    return [{"type": kind[k], "agent": "orchestrator", "tool": tool, "args": {"request": f"about {tool}"}}
-            for k, tool in steps]
+def test_there_is_no_check_for_exercise_4():
+    assert sorted(check.EXERCISES) == [0, 1, 2, 3]
 
 
-def test_parallel_means_both_calls_before_either_answer():
-    together = events(("call", "a"), ("call", "b"), ("result", "b"), ("result", "a"))
-    one_then_other = events(("call", "a"), ("result", "a"), ("call", "b"), ("result", "b"))
-    assert check.ran_in_parallel(together, "a", "b")
-    assert not check.ran_in_parallel(one_then_other, "a", "b")
-    assert not check.ran_in_parallel(events(("call", "a"), ("result", "a")), "a", "b")
+def test_no_check_calls_the_llm():
+    assert not hasattr(check, "check_live") and not hasattr(check, "smoke_test")
+    assert "AgentRuntime" not in inspect.getsource(check)
 
 
-def test_sequential_means_the_second_call_waits_for_the_first_answer():
-    one_then_other = events(("call", "a"), ("result", "a"), ("call", "b"), ("result", "b"))
-    together = events(("call", "a"), ("call", "b"), ("result", "a"), ("result", "b"))
-    assert check.ran_in_order(one_then_other, "a", "b")
-    assert not check.ran_in_order(together, "a", "b")
-    assert check.first_call(one_then_other, "b") == {"request": "about b"}
-
-
-@pytest.mark.parametrize("arg", ["9", "x"])
+@pytest.mark.parametrize("arg", ["9", "4", "x"])
 def test_unknown_exercise_prints_usage(arg, monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["check", arg])
     with pytest.raises(SystemExit):

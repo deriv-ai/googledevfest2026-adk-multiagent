@@ -19,7 +19,7 @@ PYTEST := uv run pytest
 endif
 
 .DEFAULT_GOAL := help
-.PHONY: help test judge data seed-tools dev update-pkg \
+.PHONY: help test data seed-tools dev update-pkg \
         trivy-scan trivy-config trivy-image trivy-patch trivy-verify trivy-audit
 
 help: ## Show this help
@@ -28,14 +28,6 @@ help: ## Show this help
 test: ## Python tests + web typecheck
 	$(PYTEST)
 	cd web && npm run typecheck
-
-# The stack must be running (make up). SUBMISSIONS is the downloaded Drive folder, or the zip
-# Drive gives you: one <name>.zip (from make submit) or <name>/ folder per participant.
-judge: ## Score competition submissions into .judge/leaderboard.html (SUBMISSIONS=folder-or-zip)
-ifndef SUBMISSIONS
-	$(error SUBMISSIONS is required, e.g. make judge SUBMISSIONS=~/Downloads/submissions)
-endif
-	uv run --env-file ../.env python -m devfest_agents.judge "$(SUBMISSIONS)" --engine $(ENGINE) $(JUDGE_ARGS)
 
 data: ## Regenerate db/seed/*.csv (then `make reset` from the repo root to load them)
 	$(PYTHON) scripts/generate_synthetic_data.py

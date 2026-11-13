@@ -57,17 +57,9 @@ make check-2
 ```
 
 It builds your agent the way the app will, and checks its name, description, instruction and
-tools. Then it asks your agent one question **on its own**, with no orchestrator in between:
-
-```
-  Asking your agent on its own: "Which campaign brought in the most new clients in August 2026, and how many?"
-  ✓ It picked a tool: campaign_performance(start_date='2026-08-01', end_date='2026-08-31')
-  ✓ It found the right answer (NM-INTL's social ads campaign, 6 new clients)
-```
-
-You can see which tool it picked from your docstrings, and whether the answer was right. This
-takes about 10 seconds. If it picks a different tool or gets the answer wrong, read that tool's
-docstring again.
+tools. It doesn't ask your agent anything, so it costs nothing on your key and takes a few
+seconds. Your agent answers its first real question in exercise 3, once the orchestrator can
+reach it.
 
 ## Read more
 

@@ -65,9 +65,10 @@ turn.
 make check-3
 ```
 
-It checks the team list and the orchestrator's instruction, then asks the assistant a different
-marketing question from the one you tried, for extra coverage. It takes about 30 seconds.
-Refresh the Overview page too: your agent is no longer dashed.
+It checks the team list and the orchestrator's instruction. It doesn't call the LLM, so it takes a
+few seconds. Then ask one more marketing question in the chat, *How many new clients did our ad
+campaigns bring in during October 2026?*, and watch the **Agent route** panel call
+`marketing_agent`. Refresh the Overview page too: your agent is no longer dashed.
 
 ## Read more
 

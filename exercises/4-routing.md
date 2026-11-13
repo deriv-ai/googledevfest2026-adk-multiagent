@@ -2,6 +2,10 @@
 
 [Back to the workshop](../README.md) · [Previous: Adding an agent to the orchestrator](3-orchestrator.md)
 
+**This one is yours.** The facilitators walked you through exercises 0 to 3. Do this one on your
+own, in about 8 minutes, and ask for help if you're stuck. If you don't finish, your agent still
+works in the competition: it just picks the right specialists less often.
+
 ## The problem
 
 Most real questions cross teams:
@@ -56,20 +60,38 @@ Then try these in the chat, and watch the route panel:
 | How many new clients signed up in September 2026, whether or not a campaign brought them in? | trading only |
 | When did the Nimbus Go launch campaigns first spend money, and what was NM-SG's operating profit in that month? | marketing, then finance |
 
-## Check it
+<details>
+<summary>Hint: what the tie-break rules can say</summary>
 
-```bash
-make check-4
+Name the overlaps and say who owns each side, in one or two sentences next to rule 1:
+
+```markdown
+Ad campaign spend, per campaign or channel, is marketing; marketing costs as booked in the ledger,
+and marketing budgets, are finance. Sign-ups credited to a campaign are marketing; all new clients
+are trading.
 ```
 
-It asks three of the questions above, about a minute in all. For each one it checks that the
-right specialists were called and that the answer is right. It also checks *how* they were called:
+</details>
+
+## Check it
+
+Ask each question in the table in the chat. In the **Agent route** panel, check that exactly the
+specialists in the right-hand column were called, and for the first and last rows, *how*:
 
 - **Parallel**: both specialists were asked in the same step, before either answered.
 - **Sequential**: the second specialist was asked only after the first answered, about what the
   first one found (here, the month).
 
-Calling the right agents in the wrong order doesn't pass.
+Then score the two practice questions that test this routing:
+
+```bash
+make eval Q=spend-per-new-client
+make eval Q=sg-marketing-booked
+```
+
+Each one is marked out of 5: 1 for calling exactly the right agents, 4 for the answer. They run on
+your key, a couple of cents each. A ✗ in the route column means the orchestrator called the wrong
+agents: the note says which.
 
 ## Read more
 

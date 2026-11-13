@@ -1,19 +1,23 @@
-"""Score the agents on a question set.
+"""Score the agents on a question set, and run the competition set.
 
     python -m devfest_agents.evals evals/practice.yaml [--only ID] [--parallel N] [--timeout S] > report.json
+    python -m devfest_agents.evals evals/final.enc --key PASSPHRASE --name NAME [--previous FILE] > submission.json
+    python -m devfest_agents.evals evals/final.yaml --encrypt --key PASSPHRASE    # writes evals/final.enc
 
-Each question is worth 2 points: one for routing (the orchestrator called exactly
-the expected agents), one for the answer (every check on the question passes).
-The results table goes to stderr and the JSON report to stdout. The competition
-set never leaves the facilitators: devfest_agents.judge scores submissions with it.
+Each question is worth 5 marks: 1 for routing (the orchestrator called exactly the
+expected agents) and 4 for the answer (an LLM judge checks it against the question's
+4 criteria, one mark each). The results table goes to stderr and the JSON report to
+stdout. The competition set is encrypted and holds no answers: participants run it
+and hand in what their agents said, and the facilitators score that.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
+import hashlib
 import json
-import re
 import sys
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
@@ -21,29 +25,20 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from cryptography.fernet import Fernet, InvalidToken
 
-from .runtime import AgentRuntime
+from .judge import CRITERIA_PER_QUESTION, Judge, JudgeError, make_judge
+from .runtime import NO_ANSWER_TEXT, AgentRuntime
 from .services import get_services
 
-NUMBER_RE = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(k|m|bn)?\b", re.IGNORECASE)
-SCALE = {"k": 1e3, "m": 1e6, "bn": 1e9}
-TOLERANCE = 0.01
 OK, NO = "\033[32m✓\033[0m", "\033[31m✗\033[0m"
 PARALLEL = 8     # questions at a time; lower it if your LLM key hits rate limits
 TIMEOUT_S = 120  # a question with no answer by then scores 0, so one slow question can't hold up the run
+KINDS = frozenset({"lookup", "analysis", "multi-domain", "routing", "trap", "adversarial"})
+SPECIALIST_NAMES = frozenset({"finance_agent", "trading_agent", "marketing_agent", "news_agent"})
+PUBLIC_FIELDS = ("id", "kind", "question")  # all an encrypted competition set holds
+ANSWER_FIELDS = ("agents", "criteria")      # the answer key; never leaves the facilitators for the competition
 
-JUDGE_PROMPT = """You grade one answer from a company's analytics assistant.
-
-Question: {question}
-
-Answer: {answer}
-
-Pass rule: {rule}
-
-Does the answer follow the pass rule? Reply with PASS or FAIL on the first line,
-then one short reason on the second line."""
-
-Judge = Callable[[str, str, str], Awaitable[tuple[bool, str]]]
 Asker = Callable[[dict[str, Any]], Awaitable[list[dict[str, Any]]]]  # question -> the turn's events
 
 
@@ -52,70 +47,38 @@ class EvalSetupError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# Checking one answer
+# One question: what the agents did, and its marks
 # ---------------------------------------------------------------------------
-def numbers_in(text: str) -> list[float]:
-    """Every number in the text: "$117,844.95" -> 117844.95, "1.2M" -> 1200000.0."""
-    return [float(digits.replace(",", "")) * SCALE.get(suffix.lower(), 1)
-            for digits, suffix in NUMBER_RE.findall(text)]
-
-
-def close_to(expected: float, found: list[float]) -> bool:
-    return any(abs(value - expected) <= max(abs(expected) * TOLERANCE, 0.005) for value in found)
-
-
-def missed_checks(question: dict[str, Any], answer: str) -> list[str]:
-    """The deterministic checks the answer fails, in words."""
-    found, text = numbers_in(answer), answer.lower()
-    misses = [f"number {n}" for n in question.get("numbers", []) if not close_to(n, found)]
-    misses += [f"word '{w}'" for w in question.get("words", []) if w.lower() not in text]
-    misses += [f"should not say '{p}'" for p in question.get("absent", []) if p.lower() in text]
-    return misses
-
-
-async def llm_judge(question: str, answer: str, rule: str) -> tuple[bool, str]:
-    import litellm
-
-    settings = get_services().settings
-    response = await litellm.acompletion(
-        model=settings.effective_router_model,
-        messages=[{"role": "user", "content": JUDGE_PROMPT.format(question=question, answer=answer, rule=rule)}],
-        temperature=0,
-        api_key=settings.llm_api_key,
-        api_base=settings.llm_api_base,
-        timeout=settings.llm_timeout_seconds,
-    )
-    lines = (response.choices[0].message.content or "").strip().splitlines() or [""]
-    return lines[0].strip().upper().startswith("PASS"), " ".join(lines[1:]).strip() or lines[0]
-
-
-async def grade(question: dict[str, Any], events: list[dict[str, Any]], judge: Judge = llm_judge) -> dict[str, Any]:
+def summarize(question_id: str, events: list[dict[str, Any]]) -> dict[str, Any]:
+    """What one turn produced: the answer, the specialists the orchestrator called, any error."""
     last = events[-1]
     answer = last.get("text", "") if last["type"] == "answer" else ""
-    called = sorted({e["tool"] for e in events if e["type"] == "tool_call" and e["agent"] == "orchestrator"})
-    misses = missed_checks(question, answer)
-    if answer and not misses and question.get("judge"):
-        try:
-            passed, reason = await judge(question["question"], answer, question["judge"])
-        except Exception as exc:  # noqa: BLE001 - a judge failure costs the point, not the run
-            passed, reason = False, f"the judge failed ({type(exc).__name__})"
-        if not passed:
-            misses.append(f"judge: {reason}")
     return {
-        "id": question["id"],
-        "kind": question.get("kind", ""),
-        "question": question["question"].strip(),
-        "expected_agents": sorted(question["agents"]),
-        "called_agents": called,
-        "route_point": int(called == sorted(question["agents"])),
-        "answer_point": int(bool(answer) and not misses),
-        "missing": misses,
-        "answer": answer,
-        "tools": [f"{e['agent']} -> {e['tool']}({json.dumps(e.get('args', {}), ensure_ascii=False)})"
-                  for e in events if e["type"] == "tool_call"],
+        "id": question_id,
+        "answer": "" if answer == NO_ANSWER_TEXT else answer,  # the app's stand-in for "no answer" is not an answer
+        "called_agents": sorted({e["tool"] for e in events if e["type"] == "tool_call" and e["agent"] == "orchestrator"}),
         "error": last.get("message") if last["type"] == "error" else None,
         "elapsed_ms": last.get("elapsed_ms"),
     }
+
+
+async def score(question: dict[str, Any], result: dict[str, Any] | None, judge: Judge) -> dict[str, Any]:
+    """1 route mark and up to 4 answer marks. A question that errored or never ran scores 0."""
+    marks: dict[str, Any] = {"route_mark": 0, "answer_marks": 0, "criteria": [], "judge_error": None}
+    if result is None or result.get("error"):
+        return marks
+    marks["route_mark"] = int(sorted(result.get("called_agents") or []) == sorted(question["agents"]))
+    answer = result.get("answer") or ""
+    if not answer.strip():
+        return marks
+    try:
+        verdicts = await judge(question, answer)
+    except JudgeError as exc:
+        return marks | {"judge_error": str(exc)}
+    marks["criteria"] = [{"criterion": c, "passed": v["passed"], "reason": v["reason"]}
+                         for c, v in zip(question["criteria"], verdicts)]
+    marks["answer_marks"] = sum(v["passed"] for v in verdicts)
+    return marks
 
 
 # ---------------------------------------------------------------------------
@@ -135,46 +98,47 @@ async def answer_within(asker: Asker, question: dict[str, Any], timeout_s: float
         return [{"type": "error", "message": f"no answer within {timeout_s:.0f} s"}]
 
 
-async def run(questions: list[dict[str, Any]], asker: Asker, *, parallel: int = PARALLEL,
-              timeout_s: float = TIMEOUT_S, judge: Judge = llm_judge, hidden: bool = False,
-              quiet: bool = False) -> dict[str, Any]:
-    """hidden: the report keeps only ids, kinds and points. quiet: no per-question output."""
+def tool_calls(events: list[dict[str, Any]]) -> list[str]:
+    return [f"{e['agent']} -> {e['tool']}({json.dumps(e.get('args', {}), ensure_ascii=False)})"
+            for e in events if e["type"] == "tool_call"]
+
+
+async def run_practice(questions: list[dict[str, Any]], asker: Asker, *, judge: Judge,
+                       parallel: int = PARALLEL, timeout_s: float = TIMEOUT_S) -> dict[str, Any]:
     gate = asyncio.Semaphore(parallel)
 
-    async def one(question):
+    async def one(question: dict[str, Any]) -> dict[str, Any]:
         async with gate:
-            result = await grade(question, await answer_within(asker, question, timeout_s), judge)
-        if not quiet:
-            log(f"  {OK if result['route_point'] else NO}{OK if result['answer_point'] else NO}  {result['id']}")
-        return result
+            events = await answer_within(asker, question, timeout_s)
+            result = summarize(question["id"], events)
+            marks = await score(question, result, judge)
+        row = {"kind": question["kind"], "question": question["question"].strip(),
+               "expected_agents": sorted(question["agents"]), **result, **marks,
+               "marks": marks["route_mark"] + marks["answer_marks"], "tools": tool_calls(events)}
+        log(f"  {row['marks']}/5  {row['id']}")
+        return row
 
-    if not quiet:
-        log(f"Running {len(questions)} question(s), {parallel} at a time...")
+    log(f"Running {len(questions)} question(s), {parallel} at a time...")
     results = await asyncio.gather(*(one(q) for q in questions))
-    if not quiet:
-        print_table(results, hidden)
-    report = {"score": sum(r["route_point"] + r["answer_point"] for r in results), "max_score": 2 * len(results)}
-    if hidden:
-        results = [{k: r[k] for k in ("id", "kind", "route_point", "answer_point", "called_agents", "error")}
-                   for r in results]
-    return report | {"results": results}
+    print_table(results)
+    return {"score": sum(r["marks"] for r in results), "max_score": 5 * len(results), "results": results}
 
 
-def print_table(results: list[dict[str, Any]], hidden: bool) -> None:
+def print_table(results: list[dict[str, Any]]) -> None:
     log(f"\n{'question':32} {'kind':13} route  answer  note")
     for r in results:
-        note = r["error"] or ("" if hidden else "; ".join(r["missing"]))
-        if not r["route_point"]:
+        failed = next((c["reason"] for c in r["criteria"] if not c["passed"]), "")
+        note = r["error"] or r["judge_error"] or failed
+        if not r["route_mark"] and not r["error"]:
             note = f"called {r['called_agents'] or 'no agents'}" + (f"; {note}" if note else "")
-        log(f"{r['id'][:32]:32} {r['kind'][:13]:13}   {OK if r['route_point'] else NO}      "
-            f"{OK if r['answer_point'] else NO}    {note[:90]}")
+        log(f"{r['id'][:32]:32} {r['kind'][:13]:13}   {OK if r['route_mark'] else NO}     "
+            f"{r['answer_marks']}/4    {note[:90]}")
     by_kind: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     for r in results:
-        by_kind[r["kind"]][0] += r["route_point"] + r["answer_point"]
-        by_kind[r["kind"]][1] += 2
-    total = sum(points for points, _ in by_kind.values())
+        by_kind[r["kind"]][0] += r["marks"]
+        by_kind[r["kind"]][1] += 5
     log("\n" + "   ".join(f"{kind or 'other'} {p}/{m}" for kind, (p, m) in by_kind.items()))
-    log(f"Score: {total} / {2 * len(results)}")
+    log(f"Score: {sum(r['marks'] for r in results)} / {5 * len(results)}")
 
 
 def log(text: str) -> None:
@@ -205,40 +169,142 @@ def build_runtime() -> AgentRuntime:
     return AgentRuntime(root)
 
 
-def load_questions(path: Path) -> list[dict[str, Any]]:
+# ---------------------------------------------------------------------------
+# Question sets
+# ---------------------------------------------------------------------------
+def validate_questions(questions: Any, *, with_answers: bool) -> list[dict[str, Any]]:
+    """Every question is well formed. with_answers: it also carries its agents and 4 criteria."""
+    if not isinstance(questions, list) or not all(isinstance(q, dict) for q in questions):
+        raise EvalSetupError("A question set is a list of questions.")
+    fields = set(PUBLIC_FIELDS) | (set(ANSWER_FIELDS) if with_answers else set())
+    seen: set[str] = set()
+    for q in questions:
+        qid = q.get("id")
+        if qid in seen:
+            raise EvalSetupError(f"Question {qid!r} appears twice.")
+        seen.add(qid)
+        if unknown := sorted(set(q) - fields):
+            raise EvalSetupError(f"Question {qid!r} has unknown fields: {', '.join(unknown)}.")
+        if missing := sorted(fields - set(q)):
+            raise EvalSetupError(f"Question {qid!r} is missing: {', '.join(missing)}.")
+        if q["kind"] not in KINDS:
+            raise EvalSetupError(f"Question {qid!r} has an unknown kind: {q['kind']}.")
+        if not with_answers:
+            continue
+        if not isinstance(q["agents"], list) or set(q["agents"]) - SPECIALIST_NAMES:
+            raise EvalSetupError(f"Question {qid!r} names an unknown agent: {q['agents']}.")
+        criteria = q["criteria"]
+        if (not isinstance(criteria, list) or len(criteria) != CRITERIA_PER_QUESTION
+                or not all(isinstance(c, str) and c.strip() for c in criteria)):
+            raise EvalSetupError(f"Question {qid!r} needs exactly {CRITERIA_PER_QUESTION} criteria.")
+    return questions
+
+
+def public_questions(questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{field: q[field] for field in PUBLIC_FIELDS} for q in questions]
+
+
+def question_set_hash(questions: list[dict[str, Any]]) -> str:
+    """Names one question set, answers or not, so an answers file can't be scored against another set."""
+    canonical = json.dumps(public_questions(questions), sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def fernet(passphrase: str) -> Fernet:
+    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(passphrase.encode()).digest()))
+
+
+def load_questions(path: Path, key: str | None = None) -> list[dict[str, Any]]:
     if not path.exists():
         raise EvalSetupError(f"{path} doesn't exist.")
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = path.read_bytes()
+    if path.suffix == ".enc":
+        if not key:
+            raise EvalSetupError("This question set is locked. Add the passphrase: make eval-final KEY=<passphrase> NAME=<your name>")
+        try:
+            data = fernet(key).decrypt(data)
+        except InvalidToken:
+            raise EvalSetupError("That passphrase doesn't open this question set. Check it and try again.") from None
+    return yaml.safe_load(data.decode("utf-8"))
+
+
+def encrypt_set(path: Path, key: str) -> Path:
+    """Write <set>.enc next to the set: the questions only, without their answer key."""
+    questions = validate_questions(load_questions(path), with_answers=True)
+    out = path.with_suffix(".enc")
+    out.write_bytes(fernet(key).encrypt(
+        yaml.safe_dump(public_questions(questions), sort_keys=False, allow_unicode=True).encode("utf-8")))
+    return out
 
 
 async def main_async(questions: list[dict[str, Any]], parallel: int, timeout_s: float) -> dict[str, Any]:
     runtime = build_runtime()
     try:
-        return await run(questions, lambda question: ask(runtime, question), parallel=parallel, timeout_s=timeout_s)
+        return await run_practice(questions, lambda question: ask(runtime, question), judge=make_judge(),
+                                  parallel=parallel, timeout_s=timeout_s)
+    finally:
+        await get_services().database().close()
+
+
+async def main_final(questions: list[dict[str, Any]], args: argparse.Namespace) -> dict[str, Any]:
+    from .submission import collect, load_previous
+
+    runtime = build_runtime()
+    try:
+        return await collect(questions, lambda question: ask(runtime, question), name=args.name.strip(),
+                             commit=args.commit, previous=load_previous(args.previous, question_set_hash(questions)),
+                             parallel=max(1, args.parallel), timeout_s=args.timeout)
     finally:
         await get_services().database().close()
 
 
 def main() -> None:
+    # The JSON report is the only thing on stdout: the Makefile writes it straight to a file. LiteLLM
+    # prints help banners on API errors, and a participant's tool may print too, so while the agents
+    # run, anything printed goes to stderr (the terminal) instead.
+    out, sys.stdout = sys.stdout, sys.stderr
+    try:
+        report = run_cli()
+    finally:
+        sys.stdout = out
+    if report is not None:
+        json.dump(report, out, indent=2)
+        print(file=out)
+
+
+def run_cli() -> dict[str, Any] | None:
     parser = argparse.ArgumentParser(description="Score the agents on a question set.")
     parser.add_argument("questions", type=Path, help="a question set, e.g. evals/practice.yaml")
     parser.add_argument("--only", help="run only the question with this id")
     parser.add_argument("--parallel", type=int, default=PARALLEL, help=f"questions at the same time (default {PARALLEL})")
     parser.add_argument("--timeout", type=float, default=TIMEOUT_S, help=f"seconds per question (default {TIMEOUT_S})")
+    parser.add_argument("--key", help="the passphrase of an encrypted set")
+    parser.add_argument("--encrypt", action="store_true", help="write <set>.enc: the questions only (needs --key)")
+    parser.add_argument("--name", default="", help="your name or team, for the competition's answers file")
+    parser.add_argument("--commit", default="", help="the git commit your agents ran from")
+    parser.add_argument("--previous", type=Path, help="an earlier answers file to resume from")
     args = parser.parse_args()
 
     try:
-        questions = load_questions(args.questions)
+        if args.encrypt:
+            if not args.key:
+                raise EvalSetupError("--encrypt needs --key.")
+            log(f"Wrote {encrypt_set(args.questions, args.key)}")
+            return None
+        if args.questions.suffix == ".enc":
+            if not args.name.strip():
+                raise EvalSetupError("Add your name: make eval-final KEY=<passphrase> NAME=<your name>")
+            questions = validate_questions(load_questions(args.questions, args.key), with_answers=False)
+            return asyncio.run(main_final(questions, args))
+        questions = validate_questions(load_questions(args.questions, args.key), with_answers=True)
         if args.only:
             questions = [q for q in questions if q["id"] == args.only]
             if not questions:
                 raise EvalSetupError(f"No question with id {args.only!r}.")
-        report = asyncio.run(main_async(questions, max(1, args.parallel), args.timeout))
+        return asyncio.run(main_async(questions, max(1, args.parallel), args.timeout))
     except EvalSetupError as exc:
         log(f"{NO} {exc}")
         sys.exit(1)
-    json.dump(report, sys.stdout, indent=2)
-    print()
 
 
 if __name__ == "__main__":

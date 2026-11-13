@@ -37,7 +37,6 @@ Thumbs.db
 # --- evals --------------------------------------------------------------------
 evals/report.json
 evals/final.yaml
-platform/.judge/
+evals/submission.json
+evals/.submission.tmp
 
-# make submit's zips
-submission/
