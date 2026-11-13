@@ -28,6 +28,13 @@ PARAM_NAME_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 RESERVED_PARAM_NAMES = {"tool_context", "input_stream", "self", "kwargs", "args"}
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
+# Titles and descriptions are written by workshop participants and end up in LLM prompts
+# (titles in the orchestrator's catalogue, descriptions as function descriptions), so keep
+# them bounded. Limits sit well above the starter tools (title 74, description 863 chars).
+TITLE_MAX = 200
+DESCRIPTION_MAX = 2000
+PARAM_DESCRIPTION_MAX = 500
+
 
 class CoercionError(ValueError):
     pass
@@ -107,7 +114,7 @@ class ParamSpec(BaseModel):
     name: str
     type: ParamType = "string"
     required: bool = False
-    description: str = ""
+    description: str = Field(default="", max_length=PARAM_DESCRIPTION_MAX)
     default: Any = None
     example: Any = None
     enum: list[Any] | None = None
@@ -167,8 +174,8 @@ class ToolSpec(BaseModel):
     name: str
     agent: AgentName
     tool_type: ToolType = "sql"
-    title: str = Field(min_length=1, max_length=200)
-    description: str = Field(min_length=1)
+    title: str = Field(min_length=1, max_length=TITLE_MAX)
+    description: str = Field(min_length=1, max_length=DESCRIPTION_MAX)
     params: list[ParamSpec] = Field(default_factory=list)
     sql: str | None = None
     answer: str | None = None
@@ -188,6 +195,13 @@ class ToolSpec(BaseModel):
         v = (v or "").strip()
         if not v:
             raise ValueError("must not be empty")
+        return v
+
+    @field_validator("title")
+    @classmethod
+    def _one_line(cls, v: str) -> str:
+        if any(ch in v for ch in "\r\n") or any(ord(ch) < 32 or ord(ch) == 127 for ch in v):
+            raise ValueError("must be a single line without control characters")
         return v
 
     @field_validator("sql", "answer", "source", mode="before")

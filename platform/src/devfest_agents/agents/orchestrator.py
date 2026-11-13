@@ -15,7 +15,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools.agent_tool import AgentTool
 
 from .. import tracing
-from .common import GENERATION, list_tools, render, tool_title
+from .common import GENERATION, catalogue_label, list_tools, render, tool_title
 
 NAME = "orchestrator"
 DESCRIPTION = (
@@ -30,7 +30,8 @@ async def build_catalogue(specialists: list[LlmAgent]) -> str:
     for agent in specialists:
         lines.append(f"- `{agent.name}`:")
         tools = await list_tools(agent)
-        lines.extend(f"  - `{tool.name}`: {tool_title(tool)}" for tool in tools)
+        # tool.name is constrained by TOOL_NAME_RE; the title is free text from users, so quote it.
+        lines.extend(f'  - `{tool.name}`: "{catalogue_label(tool_title(tool))}"' for tool in tools)
         if not tools:
             lines.append("  - (no tools yet)")
     return "\n".join(lines)
