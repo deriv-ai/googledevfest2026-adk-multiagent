@@ -87,7 +87,7 @@ docker compose version
 **1. Get the code.**
 
 ```bash
-git clone <this repo's URL>
+git clone -b feat/central-judging https://github.com/deriv-ai/googledevfest2026-adk-multiagent
 cd googledevfest2026-adk-multiagent
 ```
 
