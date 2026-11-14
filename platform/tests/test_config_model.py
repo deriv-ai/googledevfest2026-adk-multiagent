@@ -24,6 +24,28 @@ def test_proxy_mode_and_key_precedence():
     assert "max_tokens" not in m._additional_args
 
 
+@pytest.mark.parametrize("typed", ["gemini-3.7-flash", "models/gemini-3.7-flash", " gemini-3.7-flash ",
+                                   "gemini/gemini-3.7-flash"])
+def test_ai_studio_model_name_as_typed(typed):
+    s = Settings(_env_file=None, litellm_gemini_api_key="AIza" + "x" * 35, agent_model=typed)
+    assert s.effective_agent_model == "gemini/gemini-3.7-flash"
+    assert s.effective_router_model == "gemini/gemini-3.7-flash"
+
+
+def test_ai_studio_key_ignores_a_leftover_proxy_url():
+    s = Settings(_env_file=None, litellm_gemini_api_key="AIza" + "x" * 35,
+                 openai_base_url="https://proxy.invalid/v1", agent_model="gemini-3.7-flash")
+    assert s.llm_mode == "direct" and s.effective_agent_model == "gemini/gemini-3.7-flash"
+    assert "api_base" not in make_model(s.effective_agent_model, s)._additional_args
+
+
+def test_bare_model_name_in_proxy_mode_gets_openai_prefix():
+    s = Settings(_env_file=None, litellm_gemini_api_key="sk-proxy-key", openai_base_url="https://proxy.invalid/v1",
+                 agent_model="gemini-3.7-flash", router_model="gemini-3.5-flash")
+    assert s.effective_agent_model == "openai/gemini-3.7-flash"
+    assert s.effective_router_model == "openai/gemini-3.5-flash"
+
+
 def test_secrets_never_in_repr_and_scrubbed():
     s = Settings(_env_file=None, litellm_gemini_api_key="sk-secret-123", openai_base_url="https://corp.invalid/v1")
     assert "sk-secret-123" not in repr(s) and "corp.invalid" not in repr(s)
