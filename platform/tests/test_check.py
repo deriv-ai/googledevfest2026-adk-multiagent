@@ -87,9 +87,35 @@ def test_there_is_no_check_for_exercise_4():
     assert sorted(check.EXERCISES) == [0, 1, 2, 3]
 
 
-def test_no_check_calls_the_llm():
+def test_only_check_0_calls_the_llm_and_never_runs_the_agents():
     assert not hasattr(check, "check_live") and not hasattr(check, "smoke_test")
     assert "AgentRuntime" not in inspect.getsource(check)
+    for number in (1, 2, 3):
+        assert "ping_llm" not in inspect.getsource(check.EXERCISES[number])
+
+
+@pytest.mark.parametrize("error, passed, says", [
+    (None, True, "Your LLM key works"),
+    ("RateLimitError: 429 RESOURCE_EXHAUSTED", True, "rate-limited"),
+    ("AuthenticationError: API_KEY_INVALID", False, "The key was rejected"),
+    ("DefaultCredentialsError: default credentials were not found", False, "Vertex AI model"),
+    ("NotFoundError: 404 model not found", False, "can't use that model"),
+])
+async def test_exercise_0_tries_the_key(error, passed, says, fake_services, monkeypatch, capsys):
+    async def ping(settings):
+        return error
+
+    async def data_loaded(*args, **kwargs):
+        return {"rows": [{"n": 117}]}
+
+    monkeypatch.setattr(check, "ping_llm", ping)
+    monkeypatch.setattr(check, "run_sql", data_loaded)
+    monkeypatch.setattr(type(fake_services.settings), "llm_key_configured", property(lambda self: True))
+    c = check.Checklist()
+    await check.exercise_0(c)
+    out = capsys.readouterr().out
+    assert says in out
+    assert ("The key was rejected" not in out) if passed else (c.failed >= 1)
 
 
 @pytest.mark.parametrize("arg", ["9", "4", "x"])

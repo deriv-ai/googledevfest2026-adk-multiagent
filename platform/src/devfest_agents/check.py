@@ -1,7 +1,8 @@
 """Check one workshop exercise: python -m devfest_agents.check <0-3>
 
 Prints a checklist with a tick or a cross per item, and a hint for every cross.
-None of the checks calls the LLM, so they cost nothing on your key.
+Only exercise 0 calls the LLM: one tiny request, to prove your key and model work.
+The other checks cost nothing on your key.
 """
 
 from __future__ import annotations
@@ -58,10 +59,50 @@ def your_tools(module) -> list[Any]:
 
 
 # ---------------------------------------------------------------------------
+async def ping_llm(settings) -> str | None:
+    """Send one tiny request with the configured key and model. None if it answered, else the error."""
+    import logging
+
+    import litellm
+
+    logging.getLogger("LiteLLM").setLevel(logging.CRITICAL)  # we print our own hint instead of a traceback
+    litellm.suppress_debug_info = True
+    try:
+        await litellm.acompletion(
+            model=settings.effective_agent_model, api_key=settings.llm_api_key,
+            api_base=settings.llm_api_base if settings.llm_mode == "proxy" else None,
+            messages=[{"role": "user", "content": "Reply with the word ok."}], timeout=30, num_retries=0)
+        return None
+    except Exception as exc:  # noqa: BLE001 - any failure is reported as a hint
+        return settings.scrub(f"{type(exc).__name__}: {exc}")
+
+
+def is_rate_limited(error: str) -> bool:
+    return any(s in error for s in ("RateLimitError", "RESOURCE_EXHAUSTED", "429"))
+
+
+def key_hint(error: str) -> str:
+    if any(s in error for s in ("API_KEY_INVALID", "API key not valid", "AuthenticationError", "401")):
+        return ("The key was rejected. Copy it again from aistudio.google.com/apikey into .env as "
+                "LLM_API_KEY, then run `make up` again.")
+    if "credentials" in error.lower():
+        return "The model name was read as a Vertex AI model. Use AGENT_MODEL=gemini-3.7-flash in .env."
+    if any(s in error for s in ("NotFoundError", "404")):
+        return "Your key can't use that model. Check AGENT_MODEL in .env, for example gemini-3.7-flash."
+    return f"{error[:300]}\n      `make logs` shows more."
+
+
 async def exercise_0(c: Checklist) -> None:
-    c.check(get_services().settings.llm_key_configured, "An LLM key is set",
-            "Put your LLM key in .env as LLM_API_KEY (`later` is only a placeholder), then run `make up` "
-            "again. See step 2 of Set up in README.md.")
+    settings = get_services().settings
+    if c.check(settings.llm_key_configured, "An LLM key is set",
+               "Put your LLM key in .env as LLM_API_KEY (`later` is only a placeholder), then run `make up` "
+               "again. See step 2 of Set up in README.md."):
+        error = await ping_llm(settings)
+        works = f"Your LLM key works with {settings.effective_agent_model}"
+        if error and is_rate_limited(error):
+            c.ok(f"{works} (it's rate-limited right now: wait a minute between big runs)")
+        else:
+            c.check(error is None, works, key_hint(error or ""))
     result = await run_sql("marketing", "SELECT COUNT(*) AS n FROM marketing.campaigns")
     c.check("rows" in result and result["rows"][0]["n"] > 0, "The database has the marketing data",
             result.get("error", "Run `make reset` to reload the data."))
