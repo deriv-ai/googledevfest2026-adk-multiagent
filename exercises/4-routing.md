@@ -3,8 +3,7 @@
 [Back to the workshop](../README.md) · [Previous: Adding an agent to the orchestrator](3-orchestrator.md)
 
 **This one is yours.** The facilitators walked you through exercises 0 to 3. Do this one on your
-own, in about 8 minutes, and ask for help if you're stuck. If you don't finish, your agent still
-works in the competition: it just picks the right specialists less often.
+own, in about 8 minutes, and ask for help if you're stuck.
 
 ## The problem
 
@@ -77,19 +76,8 @@ campaigns ("whether or not a campaign brought them in"): don't also ask marketin
 
 ## Check it
 
-Score the two practice questions that test this routing:
-
-```bash
-make eval Q=spend-per-new-client
-make eval Q=sg-marketing-booked
-```
-
-Each one is marked out of 5: 1 for calling exactly the right agents, 4 for the answer. They run on
-your key, a couple of cents each, and take under a minute each. A ✗ in the route column means the
-orchestrator called the wrong agents: the note says which.
-
-If you have time, also ask the questions in the table in the chat. Each takes up to a minute. In
-the **Agent route** panel, check that exactly the specialists in the right-hand column were called,
+Ask the questions in the table in the chat, one at a time. Each takes up to a minute. In the
+**Agent route** panel, check that exactly the specialists in the right-hand column were called,
 and for the first and last rows, *how*:
 
 - **Parallel**: both specialists were asked in the same step, before either answered.
@@ -100,7 +88,8 @@ and for the first and last rows, *how*:
 
 - [Multi-agent systems](https://google.github.io/adk-docs/agents/multi-agents/) in the ADK docs
 
-## Next
+## Done
 
-It works on the questions you tried. Does it work on the ones you didn't? In
-**[the competition](5-competition.md)** you find out.
+That's the workshop: your marketing agent has tools, a job description, a place on the team and
+routing rules. Try your own questions in the chat, such as *"Was the Nimbus Go launch campaign worth
+the money?"*, and watch the **Agent route** panel to see how the team answers.

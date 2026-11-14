@@ -13,13 +13,10 @@ COMPOSE ?= docker compose -f compose.yaml
 endif
 EXEC ?= $(ENGINE) exec
 
-# The competition's Google Form. Facilitators: put the real link here and in exercises/5-competition.md.
-FORM_URL := https://forms.gle/ZuaxdysyoGR57Knz6
-
 ENV_MSG := add your LLM key to .env (see .env.example), then run make up again
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env check-engine up down logs reset check eval eval-final
+.PHONY: help check-env check-engine up down logs reset check
 
 help: ## Show this help
 	@echo "The marketing agent workshop. Start with README.md."
@@ -79,13 +76,3 @@ check: ## Check an exercise: make check-0, make check-1 ... make check-3
 check-%:
 	@$(EXEC) nimbus-app python -m devfest_agents.check $* || true
 
-eval: ## Score your agent on the 5 practice questions (one question: Q=<id>)
-	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json \
-		&& echo "Full report: evals/report.json" || true
-
-eval-final: ## Run the competition questions and write your answers file (KEY=<passphrase> NAME="<your name>")
-	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --key "$(KEY)" --name "$(NAME)" \
-		--commit "$$(git rev-parse --short HEAD 2>/dev/null)" --previous /app/evals/submission.json \
-		> evals/.submission.tmp && mv evals/.submission.tmp evals/submission.json \
-		&& echo "Your file: evals/submission.json. Upload it here: $(FORM_URL)" \
-		|| rm -f evals/.submission.tmp

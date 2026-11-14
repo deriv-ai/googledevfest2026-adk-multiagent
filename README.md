@@ -4,9 +4,8 @@ Nimbus Markets is a fictional online broker with an AI assistant built with
 [Google ADK](https://google.github.io/adk-docs/). It answers questions about **finance**,
 **trading** and the day's **market news**, but not about **marketing**.
 
-Your task is to add a marketing agent, connect it to the assistant, and measure how well it
-answers. At the end you run your agent on questions you haven't seen, and hand in its answers.
-[The task](#the-task) has the details.
+Your task is to add a marketing agent and connect it to the assistant, so it can answer
+marketing questions alone or together with the other agents. [The task](#the-task) has the details.
 
 ## How the session runs
 
@@ -18,11 +17,9 @@ answers. At the end you run your agent on questions you haven't seen, and hand i
 | [Exercise 2: Creating an agent](exercises/2-agent.md) | Give the tools to a marketing agent |
 | [Exercise 3: Adding an agent to the orchestrator](exercises/3-orchestrator.md) | Let the orchestrator send marketing questions to it |
 | [Exercise 4: Routing across agents](exercises/4-routing.md) | Ask several agents, in parallel or in order. **On your own**, about 8 minutes |
-| [The competition](exercises/5-competition.md) | Practise with `make eval`, then answer the secret questions and upload the answers |
-| Wrap up | The top 3, and the winner's answer to the final question |
+| Wrap up | Questions, and what we build at Deriv |
 
-The session is 60 minutes: about 10 minutes of slides, 35 minutes of building, and 15 minutes for
-the competition. The facilitators introduce each exercise in a minute or two, then you build it.
+The facilitators introduce each exercise in a minute or two, then you build it.
 Each exercise ends with a check, like `make check-1`, and a link to the next one.
 
 ## Before the session
@@ -34,8 +31,8 @@ Have these ready on your laptop:
 - **The app built already.** The first `make up` downloads about 1 GB, which venue Wi-Fi can't do
   for a whole room. Before you come, do [Set up](#set-up) steps 1 to 3 with
   `LLM_API_KEY=later` in `.env`: any text works until you have your real key.
-- **An LLM key.** At the session, scan the QR code on the slides to claim a key with a $5
-  limit. It pays for everything you run today. Put it in `.env` and run `make up` again.
+- **A free Gemini API key.** Create one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+  with your Google account: it's free and needs no card. Copy the whole key; it starts with `AQ.`.
 - **Some Python.** You'll write two short `async def` functions with type hints and docstrings,
   and fill in one function call. You don't need Python installed: everything runs in Docker.
 
@@ -87,7 +84,7 @@ docker compose version
 **1. Get the code.**
 
 ```bash
-git clone -b feat/central-judging https://github.com/deriv-ai/googledevfest2026-adk-multiagent
+git clone -b feat/aistudio-key https://github.com/deriv-ai/googledevfest2026-adk-multiagent
 cd googledevfest2026-adk-multiagent
 ```
 
@@ -100,19 +97,18 @@ cp .env.example .env
 Then open `.env` and fill in two lines:
 
 ```bash
-LLM_API_KEY=<your key>
-AGENT_MODEL=<provider>/<model>
+LLM_API_KEY=<your AI Studio key, starting with AQ.>
+AGENT_MODEL=gemini-3.5-flash-lite
 ```
 
-`AGENT_MODEL` is the provider, a slash and the model, for example `gemini/gemini-3.7-flash` or
-`anthropic/claude-sonnet-5-5`. [LiteLLM's provider list](https://docs.litellm.ai/docs/providers)
-has the names for the others. If your key is for an OpenAI-compatible endpoint, such as a LiteLLM
-proxy or OpenRouter, also set `LLM_BASE_URL=<its URL>` and use `openai/<model>`.
-
-The exercises were tested on `gemini/gemini-3.7-flash`. Use the key from the session's QR code,
-and the model it comes with: your agent answers the competition's questions on that key, which
-has a $5 limit, and your answers file records the model. If you set up before the session with
+Type the model name as AI Studio shows it. The free tier allows about 15 requests a minute per
+model: plenty for the chat and the checks. A chat question uses about 7, so wait a few seconds
+between questions if you see a rate-limit error. If you set up before the session with
 `LLM_API_KEY=later`, put the real key in now and run `make up` again.
+
+Any other provider works too: set `AGENT_MODEL` to the provider, a slash and the model, for example
+`anthropic/claude-sonnet-5-5` ([LiteLLM's provider list](https://docs.litellm.ai/docs/providers)).
+For an OpenAI-compatible endpoint, also set `LLM_BASE_URL=<its URL>` and use `openai/<model>`.
 
 **3. Start the app.**
 
@@ -145,13 +141,8 @@ database holds the marketing data: campaigns, daily ad spend and sign-ups. No ag
 2. a marketing agent that uses them;
 3. the routing that sends marketing questions to it, alone or together with the other agents.
 
-**How it's scored.** Every question is worth 5 marks: 1 for asking the right agents, and 4 from an
-LLM judge that checks the answer against 4 criteria, such as the right figures and the figures
-behind them. The final question is *"Was the Nimbus Go launch campaign worth the money?"* A good
-answer gives the figures and says what the data can't show.
-
-**What you hand in.** Your agent's answers to the secret questions: `make eval-final` writes them
-to `evals/submission.json`, and you upload that file to the competition's form.
+**Where you're heading.** By the end, your agent can answer *"Was the Nimbus Go launch campaign
+worth the money?"* A good answer gives the figures and says what the data can't show.
 
 ## How the assistant works
 
@@ -205,8 +196,6 @@ shows which agents and tools answered.
 |---|---|
 | `make up` | Start the app |
 | `make check-1` | Check exercise 1 (or 0, 2, 3) |
-| `make eval` | Score your agent on the 5 practice questions |
-| `make eval-final KEY=... NAME="<you>"` | Answer the competition questions and write your answers file |
 | `make logs` | Show the app's logs. Use it when something breaks |
 | `make reset` | Reload the database from scratch |
 | `make down` | Stop the app |
