@@ -35,7 +35,7 @@ Open http://localhost:8080.
 make check-0
 ```
 
-It checks that your LLM key is set and the marketing data is loaded.
+It checks that your LLM key is set and works (one tiny request to the model), and that the marketing data is loaded.
 
 ## Next
 
