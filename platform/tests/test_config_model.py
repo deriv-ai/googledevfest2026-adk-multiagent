@@ -32,8 +32,9 @@ def test_ai_studio_model_name_as_typed(typed):
     assert s.effective_router_model == "gemini/gemini-3.7-flash"
 
 
-def test_ai_studio_key_ignores_a_leftover_proxy_url():
-    s = Settings(_env_file=None, litellm_gemini_api_key="AIza" + "x" * 35,
+@pytest.mark.parametrize("key", ["AQ." + "x" * 40, "AIza" + "x" * 35])
+def test_ai_studio_key_ignores_a_leftover_proxy_url(key):
+    s = Settings(_env_file=None, litellm_gemini_api_key=key,
                  openai_base_url="https://proxy.invalid/v1", agent_model="gemini-3.7-flash")
     assert s.llm_mode == "direct" and s.effective_agent_model == "gemini/gemini-3.7-flash"
     assert "api_base" not in make_model(s.effective_agent_model, s)._additional_args

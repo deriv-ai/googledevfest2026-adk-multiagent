@@ -98,6 +98,8 @@ def test_only_check_0_calls_the_llm_and_never_runs_the_agents():
     (None, True, "Your LLM key works"),
     ("RateLimitError: 429 RESOURCE_EXHAUSTED", True, "rate-limited"),
     ("AuthenticationError: API_KEY_INVALID", False, "The key was rejected"),
+    ("AuthenticationError: 401 ACCESS_TOKEN_TYPE_UNSUPPORTED", False, "new keys start with AQ."),
+    ("PermissionDeniedError: 403 PERMISSION_DENIED", False, "can't call the Gemini API"),
     ("DefaultCredentialsError: default credentials were not found", False, "Vertex AI model"),
     ("NotFoundError: 404 model not found", False, "can't use that model"),
 ])
