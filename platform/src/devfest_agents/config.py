@@ -17,6 +17,8 @@ REPO_ROOT = PLATFORM_ROOT.parent  # also holds my_agent/ and evals/
 
 
 PLACEHOLDER_KEY = "later"
+AI_STUDIO_KEY_PREFIX = "AIza"  # every Google AI Studio (Gemini API) key starts with this
+DEFAULT_MODEL = "gemini-3.7-flash"
 
 
 class Settings(BaseSettings):
@@ -65,7 +67,24 @@ class Settings(BaseSettings):
     # ----- computed helpers -------------------------------------------------
     @property
     def llm_mode(self) -> str:
-        return "proxy" if self.openai_base_url is not None else "direct"
+        # A Google AI Studio key ("AIza...") always talks to Gemini directly, even if a proxy URL
+        # was left in .env from another setup.
+        if self.openai_base_url is None or self.is_ai_studio_key:
+            return "direct"
+        return "proxy"
+
+    @property
+    def is_ai_studio_key(self) -> bool:
+        key = self.llm_api_key
+        return key is not None and key.startswith(AI_STUDIO_KEY_PREFIX)
+
+    def _qualify(self, model: str) -> str:
+        """Let people type the model name as AI Studio shows it ("gemini-3.7-flash" or
+        "models/gemini-3.7-flash"): add the LiteLLM provider prefix for the current mode."""
+        model = model.strip().removeprefix("models/")
+        if "/" in model:
+            return model
+        return f"openai/{model}" if self.llm_mode == "proxy" else f"gemini/{model}"
 
     @property
     def llm_api_key(self) -> str | None:
@@ -80,13 +99,11 @@ class Settings(BaseSettings):
 
     @property
     def effective_agent_model(self) -> str:
-        if self.agent_model:
-            return self.agent_model
-        return "openai/gemini-3.7-flash" if self.llm_mode == "proxy" else "gemini/gemini-3.7-flash"
+        return self._qualify(self.agent_model or DEFAULT_MODEL)
 
     @property
     def effective_router_model(self) -> str:
-        return self.router_model or self.effective_agent_model
+        return self._qualify(self.router_model) if self.router_model else self.effective_agent_model
 
     @property
     def llm_key_configured(self) -> bool:
