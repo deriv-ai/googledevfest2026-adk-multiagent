@@ -32,7 +32,8 @@ Score your agent on them:
 make eval
 ```
 
-It takes about a minute. You get one row per question:
+It asks one question at a time, so a free key never hits its limit, and takes about 3 minutes. You
+get one row per question:
 
 ```
 question                         kind          route  answer  note
@@ -42,9 +43,8 @@ sg-marketing-booked              routing         ✗     4/4    called ['finance
 Score: 19 / 25   (an example)
 ```
 
-`evals/report.json` has every answer, each criterion's verdict, and every tool call. `make eval`
-runs on your own key, which has a $5 limit, so while you fix one question, run just that one:
-`make eval Q=cps-drop-q2-q3`. Run the full set to confirm.
+`evals/report.json` has every answer, each criterion's verdict, and every tool call. While you fix
+one question, run just that one: `make eval Q=cps-drop-q2-q3`. Run the full set to confirm.
 
 Then ask the chat questions you think the hidden set might ask, and watch the **Agent route**
 panel:
@@ -59,7 +59,7 @@ panel:
 
 Don't hard-code answers: the hidden questions are different, so it wouldn't help. Your marketing
 tools read only the marketing data. When a question needs finance or trading numbers, the
-orchestrator has to ask those agents. Use the key and model the facilitators gave you.
+orchestrator has to ask those agents.
 
 ## Run the competition
 
@@ -69,14 +69,14 @@ At the end of the session, the facilitators show a passphrase and a link to a fo
 make eval-final KEY="<the passphrase>" NAME="Ada Lovelace"
 ```
 
-It asks your agents every hidden question and writes their answers to `evals/submission.json`.
+It asks your agents the 5 hidden questions, one at a time, and writes their answers to
+`evals/submission.json`. It takes about 3 minutes on a free key.
 It shows no score: the facilitators score every file the same way, after the deadline. Upload
 `evals/submission.json` to the [competition's form](https://forms.gle/ZuaxdysyoGR57Knz6).
 
 - **One run.** Once you have the passphrase, the questions are out, so don't change your agent and
-  run again. If some questions failed (a timeout, say), running the same command again re-runs
-  only those and keeps the rest.
-- **If your key runs out of budget**, the run stops and still writes the file. Upload it as it is.
+  run again. If a question fails (a rate limit or a timeout, say), it retries that question by
+  itself, up to 3 times, and keeps the answers it already has.
 
 Highest score wins, and the top 3 win a prize. On a tie, the earlier upload wins.
 
