@@ -17,7 +17,9 @@ REPO_ROOT = PLATFORM_ROOT.parent  # also holds my_agent/ and evals/
 
 
 PLACEHOLDER_KEY = "later"
-AI_STUDIO_KEY_PREFIX = "AIza"  # every Google AI Studio (Gemini API) key starts with this
+# Google AI Studio (Gemini API) keys: "AQ." for auth keys (every key AI Studio has created since
+# May 2026), "AIza" for older standard keys.
+AI_STUDIO_KEY_PREFIXES = ("AQ.", "AIza")
 DEFAULT_MODEL = "gemini-3.7-flash"
 
 
@@ -67,7 +69,7 @@ class Settings(BaseSettings):
     # ----- computed helpers -------------------------------------------------
     @property
     def llm_mode(self) -> str:
-        # A Google AI Studio key ("AIza...") always talks to Gemini directly, even if a proxy URL
+        # A Google AI Studio key ("AQ..." or "AIza...") always talks to Gemini directly, even if a proxy URL
         # was left in .env from another setup.
         if self.openai_base_url is None or self.is_ai_studio_key:
             return "direct"
@@ -76,7 +78,7 @@ class Settings(BaseSettings):
     @property
     def is_ai_studio_key(self) -> bool:
         key = self.llm_api_key
-        return key is not None and key.startswith(AI_STUDIO_KEY_PREFIX)
+        return key is not None and key.startswith(AI_STUDIO_KEY_PREFIXES)
 
     def _qualify(self, model: str) -> str:
         """Let people type the model name as AI Studio shows it ("gemini-3.7-flash" or

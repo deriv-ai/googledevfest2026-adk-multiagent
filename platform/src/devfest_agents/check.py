@@ -82,9 +82,13 @@ def is_rate_limited(error: str) -> bool:
 
 
 def key_hint(error: str) -> str:
-    if any(s in error for s in ("API_KEY_INVALID", "API key not valid", "AuthenticationError", "401")):
-        return ("The key was rejected. Copy it again from aistudio.google.com/apikey into .env as "
-                "LLM_API_KEY, then run `make up` again.")
+    if any(s in error for s in ("API_KEY_INVALID", "API key not valid", "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+                                "AuthenticationError", "401")):
+        return ("The key was rejected. Copy the whole key again from aistudio.google.com/apikey (new keys "
+                "start with AQ.) into .env as LLM_API_KEY, then run `make up` again.")
+    if any(s in error for s in ("PERMISSION_DENIED", "PermissionDenied", "403")):
+        return ("The key can't call the Gemini API. In AI Studio, check the key is restricted to the Gemini "
+                "API (or not restricted), and that its project is verified for the free tier.")
     if "credentials" in error.lower():
         return "The model name was read as a Vertex AI model. Use AGENT_MODEL=gemini-3.7-flash in .env."
     if any(s in error for s in ("NotFoundError", "404")):
