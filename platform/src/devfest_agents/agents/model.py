@@ -11,18 +11,67 @@ completion budget, and a small cap returns empty answers.
 
 from __future__ import annotations
 
+import asyncio
+import collections
 import os
+import time
+from typing import Any
 
-from google.adk.models.lite_llm import LiteLlm
+from google.adk.models.lite_llm import LiteLlm, LiteLLMClient
 
 from ..config import Settings, get_settings
 
 os.environ.setdefault("ADK_SUPPRESS_GEMINI_LITELLM_WARNINGS", "true")
 
 
+class RateLimiter:
+    """At most `per_minute` calls in any 60 seconds; later callers wait their turn."""
+
+    def __init__(self, per_minute: int) -> None:
+        self.per_minute = per_minute
+        self.calls: collections.deque[float] = collections.deque()
+        self.lock = asyncio.Lock()
+
+    async def wait(self) -> None:
+        async with self.lock:
+            while True:
+                now = time.monotonic()
+                while self.calls and now - self.calls[0] >= 60:
+                    self.calls.popleft()
+                if len(self.calls) < self.per_minute:
+                    self.calls.append(now)
+                    return
+                await asyncio.sleep(60 - (now - self.calls[0]) + 0.1)
+
+
+_limiters: dict[tuple[int, int], RateLimiter] = {}
+
+
+def shared_limiter(per_minute: int) -> RateLimiter:
+    """One limiter per event loop, shared by every agent, so the whole app stays under the quota."""
+    key = (id(asyncio.get_running_loop()), per_minute)
+    if key not in _limiters:
+        _limiters[key] = RateLimiter(per_minute)
+    return _limiters[key]
+
+
+class RateLimitedClient(LiteLLMClient):
+    """ADK's LiteLLM client, paced for a free Google AI Studio key (15 requests a minute per model)."""
+
+    def __init__(self, per_minute: int) -> None:
+        super().__init__()
+        self.per_minute = per_minute
+
+    async def acompletion(self, model: Any, messages: Any, tools: Any, **kwargs: Any):
+        await shared_limiter(self.per_minute).wait()
+        return await super().acompletion(model=model, messages=messages, tools=tools, **kwargs)
+
+
 def make_model(model: str, settings: Settings | None = None) -> LiteLlm:
     settings = settings or get_settings()
     kwargs: dict = {}
+    if settings.effective_requests_per_minute:
+        kwargs["llm_client"] = RateLimitedClient(settings.effective_requests_per_minute)
     key = settings.llm_api_key
     if key:
         kwargs["api_key"] = key

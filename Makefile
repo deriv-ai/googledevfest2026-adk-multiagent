@@ -75,17 +75,25 @@ reset: ## Reload the database from scratch, then start again
 check: ## Check an exercise: make check-0, make check-1 ... make check-3
 	@echo "Run make check-N, where N is the exercise number (0 to 3)."
 
+# One question at a time, so a free AI Studio key (15 requests a minute) never hits its limit.
+P ?= 1
+
 # `|| true`: a check with things to fix is normal progress, not a make error.
 check-%:
 	@$(EXEC) nimbus-app python -m devfest_agents.check $* || true
 
 eval: ## Score your agent on the 5 practice questions (one question: Q=<id>)
-	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml $(if $(Q),--only $(Q)) > evals/report.json \
+	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/practice.yaml --parallel $(P) $(if $(Q),--only $(Q)) > evals/report.json \
 		&& echo "Full report: evals/report.json" || true
 
+# Questions that fail (a rate limit, a timeout) are retried up to 3 times; answered ones are kept.
 eval-final: ## Run the competition questions and write your answers file (KEY=<passphrase> NAME="<your name>")
-	@$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --key "$(KEY)" --name "$(NAME)" \
-		--commit "$$(git rev-parse --short HEAD 2>/dev/null)" --previous /app/evals/submission.json \
-		> evals/.submission.tmp && mv evals/.submission.tmp evals/submission.json \
-		&& echo "Your file: evals/submission.json. Upload it here: $(FORM_URL)" \
-		|| rm -f evals/.submission.tmp
+	@for attempt in 1 2 3; do \
+		$(EXEC) nimbus-app python -m devfest_agents.evals /app/evals/final.enc --parallel $(P) --key "$(KEY)" --name "$(NAME)" \
+			--commit "$$(git rev-parse --short HEAD 2>/dev/null)" --previous /app/evals/submission.json \
+			> evals/.submission.tmp && mv evals/.submission.tmp evals/submission.json \
+			|| { rm -f evals/.submission.tmp; exit 1; }; \
+		grep -q '"error": "' evals/submission.json || break; \
+		if [ $$attempt -lt 3 ]; then echo "Some questions failed. Trying those again ($$((attempt + 1)) of 3)..."; sleep 30; fi; \
+	done; \
+	echo "Your file: evals/submission.json. Upload it here: $(FORM_URL)"

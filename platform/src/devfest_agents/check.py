@@ -71,7 +71,10 @@ async def ping_llm(settings) -> str | None:
         await litellm.acompletion(
             model=settings.effective_agent_model, api_key=settings.llm_api_key,
             api_base=settings.llm_api_base if settings.llm_mode == "proxy" else None,
-            messages=[{"role": "user", "content": "Reply with the word ok."}], timeout=30, num_retries=0)
+            messages=[{"role": "user", "content": "Reply with the word ok."}], timeout=60, num_retries=0,
+            # Same thinking level as the agents: without it a Gemini 3 model thinks for 30+ seconds.
+            **({"reasoning_effort": settings.llm_reasoning_effort, "drop_params": True}
+               if settings.llm_reasoning_effort else {}))
         return None
     except Exception as exc:  # noqa: BLE001 - any failure is reported as a hint
         return settings.scrub(f"{type(exc).__name__}: {exc}")

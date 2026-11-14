@@ -20,7 +20,9 @@ PLACEHOLDER_KEY = "later"
 # Google AI Studio (Gemini API) keys: "AQ." for auth keys (every key AI Studio has created since
 # May 2026), "AIza" for older standard keys.
 AI_STUDIO_KEY_PREFIXES = ("AQ.", "AIza")
-DEFAULT_MODEL = "gemini-3.7-flash"
+# Direct (AI Studio) default: Flash-Lite answers in seconds on the free tier, where 3.x Flash can hang.
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+PROXY_DEFAULT_MODEL = "gemini-3.7-flash"
 
 
 class Settings(BaseSettings):
@@ -45,6 +47,9 @@ class Settings(BaseSettings):
     # proxy hiccup into a 4-minute hang; fail fast and retry a couple of times instead.
     llm_timeout_seconds: float = Field(default=60.0, gt=0, le=600)
     llm_num_retries: int = Field(default=2, ge=0, le=5)
+    # Model calls allowed per minute across the whole app. Empty: 12 for a Google AI Studio key
+    # (its free tier allows 15 a minute per model), no limit for anything else.
+    llm_requests_per_minute: int | None = Field(default=None, ge=1, le=10000)
 
     database_url: str = "postgresql://app:app@db:5432/nimbus"
     agent_database_url: str = "postgresql://agent_ro:agent_ro@db:5432/nimbus"
@@ -58,7 +63,7 @@ class Settings(BaseSettings):
     max_tool_calls: int = Field(default=8, ge=1, le=50)  # per specialist, per request
     log_level: str = "INFO"
 
-    @field_validator("router_model", "agent_model", "llm_reasoning_effort", "gemini_api_key", "litellm_gemini_api_key",
+    @field_validator("router_model", "agent_model", "llm_reasoning_effort", "gemini_api_key", "litellm_gemini_api_key", "llm_requests_per_minute",
                      "openai_base_url", mode="before")
     @classmethod
     def _blank_is_none(cls, value):
@@ -74,6 +79,12 @@ class Settings(BaseSettings):
         if self.openai_base_url is None or self.is_ai_studio_key:
             return "direct"
         return "proxy"
+
+    @property
+    def effective_requests_per_minute(self) -> int | None:
+        if self.llm_requests_per_minute:
+            return self.llm_requests_per_minute
+        return 12 if self.is_ai_studio_key else None
 
     @property
     def is_ai_studio_key(self) -> bool:
@@ -101,7 +112,7 @@ class Settings(BaseSettings):
 
     @property
     def effective_agent_model(self) -> str:
-        return self._qualify(self.agent_model or DEFAULT_MODEL)
+        return self._qualify(self.agent_model or (PROXY_DEFAULT_MODEL if self.llm_mode == "proxy" else DEFAULT_MODEL))
 
     @property
     def effective_router_model(self) -> str:

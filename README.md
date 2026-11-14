@@ -34,8 +34,8 @@ Have these ready on your laptop:
 - **The app built already.** The first `make up` downloads about 1 GB, which venue Wi-Fi can't do
   for a whole room. Before you come, do [Set up](#set-up) steps 1 to 3 with
   `LLM_API_KEY=later` in `.env`: any text works until you have your real key.
-- **An LLM key.** At the session, scan the QR code on the slides to claim a key with a $5
-  limit. It pays for everything you run today. Put it in `.env` and run `make up` again.
+- **A free Gemini API key.** Create one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+  with your Google account: it's free and needs no card. Copy the whole key; it starts with `AQ.`.
 - **Some Python.** You'll write two short `async def` functions with type hints and docstrings,
   and fill in one function call. You don't need Python installed: everything runs in Docker.
 
@@ -87,7 +87,7 @@ docker compose version
 **1. Get the code.**
 
 ```bash
-git clone -b feat/central-judging https://github.com/deriv-ai/googledevfest2026-adk-multiagent
+git clone -b workshop https://github.com/deriv-ai/googledevfest2026-adk-multiagent
 cd googledevfest2026-adk-multiagent
 ```
 
@@ -100,19 +100,21 @@ cp .env.example .env
 Then open `.env` and fill in two lines:
 
 ```bash
-LLM_API_KEY=<your key>
-AGENT_MODEL=<provider>/<model>
+LLM_API_KEY=<your AI Studio key, starting with AQ.>
+AGENT_MODEL=gemini-3.5-flash-lite
 ```
 
-`AGENT_MODEL` is the provider, a slash and the model, for example `gemini/gemini-3.7-flash` or
+Type the model name as AI Studio shows it. The free tier allows 15 requests a minute per model,
+so with an AI Studio key the app paces itself to 12 a minute: a chat answer can take a little
+longer, but it never hits the limit.
+
+**Another provider?** `AGENT_MODEL` is the provider, a slash and the model, for example `gemini/gemini-3.7-flash` or
 `anthropic/claude-sonnet-5-5`. [LiteLLM's provider list](https://docs.litellm.ai/docs/providers)
 has the names for the others. If your key is for an OpenAI-compatible endpoint, such as a LiteLLM
 proxy or OpenRouter, also set `LLM_BASE_URL=<its URL>` and use `openai/<model>`.
 
-The exercises were tested on `gemini/gemini-3.7-flash`. Use the key from the session's QR code,
-and the model it comes with: your agent answers the competition's questions on that key, which
-has a $5 limit, and your answers file records the model. If you set up before the session with
-`LLM_API_KEY=later`, put the real key in now and run `make up` again.
+If you set up before the session with `LLM_API_KEY=later`, put the real key in now and run
+`make up` again.
 
 **3. Start the app.**
 

@@ -6,10 +6,10 @@ from devfest_agents.config import Settings
 
 def test_direct_mode_defaults():
     s = Settings(_env_file=None, gemini_api_key="g" * 12)
-    assert s.llm_mode == "direct" and s.effective_agent_model == "gemini/gemini-3.7-flash"
+    assert s.llm_mode == "direct" and s.effective_agent_model == "gemini/gemini-3.5-flash-lite"
     assert s.effective_router_model == s.effective_agent_model
     m = make_model(s.effective_agent_model, s)
-    assert m.model == "gemini/gemini-3.7-flash"
+    assert m.model == "gemini/gemini-3.5-flash-lite"
     assert m._additional_args == {"api_key": "g" * 12, "timeout": 60.0, "num_retries": 2, "reasoning_effort": "low", "drop_params": True}  # no max_tokens
 
 
@@ -45,6 +45,38 @@ def test_bare_model_name_in_proxy_mode_gets_openai_prefix():
                  agent_model="gemini-3.7-flash", router_model="gemini-3.5-flash")
     assert s.effective_agent_model == "openai/gemini-3.7-flash"
     assert s.effective_router_model == "openai/gemini-3.5-flash"
+
+
+def test_an_ai_studio_key_is_paced_under_the_free_tier_limit():
+    from devfest_agents.agents.model import RateLimitedClient
+
+    free = Settings(_env_file=None, litellm_gemini_api_key="AQ." + "x" * 40)
+    assert free.effective_requests_per_minute == 12
+    assert isinstance(make_model(free.effective_agent_model, free).llm_client, RateLimitedClient)
+    proxy = Settings(_env_file=None, litellm_gemini_api_key="sk-proxy-key", openai_base_url="https://proxy.invalid/v1")
+    assert proxy.effective_requests_per_minute is None
+    assert not isinstance(make_model(proxy.effective_agent_model, proxy).llm_client, RateLimitedClient)
+    assert Settings(_env_file=None, litellm_gemini_api_key="sk-x", llm_requests_per_minute=5).effective_requests_per_minute == 5
+
+
+async def test_the_rate_limiter_makes_the_next_caller_wait(monkeypatch):
+    from devfest_agents.agents import model as m
+
+    now = [1000.0]
+    slept = []
+
+    async def fake_sleep(seconds):
+        slept.append(seconds)
+        now[0] += seconds
+
+    monkeypatch.setattr(m.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(m.asyncio, "sleep", fake_sleep)
+    limiter = m.RateLimiter(2)
+    await limiter.wait()
+    await limiter.wait()
+    assert slept == []
+    await limiter.wait()  # the third call in the same minute waits for the first to age out
+    assert slept and 59 < slept[0] <= 60.2
 
 
 def test_secrets_never_in_repr_and_scrubbed():
